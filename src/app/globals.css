@@ -44,3 +44,7 @@ body {
 @utility eyebrow { @apply text-[11px] font-semibold uppercase tracking-[0.14em] text-gold; }
 
 .pb-safe { padding-bottom: max(env(safe-area-inset-bottom), 0.5rem); }
+
+@media print {
+  body { background: #fff; }
+}

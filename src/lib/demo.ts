@@ -1,4 +1,4 @@
-import type { DailyAction, Dream, DreamAction, Profile, WheelAssessment } from "./types";
+import type { DailyAction, Dream, DreamAction, LifePlan, Profile, WheelAssessment } from "./types";
 
 export const demoProfile: Profile = {
   id: "demo",
@@ -69,3 +69,11 @@ export const demoDaily: DailyAction[] = [
   ...[-1, -2, -3, -5, -6].map((o, i) => ({ id: `p${i}`, title: "Catat pengeluaran harian", action_date: dayIso(o), done: true, dream_id: null, created_at: "" })),
   { id: "p9", title: "Review target mingguan", action_date: dayIso(-4), done: false, dream_id: null, created_at: "" },
 ];
+
+export const demoLifePlan: LifePlan = {
+  core_values: ["Iman", "Keluarga", "Kebermanfaatan", "Integritas", "Pertumbuhan"],
+  vision:
+    "Sepuluh tahun lagi saya memimpin usaha kuliner sehat dengan lima cabang yang memberdayakan anak muda di daerah saya, punya waktu berkualitas bersama keluarga setiap pekan, dan bebas finansial.",
+  priorities: ["keluarga", "karier", "keuangan"],
+  updated_at: new Date().toISOString(),
+};

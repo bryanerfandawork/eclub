@@ -77,3 +77,18 @@ export type DailyAction = {
   dream_id: string | null;
   created_at: string;
 };
+
+export type LifePlan = {
+  core_values: string[];
+  vision: string | null;
+  priorities: string[];
+  updated_at: string | null;
+};
+
+export const VALUE_OPTIONS = [
+  "Iman", "Keluarga", "Kejujuran", "Integritas", "Tanggung jawab", "Kebebasan",
+  "Keamanan", "Kesehatan", "Prestasi", "Pertumbuhan", "Kreativitas", "Keberanian",
+  "Kemandirian", "Kebermanfaatan", "Kepedulian", "Persahabatan", "Kesederhanaan", "Keadilan",
+  "Disiplin", "Kerja keras", "Kolaborasi", "Kepemimpinan", "Inovasi", "Pengetahuan",
+  "Kedamaian", "Kebahagiaan", "Kemakmuran", "Pengaruh", "Petualangan", "Rasa syukur",
+] as const;

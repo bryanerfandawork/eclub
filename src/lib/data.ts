@@ -3,8 +3,8 @@ import { cache } from "react";
 import { redirect } from "next/navigation";
 import { isDemoMode } from "./supabase/config";
 import { createClient } from "./supabase/server";
-import { demoActions, demoDaily, demoDreams, demoProfile, demoWheel } from "./demo";
-import type { DailyAction, Dream, DreamAction, Profile, WheelAssessment } from "./types";
+import { demoActions, demoDaily, demoDreams, demoLifePlan, demoProfile, demoWheel } from "./demo";
+import type { DailyAction, Dream, DreamAction, LifePlan, Profile, WheelAssessment } from "./types";
 import { todayJakarta } from "./format";
 
 export const getProfile = cache(async (): Promise<Profile & { email: string }> => {
@@ -133,4 +133,11 @@ export async function getProgressStats() {
     dreamsAchieved: dreams.filter((d) => d.status === "achieved").length,
     dreamsActive: dreams.filter((d) => d.status === "active").length,
   };
+}
+
+export async function getLifePlan(): Promise<LifePlan | null> {
+  if (isDemoMode) return demoLifePlan;
+  const supabase = await createClient();
+  const { data } = await supabase.from("life_plans").select("core_values, vision, priorities, updated_at").maybeSingle();
+  return (data as LifePlan | null) ?? null;
 }

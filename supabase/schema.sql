@@ -115,3 +115,20 @@ create policy "daily milik sendiri" on public.daily_actions
   );
 
 grant select, insert, update, delete on public.wheel_assessments, public.daily_actions to authenticated;
+
+-- ===== Tahap 3 (sama dengan file 003_my_life.sql) =====
+create table if not exists public.life_plans (
+  user_id uuid primary key references auth.users (id) on delete cascade default auth.uid(),
+  core_values text[] not null default '{}',
+  vision text,
+  priorities text[] not null default '{}',
+  updated_at timestamptz not null default now()
+);
+
+alter table public.life_plans enable row level security;
+
+drop policy if exists "life plan milik sendiri" on public.life_plans;
+create policy "life plan milik sendiri" on public.life_plans
+  for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+grant select, insert, update, delete on public.life_plans to authenticated;

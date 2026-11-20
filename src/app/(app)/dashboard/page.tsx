@@ -27,7 +27,7 @@ export default async function DashboardPage() {
 
   // Perkiraan posisi di Success Framework berdasarkan data yang sudah diisi.
   const steps = [
-    { done: !!profile.success_definition, label: "Tuliskan definisi sukses Anda", href: "/profile#sukses" },
+    { done: !!profile.success_definition, label: "Tuliskan definisi sukses Anda", href: "/my-life" },
     { done: wheel.length > 0, label: "Nilai keseimbangan hidup (Wheel of Life)", href: "/wheel-of-life" },
     { done: dreams.length > 0, label: "Buat mimpi pertama Anda", href: "/goals/baru" },
     { done: stats.dailyTotal30 > 0, label: "Rencanakan aksi harian pertama", href: "/today" },
@@ -231,7 +231,7 @@ export default async function DashboardPage() {
             </div>
           </section>
         ) : (
-          <Link href="/profile#sukses" className="card flex gap-4 p-6 hover:shadow-lift">
+          <Link href="/my-life" className="card flex gap-4 p-6 hover:shadow-lift">
             <Quote className="h-6 w-6 shrink-0 text-gold" />
             <div>
               <p className="eyebrow">Definisi sukses saya</p>

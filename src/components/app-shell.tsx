@@ -35,9 +35,9 @@ export function AppShell({
     .toUpperCase();
 
   return (
-    <div className="min-h-dvh lg:pl-[264px]">
+    <div className="min-h-dvh lg:pl-[264px] print:pl-0">
       {/* Sidebar desktop */}
-      <aside className="fixed inset-y-0 left-0 z-30 hidden w-[264px] flex-col border-r border-line bg-white lg:flex">
+      <aside className="fixed inset-y-0 left-0 z-30 hidden print:!hidden w-[264px] flex-col border-r border-line bg-white lg:flex">
         <div className="px-6 pt-6 pb-4">
           <Link href="/dashboard">
             <Logo />
@@ -96,7 +96,7 @@ export function AppShell({
       </aside>
 
       {/* Header mobile */}
-      <header className="sticky top-0 z-20 flex items-center justify-between border-b border-line/70 bg-paper/85 px-5 py-3 backdrop-blur-xl lg:hidden">
+      <header className="print:hidden sticky top-0 z-20 flex items-center justify-between border-b border-line/70 bg-paper/85 px-5 py-3 backdrop-blur-xl lg:hidden">
         <Link href="/dashboard">
           <Logo />
         </Link>
@@ -110,17 +110,17 @@ export function AppShell({
       </header>
 
       {demo && (
-        <div className="border-b border-gold/30 bg-gold-soft px-5 py-2 text-center text-xs font-medium text-heading">
+        <div className="print:hidden border-b border-gold/30 bg-gold-soft px-5 py-2 text-center text-xs font-medium text-heading">
           Mode demo · Anda melihat data contoh. Data asli aktif setelah database disambungkan.
         </div>
       )}
 
-      <main className="mx-auto w-full max-w-6xl px-5 pt-6 pb-32 lg:px-10 lg:pt-10 lg:pb-16">{children}</main>
+      <main className="mx-auto w-full max-w-6xl px-5 pt-6 pb-32 lg:px-10 lg:pt-10 lg:pb-16 print:p-0">{children}</main>
 
       {/* AI Companion */}
       <button
         onClick={() => setAiOpen(true)}
-        className="fixed right-5 bottom-[92px] z-30 grid h-14 w-14 place-items-center rounded-full bg-gold text-heading shadow-lift transition hover:scale-105 active:scale-95 lg:right-8 lg:bottom-8"
+        className="print:hidden fixed right-5 bottom-[92px] z-30 grid h-14 w-14 place-items-center rounded-full bg-gold text-heading shadow-lift transition hover:scale-105 active:scale-95 lg:right-8 lg:bottom-8"
         aria-label="AI Companion"
       >
         <Sparkles className="h-6 w-6" strokeWidth={2} />
@@ -152,7 +152,7 @@ export function AppShell({
       )}
 
       {/* Bottom nav mobile */}
-      <nav className="pb-safe fixed inset-x-0 bottom-0 z-40 border-t border-line bg-white/95 backdrop-blur-xl lg:hidden">
+      <nav className="print:hidden pb-safe fixed inset-x-0 bottom-0 z-40 border-t border-line bg-white/95 backdrop-blur-xl lg:hidden">
         <ul className="mx-auto grid max-w-md grid-cols-5 px-2 pt-1.5">
           {mobileNav.map((item) => {
             const active = isActive(pathname, item.href);
