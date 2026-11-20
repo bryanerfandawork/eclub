@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { notifyOrderPaid } from "@/lib/whatsapp";
 import { createClient } from "@supabase/supabase-js";
 import { moota } from "@/lib/payments/moota";
 import { SUPABASE_URL } from "@/lib/supabase/config";
@@ -27,6 +28,7 @@ export async function POST(request: Request) {
       p_amount: p.amount,
       p_raw: p.raw,
     });
+    if (data && !error) await notifyOrderPaid(String(data));
     results.push({ ref: p.ref, order: data ?? null, error: error?.message });
   }
   return NextResponse.json({ ok: true, processed: results.length, results });

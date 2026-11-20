@@ -6,11 +6,20 @@ import { signOut } from "@/app/actions/auth";
 import { PageHeader } from "@/components/ui";
 import { getProfile } from "@/lib/data";
 import { ProfileForm } from "./profile-form";
+import { WhatsAppForm, type WaSettings } from "./whatsapp-form";
+import { isDemoMode } from "@/lib/supabase/config";
+import { createClient } from "@/lib/supabase/server";
 
 export const metadata = { title: "Profil" };
 
 export default async function ProfilePage() {
   const [profile, account] = await Promise.all([getProfile(), getAccount()]);
+  let wa: WaSettings = { whatsapp: null, wa_opt_in: false, wa_daily: true };
+  if (!isDemoMode) {
+    const supabase = await createClient();
+    const { data } = await supabase.from("profiles").select("whatsapp, wa_opt_in, wa_daily").eq("id", profile.id).maybeSingle();
+    if (data) wa = data as WaSettings;
+  }
   const initials = (profile.full_name || "E")
     .split(" ")
     .map((w) => w[0])
@@ -51,6 +60,7 @@ export default async function ProfilePage() {
         </aside>
         <div className="lg:col-span-2">
           <ProfileForm profile={profile} />
+          <WhatsAppForm s={wa} />
         </div>
       </div>
     </>

@@ -122,6 +122,7 @@ Without the Supabase env variables, the app runs in **demo mode**: it shows samp
   - Daily quota from `plan_features.ai_messages` (Free 5, Plus 50).
   - Logs tokens in `ai_messages`.
   - The system prompt is in `src/lib/ai.ts`.
+- **Notifikasi WhatsApp (Fonnte)** — member mengaktifkan sendiri di Profil (nomor + opt-in + pengingat harian). Vercel Cron `vercel.json` memanggil `/api/cron/daily` tiap 07.00 WIB: tes ulang 8 Wheel (>90 hari, maks sebulan sekali) atau pengingat aksi harian; maksimal 1 pesan/orang/hari, 40 pesan/run, jeda 0,7 dtk. Konfirmasi lunas dikirim saat admin menandai lunas / webhook pembayaran (`notifyOrderPaid` di `src/lib/whatsapp.ts`). Log di `notification_log`. Pengingat mentoring menunggu fitur booking.
 - **Landing page** (`src/app/page.tsx`): spark story, pain-to-gain section, philosophy, features, large SEF map, how it works, annual pricing, classes and mentoring, FAQ.
 
 ## 6. Database migrations (run by Ridha in Supabase > SQL Editor)
@@ -162,7 +163,7 @@ New migrations go in `supabase/00N_*.sql`. Every migration must include explicit
 3. **Anthropic key**
    - At console.anthropic.com: Billing (top up about $5), Limits (monthly spend limit, e.g. $10), API Keys (Create Key).
    - Then in Vercel, set `ANTHROPIC_API_KEY` and Redeploy.
-4. **Moota** (waiting for Ridha's Moota signup to finish)
+4. **Pembayaran** — Moota ditunda (kendala akun Ridha); mungkin pindah ke Xendit/lainnya (antarmuka `src/lib/payments/types.ts` siap). Langkah Moota lama: (waiting for Ridha's Moota signup to finish)
    - Part 1: connect the bank account in Moota. Internet banking credentials go **only into Moota**.
    - Part 2: in Moota, set the webhook URL to `https://www.eclub.co.id/api/payments/moota` (or the vercel.app URL until the domain works).
      - Create a secret token in Moota.
