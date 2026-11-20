@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { ArrowRight, CalendarCheck2, CheckCircle2, Circle, Flame, Gem, Plus, Quote } from "lucide-react";
-import { getDailyRange, getDreams, getOpenActions, getProfile, getProgressStats, getWheelHistory } from "@/lib/data";
+import { getAssessmentResults, getDailyRange, getDreams, getOpenActions, getProfile, getProgressStats, getWheelHistory } from "@/lib/data";
 import { compactRupiah, dreamProgress, greeting, todayJakarta } from "@/lib/format";
 import { DailyList } from "@/components/daily-list";
 import { WheelChart, wheelAverage } from "@/components/wheel-chart";
@@ -19,6 +19,8 @@ export default async function DashboardPage() {
     getWheelHistory(1),
     getProgressStats(),
   ]);
+  const ew = await getAssessmentResults("8-wheel-entrepreneur", 1);
+  const ewDue = ew[0] ? Date.now() - new Date(ew[0].created_at).getTime() > 90 * 86_400_000 : false;
   const firstName = (profile.full_name || "Sahabat").split(" ")[0];
   const active = dreams.filter((d) => d.status === "active");
   const totalTarget = active.reduce((s, d) => s + (d.target_amount ?? 0), 0);
@@ -29,6 +31,7 @@ export default async function DashboardPage() {
   const steps = [
     { done: !!profile.success_definition, label: "Tuliskan definisi sukses Anda", href: "/my-life" },
     { done: wheel.length > 0, label: "Nilai keseimbangan hidup (Wheel of Life)", href: "/wheel-of-life" },
+    { done: ew.length > 0, label: "Ikuti tes 8 Wheel Entrepreneur", href: "/assessment/8-wheel-entrepreneur" },
     { done: dreams.length > 0, label: "Buat mimpi pertama Anda", href: "/goals/baru" },
     { done: stats.dailyTotal30 > 0, label: "Rencanakan aksi harian pertama", href: "/today" },
   ];
@@ -41,6 +44,13 @@ export default async function DashboardPage() {
         <p className="text-sm font-medium text-muted">{greeting()},</p>
         <h1 className="text-[28px] font-bold tracking-tight text-heading lg:text-[34px]">{firstName} 👋</h1>
       </section>
+
+      {ewDue && (
+        <Link href="/assessment/8-wheel-entrepreneur?ulang=1" className="flex items-center justify-between gap-3 rounded-2xl border border-gold/40 bg-gold-soft px-5 py-4 text-sm font-medium text-heading hover:brightness-95">
+          <span>Sudah 3 bulan sejak tes 8 Wheel Entrepreneur terakhir. Yuk ukur perkembangan Anda.</span>
+          <ArrowRight className="h-4 w-4 shrink-0 text-brand" />
+        </Link>
+      )}
 
       <div className="grid gap-5 lg:grid-cols-3 lg:gap-6">
         {/* Kartu utama */}

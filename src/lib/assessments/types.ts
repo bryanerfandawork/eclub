@@ -27,6 +27,9 @@ export type Assessment = {
   intro: string;
   /** false = konten belum final; hanya tampil di mode demo. */
   ready: boolean;
+  /** Jarak tes ulang yang disarankan (hari). */
+  retakeDays?: number;
+  disclaimer?: string;
   dimensions: Dimension[];
   questions: Question[];
 };

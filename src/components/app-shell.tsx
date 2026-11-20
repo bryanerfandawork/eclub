@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
-import { LogOut, Sparkles, X } from "lucide-react";
+import { Crown, LogOut, ShieldCheck, Sparkles, X } from "lucide-react";
+import { PlanBadge } from "./plan-badge";
 import { Logo } from "./logo";
 import { mobileNav, sidebarNav } from "./nav-config";
 import { signOut } from "@/app/actions/auth";
@@ -19,11 +20,15 @@ export function AppShell({
   name,
   email,
   demo,
+  plan,
+  admin,
 }: {
   children: React.ReactNode;
   name: string;
   email: string;
   demo: boolean;
+  plan: "free" | "plus";
+  admin: boolean;
 }) {
   const pathname = usePathname();
   const [aiOpen, setAiOpen] = useState(false);
@@ -77,13 +82,32 @@ export function AppShell({
             </div>
           ))}
         </nav>
+        <div className="space-y-1 px-3 pb-3">
+          {plan === "free" && (
+            <Link href="/paket" className="flex items-center gap-3 rounded-xl bg-gold-soft px-3 py-2.5 text-[14px] font-semibold text-brand hover:brightness-95">
+              <Crown className="h-[18px] w-[18px] text-gold" /> Upgrade ke Plus
+            </Link>
+          )}
+          {admin && (
+            <Link
+              href="/admin"
+              className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-[14px] font-medium transition ${
+                pathname.startsWith("/admin") ? "bg-brand text-white" : "text-ink/80 hover:bg-paper hover:text-brand"
+              }`}
+            >
+              <ShieldCheck className={`h-[18px] w-[18px] ${pathname.startsWith("/admin") ? "text-gold" : "text-muted"}`} strokeWidth={1.8} /> Panel Admin
+            </Link>
+          )}
+        </div>
         <div className="border-t border-line p-4">
           <div className="flex items-center gap-3">
             <div className="grid h-10 w-10 place-items-center rounded-full bg-gold-soft text-sm font-bold text-heading">
               {initials || "E"}
             </div>
             <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-semibold text-heading">{name}</p>
+              <p className="flex items-center gap-1.5 truncate text-sm font-semibold text-heading">
+                <span className="truncate">{name}</span> <PlanBadge plan={plan} />
+              </p>
               <p className="truncate text-xs text-muted">{email}</p>
             </div>
             <form action={signOut}>

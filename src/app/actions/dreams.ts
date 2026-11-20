@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { isDemoMode } from "@/lib/supabase/config";
 import { createClient } from "@/lib/supabase/server";
 import type { FormState } from "./auth";
+import { getLimit, UPGRADE_HINT } from "@/lib/plans";
 
 const DEMO_MSG = "Mode demo: data belum bisa disimpan sampai database disambungkan.";
 
@@ -25,6 +26,11 @@ export async function createDream(_: FormState, formData: FormData): Promise<For
   if (!title) return { error: "Tuliskan mimpi Anda terlebih dahulu." };
 
   const supabase = await createClient();
+  const limit = await getLimit("dreams");
+  if (limit != null) {
+    const { count } = await supabase.from("dreams").select("id", { count: "exact", head: true });
+    if ((count ?? 0) >= limit) return { error: `Paket Anda bisa menyimpan ${limit} mimpi. ${UPGRADE_HINT}` };
+  }
   const { data, error } = await supabase
     .from("dreams")
     .insert({

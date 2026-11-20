@@ -32,6 +32,14 @@ export function Quiz({ assessment, previous }: { assessment: Assessment; previou
         <p className="eyebrow">{qs.length} pernyataan · sekitar {Math.max(2, Math.round(qs.length / 5))} menit</p>
         <h2 className="mt-3 text-2xl font-bold text-heading">{assessment.subtitle}</h2>
         <p className="mx-auto mt-3 max-w-md leading-relaxed text-muted">{assessment.intro}</p>
+        <div className="mx-auto mt-6 grid max-w-md grid-cols-2 gap-2 text-left">
+          {assessment.dimensions.map((d) => (
+            <span key={d.key} className="rounded-lg bg-paper px-3 py-2 text-xs font-semibold text-heading">
+              {d.label}
+            </span>
+          ))}
+        </div>
+        {assessment.disclaimer && <p className="mx-auto mt-5 max-w-md text-xs text-muted">{assessment.disclaimer}</p>}
         <button onClick={() => setStarted(true)} className="btn-primary mt-7 px-8 py-3">
           Mulai
         </button>
@@ -40,7 +48,6 @@ export function Quiz({ assessment, previous }: { assessment: Assessment; previou
   }
 
   const q = qs[i];
-  const dim = assessment.dimensions.find((d) => d.key === q.dimension);
   const answeredAll = qs.every((x) => answers[x.id]);
 
   const choose = (v: number) => {
@@ -78,7 +85,7 @@ export function Quiz({ assessment, previous }: { assessment: Assessment; previou
       </div>
 
       <div key={q.id} className="card animate-rise p-6 sm:p-10">
-        {dim && <p className="eyebrow">{dim.label}</p>}
+        <p className="eyebrow">Pernyataan {i + 1}</p>
         <h2 className="mt-3 text-xl leading-snug font-semibold text-heading sm:text-2xl">{q.text}</h2>
         <div className="mt-7 grid gap-2.5">
           {LIKERT.map((l) => {

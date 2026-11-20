@@ -1,4 +1,7 @@
-import { LogOut, Mail } from "lucide-react";
+import Link from "next/link";
+import { Crown, LogOut, Mail, ShieldCheck } from "lucide-react";
+import { PlanBadge } from "@/components/plan-badge";
+import { getAccount, isAdmin } from "@/lib/plans";
 import { signOut } from "@/app/actions/auth";
 import { PageHeader } from "@/components/ui";
 import { getProfile } from "@/lib/data";
@@ -7,7 +10,7 @@ import { ProfileForm } from "./profile-form";
 export const metadata = { title: "Profil" };
 
 export default async function ProfilePage() {
-  const profile = await getProfile();
+  const [profile, account] = await Promise.all([getProfile(), getAccount()]);
   const initials = (profile.full_name || "E")
     .split(" ")
     .map((w) => w[0])
@@ -27,7 +30,20 @@ export default async function ProfilePage() {
           {profile.segment && (
             <span className="mt-3 inline-block rounded-full bg-paper px-3 py-1 text-xs font-semibold text-heading">{profile.segment}</span>
           )}
-          <form action={signOut} className="mt-6 border-t border-line pt-4">
+          <div className="mt-4 flex justify-center">
+            <PlanBadge plan={account.plan} />
+          </div>
+          <div className="mt-5 space-y-2 border-t border-line pt-4">
+            <Link href="/paket" className="btn-ghost w-full">
+              <Crown className="h-4 w-4 text-gold" /> {account.plan === "plus" ? "Paket saya" : "Upgrade ke Plus"}
+            </Link>
+            {isAdmin(account.role) && (
+              <Link href="/admin" className="btn-ghost w-full">
+                <ShieldCheck className="h-4 w-4 text-brand" /> Panel Admin
+              </Link>
+            )}
+          </div>
+          <form action={signOut} className="mt-2">
             <button className="btn-ghost w-full">
               <LogOut className="h-4 w-4" /> Keluar
             </button>

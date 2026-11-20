@@ -52,7 +52,7 @@ export function AssessmentResultView({
                   <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-paper">
                     <div className="h-full rounded-full bg-brand" style={{ width: `${Math.max(v * 10, 2)}%` }} />
                   </div>
-                  {t && <p className="mt-1 text-xs text-muted">{t}</p>}
+                  {t && <p className="mt-1 text-xs leading-relaxed text-muted">{t}</p>}
                 </li>
               );
             })}
