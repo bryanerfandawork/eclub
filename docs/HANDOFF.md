@@ -78,7 +78,7 @@ Source of truth in code: `src/lib/sef.ts` (SPARK, SEF_PHASES, SEF_STEPS). The jo
 - `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`: already set.
 - `SUPABASE_SERVICE_ROLE_KEY`, `MOOTA_WEBHOOK_SECRET`: for the Moota webhook (pending).
 - `ANTHROPIC_API_KEY`: for the AI Companion (pending).
-- `FONNTE_TOKEN`: later.
+- `FONNTE_TOKEN` (Fonnte device token) and `CRON_SECRET` (any random text; Vercel Cron sends it automatically): for WhatsApp notifications. The cron job also needs `SUPABASE_SERVICE_ROLE_KEY`.
 - Optional: `NEXT_PUBLIC_SITE_URL` (defaults to https://www.eclub.co.id; only used for `metadataBase`).
 - After changing env variables, you must **Redeploy**.
 
@@ -123,6 +123,13 @@ Without the Supabase env variables, the app runs in **demo mode**: it shows samp
   - Logs tokens in `ai_messages`.
   - The system prompt is in `src/lib/ai.ts`.
 - **Notifikasi WhatsApp (Fonnte)** — member mengaktifkan sendiri di Profil (nomor + opt-in + pengingat harian). Vercel Cron `vercel.json` memanggil `/api/cron/daily` tiap 07.00 WIB: tes ulang 8 Wheel (>90 hari, maks sebulan sekali) atau pengingat aksi harian; maksimal 1 pesan/orang/hari, 40 pesan/run, jeda 0,7 dtk. Konfirmasi lunas dikirim saat admin menandai lunas / webhook pembayaran (`notifyOrderPaid` di `src/lib/whatsapp.ts`). Log di `notification_log`. Pengingat mentoring menunggu fitur booking.
+- **WhatsApp notifications (Fonnte)**:
+  - Members turn them on themselves in Profile: WhatsApp number, opt-in, and an optional daily reminder.
+  - `vercel.json` schedules Vercel Cron to call `/api/cron/daily` every day at 07:00 WIB. It sends either the 8 Wheel retest reminder (after 90 days, at most once a month) or the daily action reminder.
+  - Limits: at most 1 message per person per day, 40 messages per run, 0.7 second gap between sends.
+  - A payment confirmation is sent when an admin marks an order as paid or the payment webhook fulfils it (`notifyOrderPaid` in `src/lib/whatsapp.ts`).
+  - Sends are logged in `notification_log`.
+  - Mentoring reminders wait for the booking feature.
 - **Landing page** (`src/app/page.tsx`): spark story, pain-to-gain section, philosophy, features, large SEF map, how it works, annual pricing, classes and mentoring, FAQ.
 
 ## 6. Database migrations (run by Ridha in Supabase > SQL Editor)
@@ -137,6 +144,7 @@ Without the Supabase env variables, the app runs in **demo mode**: it shows samp
 | `006_payments.sql` | ✅ run |
 | `007_testimonials_sef.sql` (testimonials + `courses.sef_step`) | ✅ run (same content, pasted from the chat) |
 | `008_ai_companion.sql` | ⏳ **not run yet** |
+| `009_whatsapp.sql` (WhatsApp columns on profiles + notification_log) | ⏳ **not run yet** |
 
 New migrations go in `supabase/00N_*.sql`. Every migration must include explicit `GRANT` statements, because "Grant API access" was unchecked when the project was created.
 
@@ -172,12 +180,16 @@ New migrations go in `supabase/00N_*.sql`. Every migration must include explicit
    - Part 3: test end to end with a small transfer.
      - Use Moota's test webhook and check `payment_events`.
      - Adjust the parser in `src/lib/payments/moota.ts` if the payload or signature format differs.
-5. **Fonnte** (after the AI Companion and Moota are done): register a WhatsApp number in Fonnte, then put `FONNTE_TOKEN` in Vercel.
+5. **Fonnte**
+   - Run `009_whatsapp.sql`.
+   - Sign up at fonnte.com and connect the business WhatsApp number by scanning the QR code.
+   - Copy the device token into Vercel as `FONNTE_TOKEN`.
+   - Add `CRON_SECRET` (any random text) and `SUPABASE_SERVICE_ROLE_KEY`, then Redeploy.
 6. Before launch: custom SMTP in Supabase (so confirmation emails come from the domain and are not rate-limited), and fill in the upgrade/mentoring WhatsApp contact in Admin.
 
 ## 8. Backlog and suggested build order
 
-1. **WhatsApp notifications via Fonnte** (approved):
+1. ~~WhatsApp notifications via Fonnte~~: built (see section 5). Only activation is left. The original plan was:
    - Notifications: daily action reminders, Moota payment confirmations, 3-month retest reminder, mentoring reminders.
    - Members must opt in, and the WhatsApp number is saved in their profile.
    - Rate-limit sends, and log them (e.g. a `notifications` table).
