@@ -13,6 +13,9 @@ export default function JourneyPage() {
         title="Peta perjalanan Anda"
         desc="Dimulai dari Spark, menemukan kembali cita-cita. Lalu berjenjang melalui Survive, Sustain, Scale Up, dan Spread Up. Ikuti urutannya supaya tidak bingung."
       />
+      <Link href="/posisi" className="btn-primary mb-6">
+        Cek posisi saya di peta ini
+      </Link>
       <ol className="relative space-y-4">
         <span className="absolute top-6 bottom-6 left-[27px] w-px bg-line lg:left-[31px]" aria-hidden />
         {STAGES.map((s, i) => (

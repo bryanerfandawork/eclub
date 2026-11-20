@@ -1,10 +1,11 @@
 import Link from "next/link";
-import { ArrowRight, CalendarCheck2, CheckCircle2, Circle, Flame, Gem, Plus, Quote } from "lucide-react";
+import { ArrowRight, CalendarCheck2, CheckCircle2, Circle, Compass, Flame, Gem, Plus, Quote } from "lucide-react";
 import { getAssessmentResults, getDailyRange, getDreams, getOpenActions, getProfile, getProgressStats, getWheelHistory } from "@/lib/data";
 import { compactRupiah, dreamProgress, greeting, todayJakarta } from "@/lib/format";
 import { DailyList } from "@/components/daily-list";
 import { WheelChart, wheelAverage } from "@/components/wheel-chart";
 import { STAGES } from "@/lib/journey";
+import { PLACEMENT_KEY } from "@/lib/placement";
 import { ProgressBar, Ring } from "@/components/ui";
 
 export const metadata = { title: "Dashboard" };
@@ -19,7 +20,8 @@ export default async function DashboardPage() {
     getWheelHistory(1),
     getProgressStats(),
   ]);
-  const ew = await getAssessmentResults("8-wheel-entrepreneur", 1);
+  const [ew, placed] = await Promise.all([getAssessmentResults("8-wheel-entrepreneur", 1), getAssessmentResults(PLACEMENT_KEY, 1)]);
+  const placement = (placed[0]?.scores as unknown as { placement?: string } | undefined)?.placement;
   const ewDue = ew[0] ? Date.now() - new Date(ew[0].created_at).getTime() > 90 * 86_400_000 : false;
   const firstName = (profile.full_name || "Sahabat").split(" ")[0];
   const active = dreams.filter((d) => d.status === "active");
@@ -29,6 +31,7 @@ export default async function DashboardPage() {
 
   // Perkiraan posisi di Success Framework berdasarkan data yang sudah diisi.
   const steps = [
+    { done: !!placement, label: "Cek posisi Anda di peta SEF (3 menit)", href: "/posisi" },
     { done: !!profile.success_definition, label: "Tuliskan definisi sukses Anda", href: "/my-life" },
     { done: wheel.length > 0, label: "Nilai keseimbangan hidup (Wheel of Life)", href: "/wheel-of-life" },
     { done: ew.length > 0, label: "Ikuti tes 8 Wheel Entrepreneur", href: "/assessment/8-wheel-entrepreneur" },
@@ -37,7 +40,8 @@ export default async function DashboardPage() {
   ];
   const onboarding = steps.some((s) => !s.done);
   // 0 = Spark (definisi sukses + mimpi), 1 = Personal Mapping (tes 8 Wheel), 2 = Acquisition, dst.
-  const stageIndex = !profile.success_definition || dreams.length === 0 ? 0 : ew.length === 0 ? 1 : 2;
+  const placedIdx = STAGES.findIndex((st) => st.id === placement);
+  const stageIndex = placedIdx >= 0 ? placedIdx : !profile.success_definition || dreams.length === 0 ? 0 : ew.length === 0 ? 1 : 2;
 
   return (
     <div className="space-y-6 lg:space-y-8">
@@ -45,6 +49,19 @@ export default async function DashboardPage() {
         <p className="text-sm font-medium text-muted">{greeting()},</p>
         <h1 className="text-[28px] font-bold tracking-tight text-heading lg:text-[34px]">{firstName} 👋</h1>
       </section>
+
+      {!placement && (
+        <Link href="/posisi" className="flex animate-rise items-center gap-4 rounded-2xl bg-heading p-5 text-white shadow-lift hover:brightness-110">
+          <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-gold text-brand-deep">
+            <Compass className="h-6 w-6" />
+          </span>
+          <span className="flex-1">
+            <span className="block font-bold">Mulai dari sini: Cek Posisi Anda</span>
+            <span className="block text-sm text-white/70">10 pertanyaan singkat untuk mengetahui titik awal dan langkah yang paling tepat.</span>
+          </span>
+          <ArrowRight className="h-5 w-5 shrink-0 text-gold" />
+        </Link>
+      )}
 
       {ewDue && (
         <Link href="/assessment/8-wheel-entrepreneur?ulang=1" className="flex items-center justify-between gap-3 rounded-2xl border border-gold/40 bg-gold-soft px-5 py-4 text-sm font-medium text-heading hover:brightness-95">
@@ -76,8 +93,8 @@ export default async function DashboardPage() {
             ))}
           </div>
           <div className="mt-6 flex flex-wrap gap-3">
-            <Link href="/journey" className="btn-gold">
-              Lanjutkan perjalanan <ArrowRight className="h-4 w-4" />
+            <Link href={placement ? "/posisi" : "/journey"} className="btn-gold">
+              {placement ? "Lihat langkah berikutnya" : "Lanjutkan perjalanan"} <ArrowRight className="h-4 w-4" />
             </Link>
           </div>
         </section>

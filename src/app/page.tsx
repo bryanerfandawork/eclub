@@ -71,7 +71,7 @@ function PhoneMockup() {
           </div>
           <div className="rounded-2xl bg-brand p-3.5 text-white">
             <p className="text-[9px] font-semibold tracking-widest text-gold uppercase">Perjalanan Anda</p>
-            <p className="mt-1 text-sm font-bold">Tahap 03 · Design</p>
+            <p className="mt-1 text-sm font-bold">Survive · Acquisition</p>
             <div className="mt-2.5 flex gap-1">
               {[1, 1, 1, 0, 0, 0].map((on, i) => (
                 <span key={i} className={`h-1 flex-1 rounded-full ${on ? "bg-gold" : "bg-white/20"}`} />

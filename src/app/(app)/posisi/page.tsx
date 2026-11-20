@@ -1,0 +1,131 @@
+import Link from "next/link";
+import { ArrowRight, BookOpen, Flame, MapPin, MessageCircle, RotateCcw } from "lucide-react";
+import { PageHeader } from "@/components/ui";
+import { contactHref } from "@/lib/contact";
+import { getAssessmentResults } from "@/lib/data";
+import { listCourses } from "@/lib/lms";
+import { PLACEMENT_COPY, PLACEMENT_KEY, type Placement } from "@/lib/placement";
+import { getSettings } from "@/lib/plans";
+import { SEF_PHASES, SEF_STEPS, SPARK } from "@/lib/sef";
+import { PlacementWizard } from "./wizard";
+
+export const metadata = { title: "Cek Posisi" };
+
+export default async function PlacementPage({ searchParams }: { searchParams: Promise<{ ulang?: string }> }) {
+  const { ulang } = await searchParams;
+  const [results, settings, courses] = await Promise.all([getAssessmentResults(PLACEMENT_KEY, 1), getSettings(), listCourses()]);
+  const latest = results[0]?.scores as unknown as { placement: Placement; spark: number } | undefined;
+
+  if (!latest || ulang) {
+    return (
+      <>
+        <PageHeader eyebrow="Cek Posisi" title="Temukan titik awal Anda" desc="Agar Anda tidak bingung harus mulai dari mana." />
+        <PlacementWizard />
+      </>
+    );
+  }
+
+  const p = latest.placement;
+  const copy = PLACEMENT_COPY[p];
+  const learnStep = p === "spark" ? "personal_mapping" : p;
+  const stepCourses = courses.filter((c) => c.sef_step === learnStep).slice(0, 3);
+  const mentoring = contactHref(String(settings.upgrade_contact ?? ""), `Halo EClub, hasil Cek Posisi saya: ${copy.title}. Saya ingin mentoring.`);
+  const activeIdx = p === "spark" ? -1 : SEF_STEPS.findIndex((s) => s.key === p);
+
+  return (
+    <>
+      <PageHeader eyebrow="Hasil Cek Posisi" title="Inilah posisi Anda sekarang" desc="Setiap orang punya titik awal yang berbeda. Yang penting, Anda tahu langkah berikutnya." />
+      <div className="grid gap-5 lg:grid-cols-5 lg:gap-6">
+        <section className="relative overflow-hidden rounded-3xl bg-brand p-6 text-white shadow-lift lg:col-span-3 lg:p-8">
+          <div className="pointer-events-none absolute -top-20 -right-16 h-64 w-64 rounded-full bg-gold/20 blur-3xl" />
+          <p className="eyebrow flex items-center gap-1.5">
+            <MapPin className="h-3.5 w-3.5" /> Anda di sini
+          </p>
+          <h2 className="mt-2 text-2xl font-bold lg:text-3xl">{copy.title}</h2>
+          <p className="mt-3 leading-relaxed text-white/80">{copy.why}</p>
+          <p className="mt-3 text-sm text-white/65">Skor spark: {latest.spark} / 5</p>
+
+          <div className="mt-7 space-y-2">
+            <div className={`flex items-center gap-3 rounded-xl px-3 py-2.5 ${p === "spark" ? "bg-gold text-brand-deep" : "bg-white/10"}`}>
+              <Flame className="h-4 w-4" />
+              <span className="text-sm font-semibold">{SPARK.name}</span>
+              {p === "spark" && <span className="ml-auto text-[11px] font-bold">ANDA DI SINI</span>}
+            </div>
+            {SEF_PHASES.map((ph) =>
+              SEF_STEPS.filter((s) => s.phase === ph.key).map((s, k) => {
+                const idx = SEF_STEPS.indexOf(s);
+                const here = idx === activeIdx;
+                return (
+                  <div
+                    key={s.key}
+                    className={`flex items-center gap-3 rounded-xl px-3 py-2.5 ${here ? "bg-gold text-brand-deep" : idx < activeIdx ? "bg-white/15" : "bg-white/5 text-white/60"}`}
+                  >
+                    <span className="grid h-6 w-6 place-items-center rounded-full bg-white/15 text-[11px] font-bold">{s.no}</span>
+                    <span className="text-sm font-semibold">{s.name}</span>
+                    {k === 0 && <span className="text-[11px] opacity-70">· {ph.name}</span>}
+                    {here && <span className="ml-auto text-[11px] font-bold">ANDA DI SINI</span>}
+                  </div>
+                );
+              }),
+            )}
+          </div>
+        </section>
+
+        <aside className="space-y-5 lg:col-span-2">
+          <section className="card p-6">
+            <p className="eyebrow">Langkah berikutnya</p>
+            <p className="mt-2 leading-relaxed text-ink">{copy.next}</p>
+            <div className="mt-5 space-y-2">
+              {p === "spark" && (
+                <>
+                  <Link href="/my-life" className="btn-primary w-full justify-between">
+                    Tulis definisi sukses <ArrowRight className="h-4 w-4" />
+                  </Link>
+                  <Link href="/goals/baru" className="btn-ghost w-full justify-between">
+                    Buat mimpi pertama <ArrowRight className="h-4 w-4" />
+                  </Link>
+                </>
+              )}
+              {p === "personal_mapping" && (
+                <Link href="/assessment/8-wheel-entrepreneur" className="btn-primary w-full justify-between">
+                  Ikuti tes 8 Wheel Entrepreneur <ArrowRight className="h-4 w-4" />
+                </Link>
+              )}
+              <Link href="/learn" className={`${p === "spark" || p === "personal_mapping" ? "btn-ghost" : "btn-primary"} w-full justify-between`}>
+                <span className="flex items-center gap-2">
+                  <BookOpen className="h-4 w-4" /> Kelas {SEF_STEPS.find((s) => s.key === learnStep)?.name}
+                </span>
+                <ArrowRight className="h-4 w-4" />
+              </Link>
+              {mentoring && (
+                <a href={mentoring} target="_blank" rel="noopener noreferrer" className="btn-gold w-full justify-between">
+                  <span className="flex items-center gap-2">
+                    <MessageCircle className="h-4 w-4" /> Konsultasi dengan mentor
+                  </span>
+                  <ArrowRight className="h-4 w-4" />
+                </a>
+              )}
+            </div>
+          </section>
+          {stepCourses.length > 0 && (
+            <section className="card p-5">
+              <p className="text-sm font-bold text-heading">Kelas yang cocok untuk Anda</p>
+              <ul className="mt-3 divide-y divide-line">
+                {stepCourses.map((c) => (
+                  <li key={c.id}>
+                    <Link href={`/learn/${c.slug}`} className="flex items-center justify-between gap-3 py-2.5 text-sm font-medium text-ink hover:text-brand">
+                      {c.title} <ArrowRight className="h-4 w-4 shrink-0 text-muted" />
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+          <Link href="/posisi?ulang=1" className="flex items-center justify-center gap-2 text-sm font-medium text-muted hover:text-brand">
+            <RotateCcw className="h-4 w-4" /> Ulangi Cek Posisi
+          </Link>
+        </aside>
+      </div>
+    </>
+  );
+}
