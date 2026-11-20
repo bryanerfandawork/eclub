@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { Crown, LogOut, ShieldCheck, Sparkles, X } from "lucide-react";
 import { PlanBadge } from "./plan-badge";
+import { InstallPrompt } from "./install-prompt";
 import { Logo } from "./logo";
 import { mobileNav, sidebarNav } from "./nav-config";
 import { signOut } from "@/app/actions/auth";
@@ -174,6 +175,8 @@ export function AppShell({
           </div>
         </div>
       )}
+
+      <InstallPrompt />
 
       {/* Bottom nav mobile */}
       <nav className="print:hidden pb-safe fixed inset-x-0 bottom-0 z-40 border-t border-line bg-white/95 backdrop-blur-xl lg:hidden">
