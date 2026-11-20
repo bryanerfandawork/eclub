@@ -28,13 +28,13 @@ import { SEGMENTS } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
-const FEATURES = [
+const FEATURES: { icon: typeof Heart; title: string; desc: string; soon?: boolean }[] = [
   { icon: Heart, title: "My Life", desc: "Rumuskan definisi sukses, nilai pribadi, visi 10 tahun, dan prioritas hidup dalam satu dokumen yang bisa dicetak." },
   { icon: Radar, title: "8 Wheel Entrepreneur", desc: "Tes 40 pernyataan yang memetakan 8 kompetensi entrepreneur Anda dalam diagram jaring laba-laba." },
   { icon: Gem, title: "Dream Planner", desc: "Ubah mimpi menjadi target dana dan tanggal. Sistem menghitung berapa yang perlu disisihkan setiap bulan." },
   { icon: CalendarCheck2, title: "Daily Action", desc: "Pecah tujuan besar menjadi aksi harian. Jaga rangkaian konsisten dan lihat grafik 7 hari terakhir." },
   { icon: BookOpen, title: "Learning Center", desc: "Kelas video berjenjang mengikuti Sustainable Entrepreneur Framework, dari Personal Mapping hingga Investation." },
-  { icon: Sparkles, title: "AI Companion", desc: "Teman diskusi yang memahami perjalanan Anda untuk menyusun rencana dan evaluasi.", soon: true },
+  { icon: Sparkles, title: "AI Companion", desc: "Teman diskusi 24 jam yang memahami mimpi, posisi SEF, dan hasil tes Anda untuk menyusun rencana dan evaluasi." },
 ];
 
 const PAINS = [

@@ -3,9 +3,10 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
-import { Crown, LogOut, ShieldCheck, Sparkles, X } from "lucide-react";
+import { Crown, LogOut, ShieldCheck, Sparkles } from "lucide-react";
 import { PlanBadge } from "./plan-badge";
 import { InstallPrompt } from "./install-prompt";
+import { AiChat } from "./ai-chat";
 import { Logo } from "./logo";
 import { mobileNav, sidebarNav } from "./nav-config";
 import { signOut } from "@/app/actions/auth";
@@ -150,31 +151,7 @@ export function AppShell({
       >
         <Sparkles className="h-6 w-6" strokeWidth={2} />
       </button>
-      {aiOpen && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 backdrop-blur-sm sm:items-center" onClick={() => setAiOpen(false)}>
-          <div
-            className="card m-0 w-full max-w-md animate-rise rounded-b-none p-6 sm:m-4 sm:rounded-2xl"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-start justify-between">
-              <div className="grid h-11 w-11 place-items-center rounded-2xl bg-gold-soft text-gold">
-                <Sparkles className="h-5 w-5" />
-              </div>
-              <button onClick={() => setAiOpen(false)} className="rounded-lg p-1.5 text-muted hover:bg-paper" aria-label="Tutup">
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-            <h3 className="mt-4 text-lg font-bold text-heading">AI Companion</h3>
-            <p className="mt-1.5 text-sm leading-relaxed text-muted">
-              Teman diskusi pribadi untuk merefleksikan tujuan, menyusun rencana, dan menjaga konsistensi Anda. Fitur ini
-              sedang kami siapkan.
-            </p>
-            <button onClick={() => setAiOpen(false)} className="btn-primary mt-5 w-full">
-              Mengerti
-            </button>
-          </div>
-        </div>
-      )}
+      {aiOpen && <AiChat onClose={() => setAiOpen(false)} />}
 
       <InstallPrompt />
 

@@ -24,7 +24,7 @@ export const DEFAULT_FEATURES: PlanFeature[] = [
   { key: "my_life", label: "My Life", description: "Definisi sukses, nilai, visi, dan dokumen hidup", free_limit: null, plus_limit: null, unit: null, enforced: true, sort: 30 },
   { key: "wheel_history", label: "Wheel of Life", description: "Riwayat penilaian yang bisa dibandingkan", free_limit: 2, plus_limit: 24, unit: "riwayat", enforced: true, sort: 40 },
   { key: "assessment_attempts", label: "8 Wheel Entrepreneur", description: "Jumlah tes dalam 3 bulan", free_limit: 1, plus_limit: null, unit: "kali / 3 bulan", enforced: true, sort: 50 },
-  { key: "ai_messages", label: "AI Companion", description: "Kuota pesan AI per bulan", free_limit: 20, plus_limit: 300, unit: "pesan/bulan", enforced: false, sort: 60 },
+  { key: "ai_messages", label: "AI Companion", description: "Kuota pesan AI per hari", free_limit: 5, plus_limit: 50, unit: "pesan/hari", enforced: true, sort: 60 },
   { key: "premium_articles", label: "Artikel premium", description: "Akses artikel premium", free_limit: 0, plus_limit: null, unit: null, enforced: false, sort: 70 },
   { key: "paid_courses", label: "Course berbayar", description: "Akses course khusus member", free_limit: 0, plus_limit: null, unit: null, enforced: false, sort: 80 },
 ];
