@@ -141,3 +141,17 @@ export async function getLifePlan(): Promise<LifePlan | null> {
   const { data } = await supabase.from("life_plans").select("core_values, vision, priorities, updated_at").maybeSingle();
   return (data as LifePlan | null) ?? null;
 }
+
+export type AssessmentResult = { id: string; scores: Record<string, number>; created_at: string };
+
+export async function getAssessmentResults(key: string, limit = 5): Promise<AssessmentResult[]> {
+  if (isDemoMode) return [];
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("assessment_results")
+    .select("id, scores, created_at")
+    .eq("assessment_key", key)
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  return (data ?? []) as AssessmentResult[];
+}

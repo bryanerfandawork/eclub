@@ -1,6 +1,7 @@
 import {
   BarChart3,
   BookOpen,
+  Radar,
   Heart,
   CalendarCheck2,
   PieChart,
@@ -37,6 +38,7 @@ export const sidebarNav: { section: string; items: NavItem[] }[] = [
       { label: "My Journey", href: "/journey", icon: Route },
       { label: "My Life", href: "/my-life", icon: Heart },
       { label: "Personal Mapping", href: "/journey#discover", icon: Compass, soon: true },
+      { label: "8 Wheel Entrepreneur", href: "/assessment/8-wheel-entrepreneur", icon: Radar },
       { label: "My Dreams", href: "/goals", icon: Gem },
       { label: "Daily Action", href: "/today", icon: CalendarCheck2 },
       { label: "Wheel of Life", href: "/wheel-of-life", icon: PieChart },

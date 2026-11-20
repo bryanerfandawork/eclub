@@ -20,7 +20,7 @@ export const STAGES: Stage[] = [
     no: "02",
     name: "Discover",
     desc: "Memahami diri, potensi, dan kompetensi.",
-    tools: [{ label: "Personal Mapping" }, { label: "Strength Mapping" }],
+    tools: [{ label: "8 Wheel Entrepreneur", href: "/assessment/8-wheel-entrepreneur" }, { label: "Personal Mapping" }, { label: "Strength Mapping" }],
   },
   {
     id: "design",
