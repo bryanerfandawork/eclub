@@ -11,13 +11,18 @@ import {
   Flame,
   Gem,
   Heart,
+  MessageCircle,
+  Quote,
+  Users,
   Radar,
   Sparkles,
 } from "lucide-react";
 import { Logo } from "@/components/logo";
 import { WheelChart } from "@/components/wheel-chart";
-import { STAGES } from "@/lib/journey";
+import { SEF_PHASES, SEF_STEPS, SPARK } from "@/lib/sef";
 import { getFeatures, getSettings } from "@/lib/plans";
+import { listTestimonials } from "@/lib/testimonials";
+import { contactHref } from "@/lib/contact";
 import { rupiah } from "@/lib/format";
 import { SEGMENTS } from "@/lib/types";
 
@@ -28,16 +33,17 @@ const FEATURES = [
   { icon: Radar, title: "8 Wheel Entrepreneur", desc: "Tes 40 pernyataan yang memetakan 8 kompetensi entrepreneur Anda dalam diagram jaring laba-laba." },
   { icon: Gem, title: "Dream Planner", desc: "Ubah mimpi menjadi target dana dan tanggal. Sistem menghitung berapa yang perlu disisihkan setiap bulan." },
   { icon: CalendarCheck2, title: "Daily Action", desc: "Pecah tujuan besar menjadi aksi harian. Jaga rangkaian konsisten dan lihat grafik 7 hari terakhir." },
-  { icon: BookOpen, title: "Learning Center", desc: "Kelas video dan materi terstruktur mengikuti tahapan EClub Success Framework." },
+  { icon: BookOpen, title: "Learning Center", desc: "Kelas video berjenjang mengikuti Sustainable Entrepreneur Framework, dari Personal Mapping hingga Investation." },
   { icon: Sparkles, title: "AI Companion", desc: "Teman diskusi yang memahami perjalanan Anda untuk menyusun rencana dan evaluasi.", soon: true },
 ];
 
-const SEF = [
-  { name: "Survive", sub: "Personal Mapping & Acquisition", desc: "Mengenali potensi, memahami pasar, dan menciptakan pendapatan pertama." },
-  { name: "Sustain", sub: "Systemation", desc: "Membangun proses, SOP, keuangan, dan tim yang konsisten." },
-  { name: "Scale Up", sub: "Transformation", desc: "Digitalisasi, inovasi, dan ekspansi kapasitas usaha." },
-  { name: "Spread Up", sub: "Investation", desc: "Aset, investasi, dampak sosial, dan warisan." },
+const PAINS = [
+  { pain: "Sibuk setiap hari, tapi tidak yakin sedang menuju ke mana.", gain: "My Life membantu Anda merumuskan definisi sukses dan visi 10 tahun, jadi setiap langkah punya arah." },
+  { pain: "Punya banyak mimpi, tapi selalu tertunda karena tidak tahu mulai dari mana.", gain: "Dream Planner mengubah mimpi menjadi angka, tanggal, dan tabungan bulanan yang jelas." },
+  { pain: "Semangat di awal, lalu hilang setelah seminggu.", gain: "Daily Action dan rangkaian konsisten membuat kemajuan kecil terasa, setiap hari." },
+  { pain: "Ingin berbisnis atau naik level, tapi tidak tahu kekuatan dan kelemahan sendiri.", gain: "Tes 8 Wheel Entrepreneur memetakan 8 kompetensi Anda dan menunjukkan area yang perlu dilatih." },
 ];
+
 
 const FAQ = [
   { q: "Apakah EClub hanya untuk pengusaha?", a: "Tidak. EClub untuk siapa saja yang ingin bertumbuh: pelajar, karyawan, profesional, freelancer, maupun pemilik bisnis. Setiap orang punya definisi sukses dan kendaraan yang berbeda." },
@@ -101,9 +107,12 @@ function PhoneMockup() {
 }
 
 export default async function Home() {
-  const [features, settings] = await Promise.all([getFeatures(), getSettings()]);
+  const [features, settings, testimonials] = await Promise.all([getFeatures(), getSettings(), listTestimonials()]);
   const monthly = Number(settings.plus_price_monthly) || 0;
   const yearly = Number(settings.plus_price_yearly) || 0;
+  const save = monthly && yearly ? Math.round((1 - yearly / (monthly * 12)) * 100) : 0;
+  const perMonth = yearly ? Math.round(yearly / 12 / 100) * 100 : 0;
+  const mentoringHref = contactHref(String(settings.upgrade_contact ?? ""), "Halo EClub, saya tertarik dengan program mentoring.");
   const cell = (limit: number | null, unit: string | null) =>
     limit === 0 ? <span className="text-line">—</span> : limit == null ? (unit ? "Tanpa batas" : <Check className="mx-auto h-4 w-4 text-success" />) : `${limit} ${unit ?? ""}`;
 
@@ -137,7 +146,7 @@ export default async function Home() {
             <span className="text-brand">Build Your Success.</span>
           </h1>
           <p className="mx-auto mt-6 max-w-xl animate-rise text-[17px] leading-relaxed text-muted lg:mx-0">
-            EClub membantu Anda menemukan definisi sukses versi Anda sendiri, mengenali potensi, lalu mewujudkannya lewat rencana dan aksi harian yang terukur.
+            Banyak orang stuck bukan karena kurang modal atau susah pemasaran, tetapi karena kehilangan <b className="text-heading">spark</b>. EClub membantu Anda menyalakannya kembali lewat cita-cita, lalu menapaki jalan bertumbuh yang jelas dan berjenjang.
           </p>
           <div className="mt-8 flex animate-rise flex-col justify-center gap-3 sm:flex-row lg:justify-start">
             <Link href="/daftar" className="btn-primary px-7 py-3.5 text-[15px]">
@@ -145,9 +154,10 @@ export default async function Home() {
             </Link>
             <a href="#fitur" className="btn-ghost px-7 py-3.5 text-[15px]">Lihat fitur</a>
           </div>
+          <p className="mt-4 animate-rise text-xs text-muted">Gratis selamanya untuk fitur inti. Tanpa kartu kredit. Cukup 5 menit sehari.</p>
           <dl className="mx-auto mt-12 grid max-w-md grid-cols-3 gap-4 border-t border-line pt-6 lg:mx-0">
             {[
-              ["6", "tahap perjalanan"],
+              ["4", "fase SEF"],
               ["8", "dimensi entrepreneur"],
               ["100%", "bisa dipakai di HP"],
             ].map(([n, l]) => (
@@ -170,6 +180,27 @@ export default async function Home() {
               <span key={s} className="rounded-full border border-line bg-paper px-4 py-2 text-sm font-semibold text-heading">{s}</span>
             ))}
           </div>
+        </div>
+      </section>
+
+      {/* Masalah -> solusi */}
+      <section className="mx-auto max-w-6xl px-5 pt-20 lg:px-10 lg:pt-28">
+        <div className="mx-auto max-w-2xl text-center">
+          <p className="eyebrow">Apakah ini Anda?</p>
+          <h2 className="mt-3 text-3xl font-bold tracking-tight text-heading sm:text-4xl">Yang hilang bukan modal. Yang hilang adalah spark.</h2>
+          <p className="mt-4 text-[17px] leading-relaxed text-muted">
+            Banyak pelaku usaha merasa jalan di tempat, bahkan menurun. Saat ditelusuri, akarnya sering bukan akses modal atau pemasaran, melainkan hilangnya gairah dan cita-cita. Karena itu EClub memulai dari Anda.
+          </p>
+        </div>
+        <div className="mt-12 grid gap-4 md:grid-cols-2">
+          {PAINS.map(({ pain, gain }) => (
+            <div key={pain} className="card p-6">
+              <p className="text-[15px] font-semibold text-heading">“{pain}”</p>
+              <p className="mt-3 flex gap-2 text-sm leading-relaxed text-muted">
+                <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-success" /> {gain}
+              </p>
+            </div>
+          ))}
         </div>
       </section>
 
@@ -208,36 +239,45 @@ export default async function Home() {
         </div>
       </section>
 
-      {/* Metode */}
+      {/* Metode: Sustainable Entrepreneur Framework */}
       <section id="metode" className="scroll-mt-20 bg-brand py-20 text-white lg:py-28">
         <div className="relative mx-auto max-w-6xl px-5 lg:px-10">
           <div className="pointer-events-none absolute -top-20 right-0 h-72 w-72 rounded-full bg-gold/20 blur-3xl" />
-          <p className="eyebrow">EClub Success Framework</p>
-          <h2 className="mt-3 max-w-xl text-3xl font-bold tracking-tight sm:text-4xl">Enam tahap dari mengenal diri hingga bertindak</h2>
-          <div className="mt-12 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {STAGES.map((s) => (
-              <div key={s.id} className="rounded-2xl border border-white/10 bg-white/5 p-6 backdrop-blur">
-                <p className="text-sm font-bold text-gold">{s.no}</p>
-                <p className="mt-2 text-xl font-bold">{s.name}</p>
-                <p className="mt-1 text-sm leading-relaxed text-white/70">{s.desc}</p>
-              </div>
-            ))}
-          </div>
+          <p className="eyebrow">Metode EClub</p>
+          <h2 className="mt-3 max-w-2xl text-3xl font-bold tracking-tight sm:text-5xl">Sustainable Entrepreneur Framework</h2>
+          <p className="mt-4 max-w-2xl text-[17px] leading-relaxed text-white/75">
+            Satu jalan yang jelas, dari menyalakan spark hingga menebar dampak. Semua kelas dan alat di EClub mengikuti urutan ini, berjenjang, supaya Anda tahu persis langkah berikutnya.
+          </p>
 
-          <div className="mt-16 rounded-3xl bg-white/5 p-6 ring-1 ring-white/10 sm:p-8">
-            <p className="eyebrow">Untuk jalur entrepreneur</p>
-            <h3 className="mt-2 text-2xl font-bold">Sustainable Entrepreneur Framework</h3>
-            <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              {SEF.map((p, i) => (
-                <div key={p.name}>
-                  <p className="text-xs font-semibold text-white/50">Fase {i + 1}</p>
-                  <p className="mt-1 text-lg font-bold text-gold">{p.name}</p>
-                  <p className="text-xs font-semibold text-white/80">{p.sub}</p>
-                  <p className="mt-2 text-sm leading-relaxed text-white/65">{p.desc}</p>
-                </div>
-              ))}
+          <div className="mt-12 flex items-start gap-4 rounded-3xl bg-gold p-6 text-brand-deep sm:p-7">
+            <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-brand text-white">
+              <Flame className="h-6 w-6 text-gold" />
+            </span>
+            <div>
+              <p className="text-xs font-bold tracking-wide uppercase">Langkah awal</p>
+              <p className="mt-1 text-xl font-bold">{SPARK.name}: {SPARK.sub}</p>
+              <p className="mt-1 text-sm leading-relaxed text-brand-deep/80">Temukan kembali cita-cita, definisi sukses, dan alasan Anda bertumbuh. Inilah bahan bakar untuk seluruh perjalanan.</p>
             </div>
           </div>
+
+          <ol className="relative mt-4 grid gap-4 lg:grid-cols-4">
+            {SEF_PHASES.map((phase, i) => (
+              <li key={phase.key} className="rounded-3xl border border-white/10 bg-white/5 p-6 backdrop-blur">
+                <p className="text-xs font-semibold text-white/50">Fase {i + 1}</p>
+                <p className="mt-1 text-2xl font-bold text-gold">{phase.name}</p>
+                <p className="mt-2 text-sm leading-relaxed text-white/70">{phase.desc}</p>
+                <ul className="mt-5 space-y-2">
+                  {SEF_STEPS.filter((st) => st.phase === phase.key).map((st) => (
+                    <li key={st.key} className="flex items-center gap-2.5 rounded-xl bg-white/10 px-3 py-2.5">
+                      <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-gold text-[11px] font-bold text-brand-deep">{st.no}</span>
+                      <span className="text-sm font-semibold">{st.name}</span>
+                    </li>
+                  ))}
+                </ul>
+              </li>
+            ))}
+          </ol>
+          <p className="mt-6 text-sm text-white/60">Personal Mapping → Acquisition → Systemation → Transformation → Investation. Jenjang berikutnya terbuka setelah jenjang sebelumnya selesai.</p>
         </div>
       </section>
 
@@ -250,8 +290,8 @@ export default async function Home() {
         <ol className="mt-12 grid gap-4 md:grid-cols-3">
           {[
             ["Daftar gratis", "Cukup nama dan email. Tidak perlu kartu kredit."],
-            ["Kenali diri", "Tulis definisi sukses, nilai Wheel of Life, dan ikuti tes 8 Wheel Entrepreneur."],
-            ["Wujudkan", "Tulis mimpi, hitung targetnya, lalu jalankan aksi harian dan pantau perkembangan."],
+            ["Nyalakan spark", "Tulis cita-cita dan definisi sukses Anda, lalu ubah mimpi menjadi target yang nyata."],
+            ["Tapaki jenjangnya", "Petakan diri lewat tes 8 Wheel, lalu belajar dan bertindak setahap demi setahap mengikuti SEF."],
           ].map(([t, d], i) => (
             <li key={t} className="card p-6">
               <span className="grid h-10 w-10 place-items-center rounded-xl bg-gold-soft text-sm font-bold text-brand">{i + 1}</span>
@@ -261,6 +301,37 @@ export default async function Home() {
           ))}
         </ol>
       </section>
+
+      {testimonials.length > 0 && (
+        <section className="bg-paper py-20 lg:py-28">
+          <div className="mx-auto max-w-6xl px-5 lg:px-10">
+            <div className="text-center">
+              <p className="eyebrow">Cerita member</p>
+              <h2 className="mt-3 text-3xl font-bold tracking-tight text-heading sm:text-4xl">Mereka sudah memulai perjalanannya</h2>
+            </div>
+            <div className="mt-12 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {testimonials.map((t) => (
+                <figure key={t.id} className="card flex flex-col p-6">
+                  <Quote className="h-6 w-6 text-gold" />
+                  <blockquote className="mt-3 flex-1 text-[15px] leading-relaxed text-ink">{t.quote}</blockquote>
+                  <figcaption className="mt-5 flex items-center gap-3">
+                    {t.photo_url ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={t.photo_url} alt="" className="h-10 w-10 rounded-full object-cover" />
+                    ) : (
+                      <span className="grid h-10 w-10 place-items-center rounded-full bg-brand text-sm font-bold text-white">{t.name.charAt(0)}</span>
+                    )}
+                    <span>
+                      <span className="block text-sm font-bold text-heading">{t.name}</span>
+                      {t.role && <span className="block text-xs text-muted">{t.role}</span>}
+                    </span>
+                  </figcaption>
+                </figure>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* Paket */}
       <section id="paket" className="scroll-mt-20 bg-white py-20 lg:py-28">
@@ -274,6 +345,13 @@ export default async function Home() {
               <p className="text-sm font-bold text-heading">EClub Free</p>
               <p className="mt-3 text-4xl font-bold text-heading">Gratis</p>
               <p className="mt-1 text-sm text-muted">Selamanya</p>
+              <ul className="mt-5 space-y-2 text-sm text-ink">
+                {["My Life & Wheel of Life", "Daily Action & rangkaian konsisten", "1 Dream Planner", "Tes 8 Wheel setiap 3 bulan"].map((p) => (
+                  <li key={p} className="flex items-center gap-2">
+                    <Check className="h-4 w-4 text-success" /> {p}
+                  </li>
+                ))}
+              </ul>
               <Link href="/daftar" className="btn-ghost mt-6 w-full py-3">Daftar gratis</Link>
             </div>
             <div className="relative overflow-hidden rounded-3xl bg-brand p-7 text-white shadow-lift">
@@ -281,11 +359,21 @@ export default async function Home() {
               <p className="flex items-center gap-1.5 text-sm font-bold text-gold">
                 <Crown className="h-4 w-4" /> EClub Plus
               </p>
+              {save > 0 && <span className="absolute top-6 right-6 rounded-full bg-gold px-2.5 py-1 text-[11px] font-bold text-brand-deep">Hemat {save}%</span>}
               <p className="mt-3 text-4xl font-bold">
-                {rupiah(monthly)}
+                {rupiah(perMonth)}
                 <span className="text-base font-medium text-white/60">/bulan</span>
               </p>
-              <p className="mt-1 text-sm text-white/70">atau {rupiah(yearly)} per tahun</p>
+              <p className="mt-1 text-sm text-white/70">
+                ditagih {rupiah(yearly)} per tahun · atau {rupiah(monthly)} bulanan
+              </p>
+              <ul className="mt-5 space-y-2 text-sm text-white/85">
+                {["Dream Planner tanpa batas", "Riwayat Wheel of Life lengkap", "Tes 8 Wheel kapan saja", "Course khusus member Plus"].map((p) => (
+                  <li key={p} className="flex items-center gap-2">
+                    <Check className="h-4 w-4 text-gold" /> {p}
+                  </li>
+                ))}
+              </ul>
               <Link href="/daftar" className="btn-gold mt-6 w-full py-3">Mulai sekarang</Link>
             </div>
           </div>
@@ -311,6 +399,35 @@ export default async function Home() {
                 ))}
               </tbody>
             </table>
+          </div>
+        </div>
+      </section>
+
+      {/* Kelas & mentoring */}
+      <section className="mx-auto max-w-6xl px-5 pt-20 lg:px-10 lg:pt-28">
+        <div className="grid gap-4 md:grid-cols-2">
+          <div className="card p-7">
+            <div className="grid h-12 w-12 place-items-center rounded-2xl bg-gold-soft text-brand">
+              <BookOpen className="h-5 w-5" />
+            </div>
+            <h3 className="mt-5 text-xl font-bold text-heading">Kelas terstruktur</h3>
+            <p className="mt-2 text-sm leading-relaxed text-muted">Belajar bertahap mengikuti EClub Success Framework. Sebagian gratis, sebagian khusus Plus, dan kelas lanjutan bisa dibeli satuan.</p>
+            <Link href="/daftar" className="btn-ghost mt-6">Lihat kelas <ArrowRight className="h-4 w-4" /></Link>
+          </div>
+          <div className="relative overflow-hidden rounded-2xl bg-heading p-7 text-white">
+            <div className="pointer-events-none absolute -right-10 -bottom-16 h-56 w-56 rounded-full bg-brand/40 blur-3xl" />
+            <div className="relative grid h-12 w-12 place-items-center rounded-2xl bg-white/10 text-gold">
+              <Users className="h-5 w-5" />
+            </div>
+            <h3 className="relative mt-5 text-xl font-bold">Mentoring langsung</h3>
+            <p className="relative mt-2 text-sm leading-relaxed text-white/70">Ingin melaju lebih cepat? Diskusikan hasil tes 8 Wheel dan rencana Anda bersama mentor EClub, lalu susun langkah 90 hari ke depan.</p>
+            {mentoringHref ? (
+              <a href={mentoringHref} target="_blank" rel="noopener noreferrer" className="btn-gold relative mt-6">
+                <MessageCircle className="h-4 w-4" /> Tanya jadwal mentoring
+              </a>
+            ) : (
+              <Link href="/daftar" className="btn-gold relative mt-6">Daftar dulu <ArrowRight className="h-4 w-4" /></Link>
+            )}
           </div>
         </div>
       </section>

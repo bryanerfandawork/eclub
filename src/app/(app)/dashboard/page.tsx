@@ -36,7 +36,8 @@ export default async function DashboardPage() {
     { done: stats.dailyTotal30 > 0, label: "Rencanakan aksi harian pertama", href: "/today" },
   ];
   const onboarding = steps.some((s) => !s.done);
-  const stageIndex = !profile.success_definition || !wheel.length ? 0 : dreams.length === 0 ? 2 : 5;
+  // 0 = Spark (definisi sukses + mimpi), 1 = Personal Mapping (tes 8 Wheel), 2 = Acquisition, dst.
+  const stageIndex = !profile.success_definition || dreams.length === 0 ? 0 : ew.length === 0 ? 1 : 2;
 
   return (
     <div className="space-y-6 lg:space-y-8">
@@ -60,7 +61,7 @@ export default async function DashboardPage() {
           <div className="mt-3 flex items-center justify-between gap-6">
             <div>
               <h2 className="text-2xl font-bold">
-                Tahap {STAGES[stageIndex].no} · {STAGES[stageIndex].name}
+                {STAGES[stageIndex].phase} · {STAGES[stageIndex].name}
               </h2>
               <p className="mt-1.5 max-w-sm text-sm leading-relaxed text-white/70">{STAGES[stageIndex].desc}</p>
             </div>

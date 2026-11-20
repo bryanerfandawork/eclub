@@ -5,6 +5,7 @@ import { saveCourse } from "@/app/actions/lms";
 import { SubmitButton } from "@/components/submit-button";
 import { FormMessage } from "@/components/ui";
 import type { Course } from "@/lib/lms";
+import { SEF_PHASES, SEF_STEPS } from "@/lib/sef";
 
 export function CourseForm({ course }: { course?: Course }) {
   const [state, action] = useActionState(saveCourse, undefined);
@@ -19,6 +20,22 @@ export function CourseForm({ course }: { course?: Course }) {
         <div>
           <label className="label">Slug (alamat URL)</label>
           <input name="slug" defaultValue={course?.slug} className="input" placeholder="otomatis dari judul" />
+        </div>
+        <div className="sm:col-span-2">
+          <label className="label">Langkah SEF (urutan belajar)</label>
+          <select name="sef_step" defaultValue={course?.sef_step ?? ""} className="input">
+            <option value="">Tidak masuk jalur SEF (kelas umum)</option>
+            {SEF_PHASES.map((p) => (
+              <optgroup key={p.key} label={`Fase ${p.name}`}>
+                {SEF_STEPS.filter((s) => s.phase === p.key).map((s) => (
+                  <option key={s.key} value={s.key}>
+                    {s.no}. {s.name}
+                  </option>
+                ))}
+              </optgroup>
+            ))}
+          </select>
+          <p className="mt-1 text-xs text-muted">Kelas di langkah berikutnya terbuka setelah member menyelesaikan semua kelas di langkah sebelumnya.</p>
         </div>
         <div>
           <label className="label">Kategori</label>

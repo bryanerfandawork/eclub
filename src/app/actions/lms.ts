@@ -5,10 +5,12 @@ import { redirect } from "next/navigation";
 import { isDemoMode } from "@/lib/supabase/config";
 import { createClient } from "@/lib/supabase/server";
 import { youtubeId } from "@/lib/lms";
+import { SEF_STEPS } from "@/lib/sef";
 import type { FormState } from "./auth";
 
 const DEMO_MSG = "Mode demo: perubahan tidak disimpan.";
 const ACCESS = ["public", "registered", "plus", "purchase"];
+const SEF_KEYS: string[] = SEF_STEPS.map((s) => s.key);
 
 function slugify(s: string) {
   return s
@@ -51,6 +53,7 @@ export async function saveCourse(_: FormState, formData: FormData): Promise<Form
     price: Number(String(formData.get("price") ?? "").replace(/[^\d]/g, "")) || 0,
     status: formData.get("status") === "published" ? "published" : "draft",
     sort: Number(formData.get("sort") ?? 0) || 0,
+    sef_step: SEF_KEYS.includes(String(formData.get("sef_step"))) ? String(formData.get("sef_step")) : null,
   };
   const supabase = await createClient();
   const res = id

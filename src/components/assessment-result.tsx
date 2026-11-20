@@ -1,3 +1,5 @@
+import Link from "next/link";
+import { ArrowRight } from "lucide-react";
 import { RadarChart } from "./wheel-chart";
 import { levelText, type Assessment } from "@/lib/assessments/types";
 
@@ -57,6 +59,18 @@ export function AssessmentResultView({
               );
             })}
           </ul>
+        </section>
+        <section className="rounded-2xl border border-gold/40 bg-gold-soft p-5">
+          <p className="text-sm font-bold text-heading">Langkah berikutnya</p>
+          <p className="mt-1 text-sm leading-relaxed text-ink">
+            Hasil ini adalah Personal Mapping Anda, langkah pertama fase Survive. Lanjutkan dengan kelas berjenjang untuk menguatkan <b>{sorted[sorted.length - 1]?.label}</b>.
+          </p>
+          <div className="mt-4 flex flex-wrap gap-2">
+            <Link href="/learn" className="btn-primary">
+              Mulai kelas <ArrowRight className="h-4 w-4" />
+            </Link>
+            <Link href="/paket" className="btn-ghost">Lihat EClub Plus</Link>
+          </div>
         </section>
       </aside>
     </div>

@@ -1,6 +1,7 @@
 import "server-only";
 import { isDemoMode } from "./supabase/config";
 import { createClient } from "./supabase/server";
+import { SEF_STEPS, type SefStepKey } from "./sef";
 
 export type Access = "public" | "registered" | "plus" | "purchase";
 export type Course = {
@@ -18,6 +19,7 @@ export type Course = {
   price: number;
   status: "draft" | "published";
   sort: number;
+  sef_step?: SefStepKey | null;
 };
 export type Lesson = {
   id: string;
@@ -60,6 +62,7 @@ const demoCourse: Course = {
   price: 199000,
   status: "published",
   sort: 0,
+  sef_step: "personal_mapping",
 };
 const demoLessons: Lesson[] = [
   { id: "l1", course_id: "demo-c1", title: "Selamat datang: entrepreneurnya dulu", summary: null, content: null, duration_min: 6, access: "preview", sort: 0 },
@@ -118,4 +121,52 @@ export async function getCourseVideos(lessonIds: string[]): Promise<Record<strin
   const supabase = await createClient();
   const { data } = await supabase.from("lesson_videos").select("lesson_id, youtube_id").in("lesson_id", lessonIds);
   return Object.fromEntries((data ?? []).map((v) => [v.lesson_id, v.youtube_id]));
+}
+
+export type SefProgress = {
+  /** Jumlah lesson & yang selesai per course. */
+  courses: Record<string, { total: number; done: number }>;
+  /** Langkah SEF yang sudah terbuka (jenjang: langkah berikutnya terbuka setelah semua kelas di langkah sebelumnya selesai). */
+  unlocked: Set<SefStepKey>;
+  /** Persentase selesai per langkah (null = belum ada kelas). */
+  stepPct: Record<SefStepKey, number | null>;
+};
+
+export async function getSefProgress(courses: Course[]): Promise<SefProgress> {
+  const map: SefProgress["courses"] = {};
+  if (!isDemoMode && courses.length) {
+    const supabase = await createClient();
+    const { data: ls } = await supabase.from("lessons").select("id, course_id").in("course_id", courses.map((c) => c.id));
+    const ids = (ls ?? []).map((l) => l.id);
+    const { data: prog } = ids.length ? await supabase.from("lesson_progress").select("lesson_id").in("lesson_id", ids) : { data: [] };
+    const done = new Set((prog ?? []).map((p) => p.lesson_id));
+    for (const l of ls ?? []) {
+      map[l.course_id] ??= { total: 0, done: 0 };
+      map[l.course_id].total++;
+      if (done.has(l.id)) map[l.course_id].done++;
+    }
+  }
+  const unlocked = new Set<SefStepKey>();
+  const stepPct = {} as SefProgress["stepPct"];
+  let open = true;
+  for (const step of SEF_STEPS) {
+    if (open) unlocked.add(step.key);
+    const inStep = courses.filter((c) => c.sef_step === step.key && c.status === "published");
+    const total = inStep.reduce((s, c) => s + (map[c.id]?.total ?? 0), 0);
+    const done = inStep.reduce((s, c) => s + (map[c.id]?.done ?? 0), 0);
+    stepPct[step.key] = total ? Math.round((done / total) * 100) : null;
+    // Langkah tanpa kelas tidak menghalangi langkah berikutnya.
+    if (total && done < total) open = false;
+  }
+  return { courses: map, unlocked, stepPct };
+}
+
+/** Jenjang SEF: course terkunci jika langkah sebelumnya belum selesai (admin selalu bisa membuka). */
+export async function sefLockedStep(course: Course, isStaff: boolean): Promise<string | null> {
+  if (!course.sef_step || isStaff) return null;
+  const prog = await getSefProgress(await listCourses());
+  if (prog.unlocked.has(course.sef_step)) return null;
+  const blocking = SEF_STEPS.find((s) => !prog.unlocked.has(s.key));
+  const idx = SEF_STEPS.findIndex((s) => s.key === blocking?.key);
+  return SEF_STEPS[Math.max(0, idx - 1)]?.name ?? "sebelumnya";
 }

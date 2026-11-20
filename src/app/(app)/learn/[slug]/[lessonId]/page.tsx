@@ -3,7 +3,8 @@ import { notFound } from "next/navigation";
 import { ArrowLeft, ArrowRight, CheckCircle2, ChevronLeft, Lock, PlayCircle } from "lucide-react";
 import { toggleLessonDone } from "@/app/actions/lms";
 import { SubmitButton } from "@/components/submit-button";
-import { getCourseBySlug, getLessonVideo } from "@/lib/lms";
+import { getCourseBySlug, getLessonVideo, sefLockedStep } from "@/lib/lms";
+import { getAccount } from "@/lib/plans";
 
 export default async function LessonPage({ params }: { params: Promise<{ slug: string; lessonId: string }> }) {
   const { slug, lessonId } = await params;
@@ -13,7 +14,9 @@ export default async function LessonPage({ params }: { params: Promise<{ slug: s
   const idx = lessons.findIndex((l) => l.id === lessonId);
   if (idx < 0) notFound();
   const lesson = lessons[idx];
-  const canWatch = watchable.has(lesson.id);
+  const account = await getAccount();
+  const sefBlock = await sefLockedStep(c, account.role === "admin" || account.role === "super_admin");
+  const canWatch = !sefBlock && watchable.has(lesson.id);
   const vid = canWatch ? await getLessonVideo(lesson.id) : null;
   const prev = lessons[idx - 1];
   const next = lessons[idx + 1];
@@ -47,9 +50,16 @@ export default async function LessonPage({ params }: { params: Promise<{ slug: s
               <div>
                 <Lock className="mx-auto h-10 w-10 text-gold" />
                 <p className="mt-3 font-semibold">Lesson ini terkunci</p>
-                <Link href={c.access === "purchase" ? `/beli/course/${c.slug}` : "/paket"} className="btn-gold mt-4">
-                  {c.access === "purchase" ? "Beli course" : "Upgrade ke Plus"}
-                </Link>
+                {sefBlock ? (
+                  <>
+                    <p className="mt-1 text-sm text-white/70">Selesaikan dulu kelas di langkah {sefBlock}.</p>
+                    <Link href="/learn" className="btn-gold mt-4">Lihat urutan belajar</Link>
+                  </>
+                ) : (
+                  <Link href={c.access === "purchase" ? `/beli/course/${c.slug}` : "/paket"} className="btn-gold mt-4">
+                    {c.access === "purchase" ? "Beli course" : "Upgrade ke Plus"}
+                  </Link>
+                )}
               </div>
             )}
           </div>

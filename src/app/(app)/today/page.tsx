@@ -56,7 +56,28 @@ export default async function TodayPage() {
                 <p className="text-sm text-white/70">Rangkaian konsisten</p>
               </div>
             </div>
-            <p className="mt-4 text-xs leading-relaxed text-white/70">Selesaikan minimal satu aksi setiap hari untuk menjaga rangkaian. Kecil tapi konsisten mengalahkan besar tapi jarang.</p>
+            {(() => {
+              const MILESTONES = [3, 7, 14, 21, 30];
+              const next = MILESTONES.find((m) => m > stats.streak);
+              const prev = [...MILESTONES].reverse().find((m) => m <= stats.streak) ?? 0;
+              return (
+                <>
+                  <div className="mt-5 flex gap-1.5">
+                    {MILESTONES.map((m) => (
+                      <span key={m} className={`flex-1 rounded-full py-1 text-center text-[11px] font-bold ${stats.streak >= m ? "bg-gold text-brand-deep" : "bg-white/10 text-white/50"}`}>
+                        {m}
+                      </span>
+                    ))}
+                  </div>
+                  <p className="mt-4 text-xs leading-relaxed text-white/75">
+                    {prev > 0 && <span className="font-semibold text-gold">Hebat, {prev} hari berturut-turut tercapai! </span>}
+                    {next
+                      ? `${next - stats.streak} hari lagi menuju ${next} hari. Selesaikan minimal satu aksi hari ini agar rangkaian tidak putus.`
+                      : "Anda sudah 30 hari konsisten. Kebiasaan ini sudah menjadi bagian dari diri Anda."}
+                  </p>
+                </>
+              );
+            })()}
           </section>
           <section className="card p-5">
             <h2 className="mb-4 font-bold text-heading">7 hari terakhir</h2>

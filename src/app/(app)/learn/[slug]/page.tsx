@@ -3,16 +3,20 @@ import { notFound } from "next/navigation";
 import { CheckCircle2, ChevronLeft, Clock, Lock, PlayCircle } from "lucide-react";
 import { CourseCover } from "@/components/course-cover";
 import { ProgressBar } from "@/components/ui";
-import { ACCESS_LABEL, getCourseBySlug } from "@/lib/lms";
+import { ACCESS_LABEL, getCourseBySlug, sefLockedStep } from "@/lib/lms";
+import { getAccount } from "@/lib/plans";
 import { rupiah } from "@/lib/format";
 
 export default async function CoursePage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const data = await getCourseBySlug(slug);
   if (!data) notFound();
-  const { course: c, lessons, watchable, done } = data;
+  const { course: c, lessons, done } = data;
+  const account = await getAccount();
+  const sefBlock = await sefLockedStep(c, account.role === "admin" || account.role === "super_admin");
+  const watchable = sefBlock ? new Set<string>() : data.watchable;
   const pct = lessons.length ? Math.round((done.size / lessons.length) * 100) : 0;
-  const locked = lessons.some((l) => !watchable.has(l.id));
+  const locked = !sefBlock && lessons.some((l) => !watchable.has(l.id));
   const firstOpen = lessons.find((l) => watchable.has(l.id) && !done.has(l.id)) ?? lessons.find((l) => watchable.has(l.id));
   const totalMin = lessons.reduce((s, l) => s + (l.duration_min ?? 0), 0);
 
@@ -55,6 +59,15 @@ export default async function CoursePage({ params }: { params: Promise<{ slug: s
               <Link href={`/learn/${c.slug}/${firstOpen.id}`} className="btn-primary mt-4 w-full">
                 <PlayCircle className="h-4 w-4" /> {done.size ? "Lanjutkan belajar" : "Mulai belajar"}
               </Link>
+            )}
+            {sefBlock && (
+              <div className="mt-4 rounded-xl bg-paper p-4 text-sm text-heading">
+                <p className="font-semibold">
+                  <Lock className="mr-1 inline h-3.5 w-3.5" /> Kelas ini ada di jenjang berikutnya
+                </p>
+                <p className="mt-1 text-muted">Selesaikan dulu semua kelas di langkah {sefBlock}. Belajar berurutan membuat hasilnya lebih terasa.</p>
+                <Link href="/learn" className="btn-ghost mt-3 w-full">Lihat urutan belajar</Link>
+              </div>
             )}
             {locked && (
               <div className="mt-4 rounded-xl bg-gold-soft p-4 text-sm text-heading">

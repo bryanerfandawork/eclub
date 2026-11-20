@@ -9,9 +9,9 @@ export default function JourneyPage() {
   return (
     <>
       <PageHeader
-        eyebrow="EClub Success Framework"
-        title="Perjalanan sukses Anda"
-        desc="Enam tahap untuk menemukan arah dan mewujudkan tujuan. Kerjakan berurutan, atau mulai dari yang paling Anda butuhkan."
+        eyebrow="Sustainable Entrepreneur Framework"
+        title="Peta perjalanan Anda"
+        desc="Dimulai dari Spark, menemukan kembali cita-cita. Lalu berjenjang melalui Survive, Sustain, Scale Up, dan Spread Up. Ikuti urutannya supaya tidak bingung."
       />
       <ol className="relative space-y-4">
         <span className="absolute top-6 bottom-6 left-[27px] w-px bg-line lg:left-[31px]" aria-hidden />
@@ -21,6 +21,7 @@ export default function JourneyPage() {
               {s.no}
             </div>
             <div className="card flex-1 p-5 lg:p-6">
+              <p className="text-[11px] font-semibold tracking-wide text-gold uppercase">{s.phase}</p>
               <h2 className="text-lg font-bold text-heading">{s.name}</h2>
               <p className="mt-1 text-sm text-muted">{s.desc}</p>
               <div className="mt-4 flex flex-wrap gap-2">
