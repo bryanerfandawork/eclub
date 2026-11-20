@@ -3,7 +3,7 @@ export function PageHeader({ eyebrow, title, desc, action }: { eyebrow?: string;
     <div className="mb-6 flex animate-rise flex-col gap-4 sm:flex-row sm:items-end sm:justify-between lg:mb-8">
       <div>
         {eyebrow && <p className="eyebrow">{eyebrow}</p>}
-        <h1 className="mt-1 text-[26px] font-bold tracking-tight text-navy lg:text-[32px]">{title}</h1>
+        <h1 className="mt-1 text-[26px] font-bold tracking-tight text-heading lg:text-[32px]">{title}</h1>
         {desc && <p className="mt-1.5 max-w-xl text-[15px] leading-relaxed text-muted">{desc}</p>}
       </div>
       {action}
@@ -11,11 +11,11 @@ export function PageHeader({ eyebrow, title, desc, action }: { eyebrow?: string;
   );
 }
 
-export function ProgressBar({ value, tone = "gold" }: { value: number; tone?: "gold" | "navy" }) {
+export function ProgressBar({ value, tone = "gold" }: { value: number; tone?: "gold" | "brand" }) {
   return (
     <div className="h-2 w-full overflow-hidden rounded-full bg-paper">
       <div
-        className={`h-full rounded-full transition-all duration-700 ${tone === "gold" ? "bg-gold" : "bg-navy"}`}
+        className={`h-full rounded-full transition-all duration-700 ${tone === "gold" ? "bg-gold" : "bg-brand"}`}
         style={{ width: `${Math.max(value, 2)}%` }}
       />
     </div>

@@ -15,16 +15,16 @@ export default function Home() {
       <header className="mx-auto flex max-w-6xl items-center justify-between px-5 py-5 lg:px-10">
         <Logo />
         <nav className="flex items-center gap-2">
-          <Link href="/masuk" className="btn text-navy hover:bg-white">Masuk</Link>
+          <Link href="/masuk" className="btn text-heading hover:bg-white">Masuk</Link>
           <Link href="/daftar" className="btn-primary">Daftar</Link>
         </nav>
       </header>
 
       <section className="mx-auto max-w-6xl px-5 pt-10 pb-16 text-center lg:px-10 lg:pt-20 lg:pb-24">
-        <span className="inline-flex animate-rise items-center gap-2 rounded-full border border-line bg-white px-3.5 py-1.5 text-xs font-semibold text-navy shadow-soft">
+        <span className="inline-flex animate-rise items-center gap-2 rounded-full border border-line bg-white px-3.5 py-1.5 text-xs font-semibold text-heading shadow-soft">
           <Sparkles className="h-3.5 w-3.5 text-gold" /> Personal Growth Companion
         </span>
-        <h1 className="mx-auto mt-6 max-w-3xl animate-rise text-[40px] leading-[1.08] font-bold tracking-tight text-navy sm:text-6xl">
+        <h1 className="mx-auto mt-6 max-w-3xl animate-rise text-[40px] leading-[1.08] font-bold tracking-tight text-heading sm:text-6xl">
           Find Your Path.
           <br />
           <span className="text-gold">Build Your Success.</span>
@@ -49,13 +49,13 @@ export default function Home() {
             <div className="grid h-11 w-11 place-items-center rounded-2xl bg-gold-soft text-gold">
               <Icon className="h-5 w-5" />
             </div>
-            <h3 className="mt-4 font-bold text-navy">{title}</h3>
+            <h3 className="mt-4 font-bold text-heading">{title}</h3>
             <p className="mt-1 text-sm leading-relaxed text-muted">{desc}</p>
           </div>
         ))}
       </section>
 
-      <section className="bg-navy py-16 text-white lg:py-20">
+      <section className="bg-brand py-16 text-white lg:py-20">
         <div className="mx-auto max-w-6xl px-5 lg:px-10">
           <p className="eyebrow">EClub Success Framework</p>
           <h2 className="mt-3 max-w-lg text-3xl font-bold tracking-tight">Enam tahap dari mengenal diri hingga bertindak</h2>

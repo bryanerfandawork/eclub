@@ -21,11 +21,11 @@ export default async function DreamDetailPage({ params }: { params: Promise<{ id
 
   return (
     <>
-      <Link href="/goals" className="mb-4 inline-flex items-center gap-1 text-sm font-medium text-muted hover:text-navy">
+      <Link href="/goals" className="mb-4 inline-flex items-center gap-1 text-sm font-medium text-muted hover:text-heading">
         <ChevronLeft className="h-4 w-4" /> Mimpi saya
       </Link>
 
-      <section className="relative animate-rise overflow-hidden rounded-3xl bg-navy p-6 text-white shadow-lift lg:p-8">
+      <section className="relative animate-rise overflow-hidden rounded-3xl bg-brand p-6 text-white shadow-lift lg:p-8">
         <div className="pointer-events-none absolute -right-20 -bottom-24 h-72 w-72 rounded-full bg-gold/20 blur-3xl" />
         <span className="rounded-full bg-white/10 px-2.5 py-1 text-[11px] font-semibold text-gold">{d.category}</span>
         <h1 className="mt-3 max-w-2xl text-2xl font-bold tracking-tight lg:text-3xl">{d.title}</h1>
@@ -58,14 +58,14 @@ export default async function DreamDetailPage({ params }: { params: Promise<{ id
       <div className="mt-6 grid gap-5 lg:grid-cols-5 lg:gap-6">
         <section className="card p-5 lg:col-span-3 lg:p-6">
           <div className="flex items-center justify-between">
-            <h2 className="font-bold text-navy">Langkah aksi</h2>
+            <h2 className="font-bold text-heading">Langkah aksi</h2>
             <span className="text-xs font-medium text-muted">
               {doneCount}/{actions.length} selesai
             </span>
           </div>
           {actions.length > 0 && (
             <div className="mt-3">
-              <ProgressBar value={actions.length ? (doneCount / actions.length) * 100 : 0} tone="navy" />
+              <ProgressBar value={actions.length ? (doneCount / actions.length) * 100 : 0} tone="brand" />
             </div>
           )}
           <ul className="mt-4 divide-y divide-line">
@@ -78,7 +78,7 @@ export default async function DreamDetailPage({ params }: { params: Promise<{ id
                     {a.done ? (
                       <CheckCircle2 className="h-[22px] w-[22px] text-success" />
                     ) : (
-                      <Circle className="h-[22px] w-[22px] text-line hover:text-navy/40" strokeWidth={2.2} />
+                      <Circle className="h-[22px] w-[22px] text-line hover:text-heading/40" strokeWidth={2.2} />
                     )}
                   </button>
                 </form>
@@ -99,13 +99,13 @@ export default async function DreamDetailPage({ params }: { params: Promise<{ id
         <aside className="space-y-5 lg:col-span-2">
           {d.target_amount ? (
             <section className="card p-5 lg:p-6">
-              <h2 className="font-bold text-navy">Catat tabungan</h2>
+              <h2 className="font-bold text-heading">Catat tabungan</h2>
               <p className="mt-1 text-sm text-muted">Sisa {rupiah(remaining)} lagi.</p>
               <AddSavingForm dreamId={d.id} />
             </section>
           ) : null}
           <section className="card p-5 lg:p-6">
-            <h2 className="font-bold text-navy">Status</h2>
+            <h2 className="font-bold text-heading">Status</h2>
             <div className="mt-3 grid grid-cols-3 gap-2">
               {(
                 [
@@ -119,7 +119,7 @@ export default async function DreamDetailPage({ params }: { params: Promise<{ id
                   <input type="hidden" name="status" value={value} />
                   <button
                     className={`w-full rounded-xl border px-2 py-2 text-xs font-semibold transition ${
-                      d.status === value ? "border-navy bg-navy text-white" : "border-line text-ink hover:bg-paper"
+                      d.status === value ? "border-brand bg-brand text-white" : "border-line text-ink hover:bg-paper"
                     }`}
                   >
                     {label}

@@ -1,19 +1,24 @@
-export function LogoMark({ className = "h-9 w-9" }: { className?: string }) {
+/** Logo EClub: huruf E di dalam lingkaran, diikuti "Club". */
+function EGlyph({ fill }: { fill: string }) {
+  return <path d="M17 15.5h13.5M17 24h11M17 32.5h13.5M17 15.5v17" stroke={fill} strokeWidth="3.4" strokeLinecap="square" fill="none" />;
+}
+
+export function LogoMark({ className = "h-9 w-9", variant = "brand" }: { className?: string; variant?: "brand" | "light" }) {
+  const light = variant === "light";
   return (
     <svg viewBox="0 0 48 48" className={className} aria-hidden>
-      <rect width="48" height="48" rx="13" fill="#0f1e3d" />
-      <path d="M15 14h17M15 24h13M15 34h17M15 14v20" stroke="#fff" strokeWidth="3.6" strokeLinecap="round" />
-      <circle cx="35" cy="24" r="3.2" fill="#c6a15b" />
+      <circle cx="24" cy="24" r="22" fill={light ? "#ffffff" : "#8b2220"} />
+      <EGlyph fill={light ? "#8b2220" : "#ffffff"} />
     </svg>
   );
 }
 
 export function Logo({ light = false }: { light?: boolean }) {
   return (
-    <span className="flex items-center gap-2.5">
-      <LogoMark />
-      <span className={`text-[17px] font-bold tracking-tight ${light ? "text-white" : "text-navy"}`}>
-        EClub<span className="text-gold">.</span>
+    <span className="flex items-center" aria-label="EClub">
+      <LogoMark className="h-9 w-9" variant={light ? "light" : "brand"} />
+      <span className={`-ml-1 text-[22px] leading-none font-medium tracking-[-0.03em] ${light ? "text-white" : "text-brand"}`}>
+        Club
       </span>
     </span>
   );

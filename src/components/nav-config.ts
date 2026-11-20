@@ -1,6 +1,8 @@
 import {
   BarChart3,
   BookOpen,
+  CalendarCheck2,
+  PieChart,
   Compass,
   Gem,
   GraduationCap,
@@ -34,6 +36,8 @@ export const sidebarNav: { section: string; items: NavItem[] }[] = [
       { label: "My Journey", href: "/journey", icon: Route },
       { label: "Personal Mapping", href: "/journey#discover", icon: Compass, soon: true },
       { label: "My Dreams", href: "/goals", icon: Gem },
+      { label: "Daily Action", href: "/today", icon: CalendarCheck2 },
+      { label: "Wheel of Life", href: "/wheel-of-life", icon: PieChart },
       { label: "Revenue Streams", href: "/journey#choose", icon: Wallet, soon: true },
     ],
   },
@@ -49,7 +53,7 @@ export const sidebarNav: { section: string; items: NavItem[] }[] = [
   {
     section: "Akun",
     items: [
-      { label: "My Progress", href: "/dashboard#progress", icon: BarChart3, soon: true },
+      { label: "My Progress", href: "/progress", icon: BarChart3 },
       { label: "Profile & Settings", href: "/profile", icon: User },
     ],
   },

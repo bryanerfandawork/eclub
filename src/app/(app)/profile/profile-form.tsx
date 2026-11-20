@@ -20,7 +20,7 @@ export function ProfileForm({ profile }: { profile: Profile }) {
           {SEGMENTS.map((s) => (
             <label key={s} className="cursor-pointer">
               <input type="radio" name="segment" value={s} defaultChecked={profile.segment === s} className="peer sr-only" />
-              <span className="inline-block rounded-full border border-line bg-white px-3.5 py-1.5 text-sm font-medium text-ink transition peer-checked:border-navy peer-checked:bg-navy peer-checked:text-white">
+              <span className="inline-block rounded-full border border-line bg-white px-3.5 py-1.5 text-sm font-medium text-ink transition peer-checked:border-brand peer-checked:bg-brand peer-checked:text-white">
                 {s}
               </span>
             </label>

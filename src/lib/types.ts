@@ -47,3 +47,33 @@ export const DREAM_CATEGORIES = [
   "Sosial",
   "Lainnya",
 ] as const;
+
+export const WHEEL_AREAS = [
+  { key: "karier", label: "Karier & Pekerjaan" },
+  { key: "keuangan", label: "Keuangan" },
+  { key: "kesehatan", label: "Kesehatan" },
+  { key: "keluarga", label: "Keluarga" },
+  { key: "relasi", label: "Relasi & Sosial" },
+  { key: "diri", label: "Pengembangan Diri" },
+  { key: "spiritual", label: "Spiritual" },
+  { key: "rekreasi", label: "Rekreasi & Lingkungan" },
+] as const;
+
+export type WheelKey = (typeof WHEEL_AREAS)[number]["key"];
+export type WheelScores = Record<WheelKey, number>;
+
+export type WheelAssessment = {
+  id: string;
+  scores: WheelScores;
+  note: string | null;
+  created_at: string;
+};
+
+export type DailyAction = {
+  id: string;
+  title: string;
+  action_date: string;
+  done: boolean;
+  dream_id: string | null;
+  created_at: string;
+};

@@ -4,7 +4,7 @@ import { Logo } from "@/components/logo";
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="grid min-h-dvh lg:grid-cols-2">
-      <aside className="relative hidden overflow-hidden bg-navy p-12 text-white lg:flex lg:flex-col lg:justify-between">
+      <aside className="relative hidden overflow-hidden bg-brand p-12 text-white lg:flex lg:flex-col lg:justify-between">
         <div className="pointer-events-none absolute -top-32 -right-24 h-96 w-96 rounded-full bg-gold/20 blur-3xl" />
         <Link href="/">
           <Logo light />

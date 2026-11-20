@@ -3,8 +3,9 @@ import { cache } from "react";
 import { redirect } from "next/navigation";
 import { isDemoMode } from "./supabase/config";
 import { createClient } from "./supabase/server";
-import { demoActions, demoDreams, demoProfile } from "./demo";
-import type { Dream, DreamAction, Profile } from "./types";
+import { demoActions, demoDaily, demoDreams, demoProfile, demoWheel } from "./demo";
+import type { DailyAction, Dream, DreamAction, Profile, WheelAssessment } from "./types";
+import { todayJakarta } from "./format";
 
 export const getProfile = cache(async (): Promise<Profile & { email: string }> => {
   if (isDemoMode) return { ...demoProfile, email: "demo@eclub.id" };
@@ -76,5 +77,60 @@ function normalizeDream(d: Record<string, unknown>): Dream {
     ...(d as Dream),
     target_amount: d.target_amount == null ? null : Number(d.target_amount),
     saved_amount: Number(d.saved_amount ?? 0),
+  };
+}
+
+export async function getWheelHistory(limit = 6): Promise<WheelAssessment[]> {
+  if (isDemoMode) return demoWheel.slice(0, limit);
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("wheel_assessments")
+    .select("id, scores, note, created_at")
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  return (data ?? []) as WheelAssessment[];
+}
+
+/** Aksi harian dalam rentang tanggal (inklusif), terbaru dulu. */
+export async function getDailyRange(from: string, to: string): Promise<DailyAction[]> {
+  if (isDemoMode) return demoDaily.filter((a) => a.action_date >= from && a.action_date <= to);
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("daily_actions")
+    .select("id, title, action_date, done, dream_id, created_at")
+    .gte("action_date", from)
+    .lte("action_date", to)
+    .order("action_date", { ascending: false })
+    .order("created_at", { ascending: true });
+  return (data ?? []) as DailyAction[];
+}
+
+export async function getProgressStats() {
+  const today = todayJakarta();
+  const [daily, dreams] = await Promise.all([getDailyRange(todayJakarta(-29), today), getDreams()]);
+  let dreamActionsDone = 0;
+  if (isDemoMode) dreamActionsDone = demoActions.filter((a) => a.done).length;
+  else {
+    const supabase = await createClient();
+    const { count } = await supabase.from("dream_actions").select("id", { count: "exact", head: true }).eq("done", true);
+    dreamActionsDone = count ?? 0;
+  }
+  const doneDays = new Set(daily.filter((a) => a.done).map((a) => a.action_date));
+  let streak = 0;
+  // Hari ini belum selesai tidak memutus rangkaian; mulai hitung dari kemarin bila perlu.
+  for (let i = doneDays.has(today) ? 0 : 1; i < 30 && doneDays.has(todayJakarta(-i)); i++) streak++;
+  const last7 = Array.from({ length: 7 }, (_, i) => {
+    const date = todayJakarta(i - 6);
+    const items = daily.filter((a) => a.action_date === date);
+    return { date, total: items.length, done: items.filter((a) => a.done).length };
+  });
+  return {
+    streak,
+    last7,
+    dailyDone30: daily.filter((a) => a.done).length,
+    dailyTotal30: daily.length,
+    dreamActionsDone,
+    dreamsAchieved: dreams.filter((d) => d.status === "achieved").length,
+    dreamsActive: dreams.filter((d) => d.status === "active").length,
   };
 }

@@ -27,7 +27,7 @@ export default async function GoalsPage() {
           <div className="grid h-14 w-14 place-items-center rounded-2xl bg-gold-soft text-gold">
             <Gem className="h-7 w-7" />
           </div>
-          <h2 className="text-lg font-bold text-navy">Belum ada mimpi</h2>
+          <h2 className="text-lg font-bold text-heading">Belum ada mimpi</h2>
           <p className="max-w-sm text-sm text-muted">Mulai dari satu mimpi yang paling berarti bagi Anda saat ini.</p>
           <Link href="/goals/baru" className="btn-gold mt-2">
             Tulis mimpi pertama
@@ -45,17 +45,17 @@ export default async function GoalsPage() {
                 style={{ animationDelay: `${i * 50}ms` }}
               >
                 <div className="flex items-center justify-between">
-                  <span className="rounded-full bg-gold-soft px-2.5 py-1 text-[11px] font-semibold text-navy">{d.category}</span>
+                  <span className="rounded-full bg-gold-soft px-2.5 py-1 text-[11px] font-semibold text-heading">{d.category}</span>
                   <span className="text-[11px] font-medium text-muted">{STATUS[d.status]}</span>
                 </div>
-                <h2 className="mt-3 line-clamp-2 text-[17px] font-bold text-navy">{d.title}</h2>
+                <h2 className="mt-3 line-clamp-2 text-[17px] font-bold text-heading">{d.title}</h2>
                 {d.why && <p className="mt-1 line-clamp-2 text-sm text-muted">{d.why}</p>}
                 <div className="mt-auto pt-5">
                   <div className="mb-1.5 flex justify-between text-xs">
                     <span className="text-muted">
                       {compactRupiah(d.saved_amount)} {d.target_amount ? `/ ${compactRupiah(d.target_amount)}` : ""}
                     </span>
-                    <span className="font-semibold text-navy">{p}%</span>
+                    <span className="font-semibold text-heading">{p}%</span>
                   </div>
                   <ProgressBar value={p} />
                   {d.target_date && (

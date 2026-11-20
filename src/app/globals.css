@@ -1,20 +1,22 @@
 @import "tailwindcss";
 
 @theme {
-  --color-paper: #faf8f4;
+  --color-paper: #faf7f5;
   --color-card: #ffffff;
-  --color-line: #ebe6dd;
-  --color-navy: #0f1e3d;
-  --color-navy-soft: #1d2f57;
-  --color-ink: #2b2f36;
-  --color-muted: #6b7180;
+  --color-line: #ece5e1;
+  --color-brand: #8b2220;
+  --color-brand-deep: #6b1817;
+  --color-heading: #2a1d1c;
+  --color-brand-soft: #a02a27;
+  --color-ink: #2f2a29;
+  --color-muted: #766d6a;
   --color-gold: #c6a15b;
   --color-gold-soft: #f4ecdc;
   --color-success: #2f7d5b;
-  --color-danger: #b4423a;
+  --color-danger: #c2410c;
   --font-sans: var(--font-jakarta), ui-sans-serif, system-ui, sans-serif;
-  --shadow-soft: 0 1px 2px rgb(15 30 61 / 0.04), 0 8px 24px -12px rgb(15 30 61 / 0.12);
-  --shadow-lift: 0 2px 4px rgb(15 30 61 / 0.06), 0 18px 40px -16px rgb(15 30 61 / 0.25);
+  --shadow-soft: 0 1px 2px rgb(60 20 18 / 0.04), 0 8px 24px -12px rgb(60 20 18 / 0.12);
+  --shadow-lift: 0 2px 4px rgb(60 20 18 / 0.06), 0 18px 40px -16px rgb(60 20 18 / 0.25);
   --animate-rise: rise 0.5s cubic-bezier(0.2, 0.7, 0.2, 1) both;
 }
 
@@ -34,10 +36,10 @@ body {
 
 @utility card { @apply rounded-2xl border border-line bg-card shadow-soft; }
 @utility btn { @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50; }
-@utility btn-primary { @apply btn bg-navy text-white hover:bg-navy-soft; }
-@utility btn-gold { @apply btn bg-gold text-navy hover:brightness-105; }
+@utility btn-primary { @apply btn bg-brand text-white hover:bg-brand-soft; }
+@utility btn-gold { @apply btn bg-gold text-heading hover:brightness-105; }
 @utility btn-ghost { @apply btn border border-line bg-white text-ink hover:bg-paper; }
-@utility input { @apply w-full rounded-xl border border-line bg-white px-3.5 py-2.5 text-[15px] text-ink outline-none transition placeholder:text-muted/70 focus:border-navy/40 focus:ring-4 focus:ring-navy/5; }
+@utility input { @apply w-full rounded-xl border border-line bg-white px-3.5 py-2.5 text-[15px] text-ink outline-none transition placeholder:text-muted/70 focus:border-brand/40 focus:ring-4 focus:ring-brand/5; }
 @utility label { @apply mb-1.5 block text-sm font-medium text-ink; }
 @utility eyebrow { @apply text-[11px] font-semibold uppercase tracking-[0.14em] text-gold; }
 

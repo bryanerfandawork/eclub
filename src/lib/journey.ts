@@ -13,7 +13,7 @@ export const STAGES: Stage[] = [
     no: "01",
     name: "Define",
     desc: "Menentukan arti sukses, nilai, dan prioritas.",
-    tools: [{ label: "Definisi Sukses", href: "/profile#sukses" }, { label: "Wheel of Life" }, { label: "Personal Values" }],
+    tools: [{ label: "Definisi Sukses", href: "/profile#sukses" }, { label: "Wheel of Life", href: "/wheel-of-life" }, { label: "Personal Values" }],
   },
   {
     id: "discover",
@@ -48,6 +48,6 @@ export const STAGES: Stage[] = [
     no: "06",
     name: "Execute",
     desc: "Melakukan tindakan dan mengevaluasi hasil.",
-    tools: [{ label: "Langkah Aksi", href: "/goals" }, { label: "Daily Action" }, { label: "Review Mingguan" }],
+    tools: [{ label: "Langkah Aksi", href: "/goals" }, { label: "Daily Action", href: "/today" }, { label: "My Progress", href: "/progress" }],
   },
 ];

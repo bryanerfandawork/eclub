@@ -40,3 +40,17 @@ export function greeting() {
   if (h < 18) return "Selamat sore";
   return "Selamat malam";
 }
+
+/** Tanggal hari ini (YYYY-MM-DD) menurut waktu Indonesia Barat. */
+export function todayJakarta(offsetDays = 0) {
+  const d = new Date(Date.now() + offsetDays * 86_400_000);
+  return d.toLocaleDateString("en-CA", { timeZone: "Asia/Jakarta" });
+}
+
+export function hariSingkat(iso: string) {
+  return new Date(iso + "T00:00:00").toLocaleDateString("id-ID", { weekday: "short" });
+}
+
+export function tanggalPanjang(iso: string) {
+  return new Date(iso + "T00:00:00").toLocaleDateString("id-ID", { weekday: "long", day: "numeric", month: "long" });
+}

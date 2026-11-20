@@ -19,7 +19,7 @@ export default function LearnPage() {
             <div className="grid h-11 w-11 place-items-center rounded-2xl bg-gold-soft text-gold">
               <Icon className="h-5 w-5" />
             </div>
-            <h2 className="mt-4 font-bold text-navy">{title}</h2>
+            <h2 className="mt-4 font-bold text-heading">{title}</h2>
             <p className="mt-1 text-sm leading-relaxed text-muted">{desc}</p>
             <span className="mt-4 inline-block rounded-full bg-paper px-2.5 py-1 text-[11px] font-semibold text-muted">Segera hadir</span>
           </div>

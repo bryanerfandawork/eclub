@@ -30,7 +30,7 @@ export function DreamForm() {
             {DREAM_CATEGORIES.map((c, i) => (
               <label key={c} className="cursor-pointer">
                 <input type="radio" name="category" value={c} defaultChecked={i === 0} className="peer sr-only" />
-                <span className="inline-block rounded-full border border-line bg-white px-3.5 py-1.5 text-sm font-medium text-ink transition peer-checked:border-navy peer-checked:bg-navy peer-checked:text-white">
+                <span className="inline-block rounded-full border border-line bg-white px-3.5 py-1.5 text-sm font-medium text-ink transition peer-checked:border-brand peer-checked:bg-brand peer-checked:text-white">
                   {c}
                 </span>
               </label>
@@ -64,7 +64,7 @@ export function DreamForm() {
       </div>
 
       <aside className="space-y-4 lg:col-span-2">
-        <div className="rounded-2xl bg-navy p-6 text-white shadow-lift lg:sticky lg:top-10">
+        <div className="rounded-2xl bg-brand p-6 text-white shadow-lift lg:sticky lg:top-10">
           <p className="eyebrow">Kalkulator mimpi</p>
           <p className="mt-3 text-sm text-white/70">Perlu disisihkan setiap bulan</p>
           <p className="mt-1 text-3xl font-bold">{perMonth ? rupiah(perMonth) : "–"}</p>
