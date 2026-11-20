@@ -10,6 +10,7 @@ const jakarta = Plus_Jakarta_Sans({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.eclub.co.id"),
   title: { default: "EClub · Personal Growth Companion", template: "%s · EClub" },
   description: "Find Your Path. Build Your Success. Teman bertumbuh untuk hidup dan usaha Anda.",
   applicationName: "EClub",
