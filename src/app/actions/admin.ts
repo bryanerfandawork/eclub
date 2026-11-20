@@ -56,6 +56,7 @@ export async function saveFeatures(_: FormState, formData: FormData): Promise<Fo
     ["plus_price_monthly", Number(String(formData.get("plus_price_monthly") ?? "").replace(/[^\d]/g, "")) || 0],
     ["plus_price_yearly", Number(String(formData.get("plus_price_yearly") ?? "").replace(/[^\d]/g, "")) || 0],
     ["upgrade_contact", String(formData.get("upgrade_contact") ?? "").trim().slice(0, 200)],
+    ["bank_accounts", String(formData.get("bank_accounts") ?? "").trim().slice(0, 1000)],
   ];
   for (const [skey, svalue] of settings) {
     const { error } = await supabase.rpc("admin_set_setting", { skey, svalue });

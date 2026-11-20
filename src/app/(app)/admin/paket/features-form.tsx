@@ -28,7 +28,11 @@ export function FeaturesForm({ features, settings, canEdit }: { features: PlanFe
               <input name="upgrade_contact" defaultValue={String(settings.upgrade_contact ?? "")} className="input" placeholder="No. WhatsApp atau link" />
             </div>
           </div>
-          <p className="mt-2 text-xs text-muted">Kontak dipakai untuk tombol &quot;Upgrade sekarang&quot; sampai pembayaran online aktif.</p>
+          <div className="mt-4">
+            <label className="label">Rekening tujuan transfer</label>
+            <textarea name="bank_accounts" rows={3} defaultValue={String(settings.bank_accounts ?? "")} className="input resize-y" placeholder={"BCA 1234567890 a.n. PT EClub Indonesia\nMandiri 0987654321 a.n. PT EClub Indonesia"} />
+            <p className="mt-1 text-xs text-muted">Ditampilkan di halaman pembayaran. Harus rekening yang terhubung ke Moota agar terdeteksi otomatis.</p>
+          </div>
         </section>
 
         <section className="card overflow-hidden">

@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Check, Crown, Minus } from "lucide-react";
 import { PageHeader } from "@/components/ui";
 import { getAccount, getFeatures, getSettings, type PlanFeature } from "@/lib/plans";
@@ -50,12 +51,17 @@ export default async function PlansPage() {
             <p className="mt-4 text-sm font-semibold text-gold">
               Paket Anda saat ini{account.expiresAt ? ` · aktif sampai ${new Date(account.expiresAt).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}` : ""}
             </p>
-          ) : contactHref ? (
-            <a href={contactHref} target="_blank" rel="noopener noreferrer" className="btn-gold mt-5">
-              Upgrade sekarang
-            </a>
           ) : (
-            <p className="mt-5 rounded-xl bg-white/10 px-4 py-3 text-sm text-white/85">Pembayaran online segera hadir. Sementara itu, hubungi tim EClub untuk upgrade.</p>
+            <div className="mt-5 flex flex-wrap items-center gap-3">
+              <Link href="/beli/plus" className="btn-gold">
+                Upgrade sekarang
+              </Link>
+              {contactHref && (
+                <a href={contactHref} target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-white/80 underline-offset-2 hover:underline">
+                  Tanya admin dulu
+                </a>
+              )}
+            </div>
           )}
         </section>
       </div>
