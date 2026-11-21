@@ -15,13 +15,16 @@ export default async function AdminAffiliate() {
   if (!isDemoMode) {
     const supabase = await createClient();
     const res = await supabase.rpc("admin_payouts");
-    if (res.error) ready = false;
+    if (res.error) {
+      ready = false;
+      console.error("admin_payouts", res.error.message);
+    }
     else data = res.data as Data;
   }
   const d = (iso: string) => new Date(iso).toLocaleString("id-ID", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jakarta" });
   const waiting = data.payouts.filter((p) => p.status === "requested");
 
-  if (!ready) return <section className="card p-6 text-sm text-muted">Jalankan SQL tahap 13 untuk mengaktifkan affiliate.</section>;
+  if (!ready) return <section className="card p-6 text-sm text-muted">Data affiliate belum bisa dimuat. Pastikan SQL tahap 9 (WhatsApp) dan tahap 13 sudah dijalankan.</section>;
   return (
     <div className="space-y-5">
       <div className="grid gap-3 sm:grid-cols-3">

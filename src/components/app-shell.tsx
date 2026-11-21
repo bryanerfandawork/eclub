@@ -91,7 +91,7 @@ export function AppShell({
           ))}
         </nav>
         <div className="space-y-1 px-3 pb-3">
-          {plan === "free" && (
+          {plan === "free" && !admin && (
             <Link href="/paket" className="flex items-center gap-3 rounded-xl bg-gold-soft px-3 py-2.5 text-[14px] font-semibold text-brand hover:brightness-95">
               <Crown className="h-[18px] w-[18px] text-gold" /> Upgrade ke Plus
             </Link>
@@ -114,7 +114,7 @@ export function AppShell({
             </div>
             <div className="min-w-0 flex-1">
               <p className="flex items-center gap-1.5 truncate text-sm font-semibold text-heading">
-                <span className="truncate">{name}</span> <PlanBadge plan={plan} />
+                <span className="truncate">{name}</span> {admin ? <span className="rounded-full bg-brand px-2.5 py-0.5 text-[11px] font-bold text-gold">Admin</span> : <PlanBadge plan={plan} />}
               </p>
               <p className="truncate text-xs text-muted">{email}</p>
             </div>
@@ -180,7 +180,7 @@ export function AppShell({
             </div>
           ))}
           <div className="mt-6 grid grid-cols-2 gap-2.5">
-            {plan === "free" && (
+            {plan === "free" && !admin && (
               <Link href="/paket" onClick={() => setMenuOpen(false)} className="btn-gold">
                 <Crown className="h-4 w-4" /> Upgrade ke Plus
               </Link>

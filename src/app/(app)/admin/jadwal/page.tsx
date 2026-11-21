@@ -26,7 +26,7 @@ export default async function AdminJadwal() {
       );
     }
   }
-  if (!ready) return <section className="card p-6 text-sm text-muted">Jalankan SQL tahap 13 untuk mengaktifkan mentoring & event.</section>;
+  if (!ready) return <section className="card p-6 text-sm text-muted">Data jadwal belum bisa dimuat. Pastikan SQL tahap 9 (WhatsApp) dan tahap 13 sudah dijalankan.</section>;
   const upcoming = slots.filter((s) => new Date(s.starts_at) > new Date()).reverse();
   const past = slots.filter((s) => new Date(s.starts_at) <= new Date() && s.booking);
 
