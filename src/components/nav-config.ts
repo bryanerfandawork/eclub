@@ -55,7 +55,7 @@ export const sidebarNav: { section: string; items: NavItem[] }[] = [
     section: "Belajar",
     items: [
       { label: "Learning Center", href: "/learn", icon: GraduationCap },
-      { label: "Articles", href: "/learn#artikel", icon: Newspaper, soon: true },
+      { label: "Artikel", href: "/artikel", icon: Newspaper },
       { label: "Mentoring", href: "/mentoring", icon: Users },
       { label: "Event & Webinar", href: "/event", icon: CalendarDays },
       { label: "Komunitas", href: "/komunitas", icon: MessagesSquare },

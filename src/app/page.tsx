@@ -154,12 +154,12 @@ export default async function Home() {
       <header className="sticky top-0 z-30 border-b border-line/60 bg-paper/85 backdrop-blur-xl">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-5 py-3.5 lg:px-10">
           <Logo />
-          <nav className="hidden items-center gap-7 text-sm font-medium text-muted md:flex">
+          <nav className="hidden items-center gap-6 text-sm font-medium text-muted lg:flex">
             <a href="#fitur" className="hover:text-brand">Fitur</a>
-            <a href="#metode" className="hover:text-brand">Metode</a>
             <a href="#hitung" className="hover:text-brand">Hitung target</a>
             <a href="#paket" className="hover:text-brand">Paket</a>
             <a href="#event" className="hover:text-brand">Event</a>
+            <Link href="/artikel" className="hover:text-brand">Artikel</Link>
             <a href="#kolaborasi" className="hover:text-brand">Kolaborasi</a>
             <a href="#faq" className="hover:text-brand">FAQ</a>
           </nav>
@@ -623,6 +623,7 @@ export default async function Home() {
             <a href="#fitur" className="hover:text-brand">Fitur</a>
             <a href="#paket" className="hover:text-brand">Paket</a>
             <a href="#kolaborasi" className="hover:text-brand">Kolaborasi</a>
+            <Link href="/artikel" className="hover:text-brand">Artikel</Link>
             <Link href="/cek-sertifikat" className="hover:text-brand">Cek sertifikat</Link>
             <Link href="/masuk" className="hover:text-brand">Masuk</Link>
           </div>

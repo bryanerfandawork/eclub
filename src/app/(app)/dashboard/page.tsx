@@ -11,6 +11,7 @@ import { ProgressBar, Ring } from "@/components/ui";
 import { getFinance, monthSummary } from "@/lib/finance-server";
 import { isDemoMode } from "@/lib/supabase/config";
 import { createClient } from "@/lib/supabase/server";
+import { motivationOfDay } from "@/lib/motivation";
 
 export const metadata = { title: "Dashboard" };
 
@@ -59,6 +60,7 @@ export default async function DashboardPage() {
       <section className="animate-rise">
         <p className="text-sm font-medium text-muted">{greeting()},</p>
         <h1 className="text-[28px] font-bold tracking-tight text-heading lg:text-[34px]">{firstName} 👋</h1>
+        <p className="mt-2 max-w-2xl text-[15px] leading-relaxed text-muted italic">✨ {motivationOfDay(today)}</p>
       </section>
 
       {!placement && (
