@@ -72,7 +72,7 @@ Source of truth in code: `src/lib/sef.ts` (SPARK, SEF_PHASES, SEF_STEPS). The jo
 | Domain | `eclub.co.id`, registered at Rumahweb (Rumahweb also hosts the business email). See section 7. |
 | Payments | Moota (automatic bank transfer verification via webhook). The provider interface is swappable (`src/lib/payments/`). |
 | AI | Anthropic API, model `claude-haiku-5-5` at effort low (cheap: about Rp5–10 per message) |
-| WhatsApp (planned) | Fonnte |
+| WhatsApp | Fonnte (code ready; needs `FONNTE_TOKEN`, `CRON_SECRET`, `SUPABASE_SERVICE_ROLE_KEY`). Admin > Pengaturan shows which keys are set and has a "Kirim pesan uji" button. |
 
 **Vercel environment variables:**
 - `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`: already set.
@@ -123,7 +123,9 @@ Without the Supabase env variables, the app runs in **demo mode**: it shows samp
   - Pengguna: change plan and role.
   - Course: CRUD, lessons, SEF step, grant access.
   - Pesanan: mark as paid or cancel.
-  - Paket & Fitur: limits, prices, WhatsApp contact for upgrades and mentoring, bank accounts.
+  - Mentoring & Event: open slots, create events, see bookings/attendees.
+  - Affiliate: payout requests and top affiliates.
+  - Pengaturan (was Paket & Fitur): WhatsApp key status + test, QRIS upload, prices, payment mode, admin WA, bank accounts, affiliate rate / coupon % / hold days / months, renewal reminder days, daily WA cap, motivation toggle, plan limits.
   - Testimoni.
 - **AI Companion** (gold ✨ button):
   - Streams replies through `/api/ai/chat`.
@@ -150,6 +152,27 @@ Without the Supabase env variables, the app runs in **demo mode**: it shows samp
   - A payment confirmation is sent when an admin marks an order as paid or the payment webhook fulfils it (`notifyOrderPaid` in `src/lib/whatsapp.ts`).
   - Sends are logged in `notification_log`.
   - Mentoring reminders wait for the booking feature.
+- **Keuangan (finance)** — `/keuangan`, migration 012 + 013:
+  - Two wallets, Pribadi and Usaha (`fin_transactions`, balances via `fin_balances()`), so personal and business money never mix.
+  - Floating "Catat" bottom sheet (`src/components/finance/quick-add.tsx`): Pengeluaran / Pemasukan / Pindah dana, emoji categories (`src/lib/finance.ts`), Hari ini / Kemarin / date, optional note.
+  - Transfers: "Gaji diri sendiri" (business→personal) and "Tambah modal" (personal→business). A hint nudges owners who have not paid themselves this month.
+  - Month summary, "Ke mana uang pergi?" top categories, history with two-tap delete, dashboard card.
+  - Stage 2: `/keuangan/hpp` HPP calculator (free to use; saving products in `fin_products` is Plus-only, enforced by RLS) and `/keuangan/laba-rugi` profit & loss (Plus; free users see a blurred preview). P&L rules: revenue = penjualan/jasa/lain, HPP = bahan, cicilan and owner draws are shown "di luar laba rugi".
+  - Not built yet (stage 3): balance sheet, cash-flow statement, budgets, AI reading the finances.
+- **Affiliate + kupon** — `/affiliate`, `/admin/affiliate`, migration 013:
+  - Only active Plus members (or staff) earn. Each gets `profiles.ref_code`, used both as the link `/?ref=CODE` and as a personal coupon code.
+  - Link: middleware stores `eclub_ref` cookie (30 days); `signUp` puts it in user metadata; trigger `capture_referral` on `auth.users` fills `referrals`.
+  - Coupon: on `/pesanan/[id]` the buyer enters a code (prefilled from the cookie); `apply_coupon` gives `coupon_discount`% off (default 10) and sets `orders.coupon_referrer`.
+  - Commission: trigger `affiliate_on_paid` on orders → `affiliate_commissions` at `affiliate_rate`% (default 20) of the product price, coupon owner first, else the referrer (within `affiliate_months`, default 12). Withdrawable after `affiliate_hold_days` (default 7). No self-referral.
+  - Payouts: `request_payout` in multiples of Rp100.000; admin transfers manually and clicks "Sudah ditransfer"/"Tolak". WhatsApp notices for new commission, payout request (admin) and result (member).
+- **Mentoring 1-on-1** — `/mentoring`, admin `/admin/jadwal`: admin opens slots (several times per date, normal price + Plus price, meet link). Members pick a day/time and write what to discuss. Free slots confirm instantly; paid ones create an order (`orders.product='mentoring'`, `ref_id`=slot) and confirm when paid (trigger `orders_fulfill_items`). Meet link only visible to the confirmed booker.
+- **Event & webinar** — `/event`: price + Plus price, capacity, meet link, recording link (visible to registrants and Plus). Same order flow (`product='event'`).
+- **Kebiasaan & Syukur** — `/kebiasaan`: habit tracker with streaks and 7-day dots (`habits`, `habit_logs`; free 3 habits via `plan_features.habits`), gratitude journal with mood (`gratitude_entries`).
+- **Sertifikat SEF** — `/sertifikat`: when every lesson of a SEF step is done, `claim_certificate` issues a certificate (`EC-XXXXXXXX`), printable landscape. Public check page `/cek-sertifikat`.
+- **Komunitas** — `/komunitas`: circles Semua/Survive/Sustain/Scale Up/Spread Up, post types (Cerita, Kemenangan, Tanya, Insight), comments, "🔥 Semangat" likes, admin pin/delete, author name + Plus badge stamped by trigger, 10 posts/day limit.
+- **Daily WhatsApp (cron 07:00 WIB)** now also sends: a different motivational line every day (`src/lib/motivation.ts`, 60 lines, toggle `wa_motivation`), Plus renewal reminders at `renewal_days` (default 7,3,1) plus one the day after expiry, mentoring/event reminders within 24h. Cap per run: `wa_daily_max` (max 70).
+- **UX**: mobile "Menu" button opens a grid of every page; thin top progress bar on link clicks (`nav-progress.tsx`) and an instant skeleton (`(app)/loading.tsx`); habit/like buttons react on press (`pending-button.tsx`).
+- **Prices (21 Nov 2026)**: Plus Rp79.000/bulan, Rp690.000/tahun, Laporan DISC Rp49.000, mentoring default Rp399.000 (Plus Rp299.000). Set by migration 013, editable in Admin > Pengaturan. Chosen so that after a 10% coupon and 20% commission the net per yearly sale (~Rp497k) stays about equal to the old price.
 - **Landing page** (`src/app/page.tsx`): spark story, pain-to-gain section, philosophy, features, large SEF map, how it works, annual pricing, classes and mentoring, FAQ.
 
 ## 6. Database migrations (run by Ridha in Supabase > SQL Editor)
@@ -165,8 +188,10 @@ Without the Supabase env variables, the app runs in **demo mode**: it shows samp
 | `007_testimonials_sef.sql` (testimonials + `courses.sef_step`) | ✅ run (same content, pasted from the chat) |
 | `008_ai_companion.sql` | ⏳ **not run yet** |
 | `009_whatsapp.sql` (WhatsApp columns on profiles + notification_log) | ⏳ **not run yet** |
-| `011_manual_payment.sql` (public storage bucket `assets` for QRIS, payment_mode=manual, 48h expiry) | ⏳ given to Ridha 21 Nov 2026 |
 | `010_disc.sql` (report_unlocks, product disc_report, disc_report plan feature, removes wheel_history) | ✅ run |
+| `011_manual_payment.sql` | ✅ run (plus a chat-only seed for bank accounts and admin WhatsApp) |
+| `012_finance.sql` (fin_transactions, fin_balances) | ✅ run 21 Nov 2026 |
+| `013_growth_pack.sql` (fin_products, affiliate + coupons, mentoring, events, habits, gratitude, certificates, community, new plan_features rows, new prices) | ⏳ given to Ridha 21 Nov 2026. Tested end to end on a local Postgres with Supabase stubs. |
 
 New migrations go in `supabase/00N_*.sql`. Every migration must include explicit `GRANT` statements, because "Grant API access" was unchecked when the project was created.
 
@@ -216,7 +241,7 @@ New migrations go in `supabase/00N_*.sql`. Every migration must include explicit
    - Members must opt in, and the WhatsApp number is saved in their profile.
    - Rate-limit sends, and log them (e.g. a `notifications` table).
    - Schedule with a Vercel cron (free tier, about once a day) or Supabase pg_cron.
-2. Mentoring booking: schedule, payment through Moota, links to Cek Posisi results.
+2. ~~Mentoring booking~~, affiliate, community, habits, certificates, events: built 21 Nov 2026. Next ideas: finance stage 3 (balance sheet, cash flow, budget, AI reading finances), show the member's Cek Posisi result to the mentor in Admin > Jadwal.
 3. Revenue Streams tool (for the Acquisition step), and the remaining "Personal Mapping / Strength Mapping" tools on the journey.
 4. Articles / EClub Insights CMS (premium articles already exist in plan_features).
 5. Enforce the SEF level lock in the database, if needed.
