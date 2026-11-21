@@ -175,6 +175,7 @@ Without the Supabase env variables, the app runs in **demo mode**: it shows samp
 - **Prices (21 Nov 2026)**: Plus Rp79.000/bulan, Rp690.000/tahun, Laporan DISC Rp49.000, mentoring default Rp399.000 (Plus Rp299.000). Set by migration 013, editable in Admin > Pengaturan. Chosen so that after a 10% coupon and 20% commission the net per yearly sale (~Rp497k) stays about equal to the old price.
 - **Customer journey (migration 014)**: Cek Posisi (`/posisi`) -> Target Harian (`/target`: dream amount + years -> savings per day -> units per day per product from HPP/price, compared to 30-day business profit, add to Daily Action, course/mentoring recommendation for the SEF step). Free users can save 3 HPP products. Goal detail shows per-day amount with a link to `/target`.
 - **Profile bio (014)**: WhatsApp, birth date, province + regency selects (`src/lib/regions.ts`, 38 provinces / 514 regencies from idn-area-data). Cron sends a birthday WhatsApp with the `birthday_promo` text (Admin > Pengaturan). Events have `regency` + `location`; ticking "kabari kota" in Admin > Mentoring & Event sends WhatsApp to members in that regency (`notifyEventCity`).
+- **Onboarding `/lengkapi`**: right after signup (and after email confirmation) users fill WhatsApp, birth date, province, regency in one step, then go to Cek Posisi. Existing users with missing data are redirected there once from the dashboard; "Lewati dulu" sets cookie `eclub_bio_skip` for 30 days.
 - **Kolaborasi (014)**: public in-house training / workshop / speaker / partner form on the landing page (`submit_inquiry`, anon, rate-limited) -> Admin > Kolaborasi, admin gets a WhatsApp.
 - **Landing page** (`src/app/page.tsx`): funnel order: hero (CTA Cek Posisi) -> pains -> dream calculator lead magnet (`DreamCalc`, no login) -> philosophy -> 12 features -> SEF map -> 4-step journey -> testimonials (real only) -> pricing + table -> classes/mentoring -> nearest events (`public_events`, anon) -> affiliate -> kolaborasi form -> FAQ -> CTA.
 
@@ -195,7 +196,7 @@ Without the Supabase env variables, the app runs in **demo mode**: it shows samp
 | `011_manual_payment.sql` | ✅ run (plus a chat-only seed for bank accounts and admin WhatsApp) |
 | `012_finance.sql` (fin_transactions, fin_balances) | ✅ run 21 Nov 2026 |
 | `013_growth_pack.sql` (fin_products, affiliate + coupons, mentoring, events, habits, gratitude, certificates, community, new plan_features rows, new prices) | ✅ run 21 Nov 2026 |
-| `014_journey_profile.sql` (3 free HPP products, profile birth_date/province/regency, birthday_promo, event regency/location, public_events, collab_inquiries + submit_inquiry) | ⏳ given to Ridha 21 Nov 2026. Tested on local Postgres. |
+| `014_journey_profile.sql` (3 free HPP products, profile birth_date/province/regency, birthday_promo, event regency/location, public_events, collab_inquiries + submit_inquiry) | ✅ run 21 Nov 2026 |
 
 New migrations go in `supabase/00N_*.sql`. Every migration must include explicit `GRANT` statements, because "Grant API access" was unchecked when the project was created.
 

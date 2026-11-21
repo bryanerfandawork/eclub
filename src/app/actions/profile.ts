@@ -1,6 +1,8 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 import { isDemoMode } from "@/lib/supabase/config";
 import { createClient } from "@/lib/supabase/server";
 import type { FormState } from "./auth";
@@ -66,4 +68,42 @@ export async function updateBio(_: FormState, formData: FormData): Promise<FormS
   revalidatePath("/profile");
   revalidatePath("/dashboard");
   return { message: "Data diri tersimpan." };
+}
+
+const BIO_SKIP_COOKIE = "eclub_bio_skip";
+
+/** Langkah "Lengkapi data diri" setelah daftar (WA, tanggal lahir, domisili). */
+export async function completeOnboarding(_: FormState, formData: FormData): Promise<FormState> {
+  if (isDemoMode) redirect("/posisi");
+  const raw = String(formData.get("whatsapp") ?? "").trim();
+  const wa = normalizeWa(raw);
+  const birth = String(formData.get("birth_date") ?? "");
+  const province = String(formData.get("province") ?? "");
+  const regency = String(formData.get("regency") ?? "");
+  if (!wa) return { error: "Nomor WhatsApp tidak valid. Contoh: 081234567890" };
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(birth) || birth > new Date().toISOString().slice(0, 10) || birth < "1920-01-01") return { error: "Isi tanggal lahir yang benar." };
+  if (!/^\d{2}$/.test(province)) return { error: "Pilih provinsi." };
+  if (!/^\d{2}\.\d{2}$/.test(regency) || !regency.startsWith(province + ".")) return { error: "Pilih kota/kabupaten." };
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "Sesi berakhir. Silakan masuk lagi." };
+  const { error } = await supabase
+    .from("profiles")
+    .update({ whatsapp: wa, wa_opt_in: formData.get("wa_opt_in") === "on", birth_date: birth, province, regency })
+    .eq("id", user.id);
+  if (error) return { error: "Gagal menyimpan. Coba lagi sebentar lagi." };
+  revalidatePath("/", "layout");
+  redirect(safeNext(formData.get("next")));
+}
+
+export async function skipOnboarding(formData: FormData) {
+  (await cookies()).set(BIO_SKIP_COOKIE, "1", { maxAge: 60 * 60 * 24 * 30, path: "/", sameSite: "lax" });
+  redirect(safeNext(formData.get("next")));
+}
+
+function safeNext(v: FormDataEntryValue | null) {
+  const n = String(v ?? "");
+  return n.startsWith("/") && !n.startsWith("//") ? n : "/dashboard";
 }

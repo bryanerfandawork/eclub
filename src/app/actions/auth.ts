@@ -45,7 +45,7 @@ export async function signUp(_: FormState, formData: FormData): Promise<FormStat
     if (error.message.toLowerCase().includes("registered")) return { error: "Email ini sudah terdaftar. Silakan masuk." };
     return { error: "Pendaftaran gagal. Coba lagi sebentar lagi." };
   }
-  if (data.session) redirect("/posisi");
+  if (data.session) redirect("/lengkapi");
   return { message: "Hampir selesai! Kami mengirim tautan konfirmasi ke email Anda. Klik tautan itu untuk mengaktifkan akun." };
 }
 
