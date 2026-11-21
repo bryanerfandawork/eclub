@@ -12,7 +12,10 @@ export async function getVapid(admin?: SupabaseClient | null): Promise<{ publicK
   const db = admin ?? createAdminClient();
   if (!db) return null;
   const { data, error } = await db.from("push_secrets").select("key, value").in("key", ["vapid_public", "vapid_private"]);
-  if (error) return null;
+  if (error) {
+    console.error("push_secrets read failed (jalankan SQL 017?)", error.message);
+    return null;
+  }
   const pub = data?.find((r) => r.key === "vapid_public")?.value;
   const priv = data?.find((r) => r.key === "vapid_private")?.value;
   if (pub && priv) return (cached = { publicKey: pub, privateKey: priv });

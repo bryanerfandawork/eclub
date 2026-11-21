@@ -30,13 +30,13 @@ export function EnablePush({ publicKey, next }: { publicKey: string | null; next
   }, []);
 
   async function enable() {
-    if (!publicKey) return setMsg("Server notifikasi belum siap. Coba muat ulang halaman sebentar lagi.");
     setBusy(true);
     setMsg("");
     try {
       const perm = await Notification.requestPermission();
       if (perm === "denied") return setState("denied");
       if (perm !== "granted") return setMsg("Pilih \"Izinkan\" (Allow) agar notifikasi bisa aktif.");
+      if (!publicKey) return setMsg("Server notifikasi belum siap. Coba muat ulang halaman sebentar lagi.");
       const reg = (await navigator.serviceWorker.getRegistration()) ?? (await navigator.serviceWorker.register("/sw.js"));
       await navigator.serviceWorker.ready;
       const sub = (await reg.pushManager.getSubscription()) ?? (await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64ToUint8(publicKey) }));
@@ -46,7 +46,8 @@ export function EnablePush({ publicKey, next }: { publicKey: string | null; next
       router.replace(next);
       router.refresh();
     } catch {
-      setMsg("Gagal mengaktifkan di perangkat ini. Coba lagi, atau buka EClub di Chrome.");
+      // Misalnya mode penyamaran (incognito) atau browser tanpa layanan push.
+      setState("unsupported");
     } finally {
       setBusy(false);
     }
@@ -94,11 +95,11 @@ export function EnablePush({ publicKey, next }: { publicKey: string | null; next
   if (state === "unsupported" || state === "denied")
     return (
       <div className="card mt-6 p-5 lg:p-7">
-        <p className="font-bold text-heading">{state === "denied" ? "Notifikasi diblokir di browser ini" : "Browser ini belum mendukung notifikasi"}</p>
+        <p className="font-bold text-heading">{state === "denied" ? "Notifikasi diblokir di browser ini" : "Browser ini belum bisa menerima notifikasi"}</p>
         <p className="mt-2 text-sm leading-relaxed text-muted">
           {state === "denied"
             ? "Buka pengaturan situs di browser (ikon gembok di samping alamat), ubah Notifikasi menjadi Izinkan, lalu muat ulang halaman ini."
-            : "Coba buka EClub di Chrome (Android atau laptop), atau pasang EClub ke layar utama HP Anda."}
+            : "Mode penyamaran (incognito) tidak bisa menerima notifikasi. Buka EClub di jendela Chrome biasa (Android atau laptop), atau pasang EClub ke layar utama HP Anda."}
         </p>
         {state === "denied" && (
           <button onClick={() => location.reload()} className="btn-primary mt-4 w-full py-3">
