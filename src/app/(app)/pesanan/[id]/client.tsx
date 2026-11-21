@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useActionState, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Check, Copy } from "lucide-react";
 
@@ -29,5 +29,22 @@ export function CopyButton({ value }: { value: string }) {
     >
       {ok ? <Check className="h-3.5 w-3.5 text-success" /> : <Copy className="h-3.5 w-3.5" />} {ok ? "Tersalin" : "Salin"}
     </button>
+  );
+}
+
+export function SaveWaForm({ orderId, action }: { orderId: string; action: (s: { error?: string; message?: string } | undefined, f: FormData) => Promise<{ error?: string; message?: string } | undefined> }) {
+  const [state, formAction, pending] = useActionState(action, undefined);
+  if (state?.message) return <p className="rounded-xl bg-success/10 p-3 text-sm text-success">{state.message}</p>;
+  return (
+    <form action={formAction} className="rounded-xl border border-line p-4">
+      <p className="text-sm font-semibold text-heading">Dapatkan info pembayaran lewat WhatsApp</p>
+      <p className="mt-0.5 text-xs text-muted">Supaya Anda tidak kehilangan jejak: instruksi bayar, konfirmasi lunas, dan pengingat.</p>
+      <input type="hidden" name="order_id" value={orderId} />
+      <div className="mt-3 flex gap-2">
+        <input name="whatsapp" inputMode="tel" placeholder="081234567890" className="input flex-1" required />
+        <button disabled={pending} className="btn-primary shrink-0">{pending ? "…" : "Simpan"}</button>
+      </div>
+      {state?.error && <p className="mt-2 text-xs text-danger">{state.error}</p>}
+    </form>
   );
 }

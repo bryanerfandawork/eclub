@@ -32,10 +32,27 @@ export function FeaturesForm({ features, settings, canEdit }: { features: PlanFe
               <input name="upgrade_contact" defaultValue={String(settings.upgrade_contact ?? "")} className="input" placeholder="No. WhatsApp atau link" />
             </div>
           </div>
+          <div className="mt-4 grid gap-4 sm:grid-cols-3">
+            <div>
+              <label className="label">Cara konfirmasi bayar</label>
+              <select name="payment_mode" defaultValue={String(settings.payment_mode ?? "manual")} className="input">
+                <option value="manual">Manual (konfirmasi via WhatsApp)</option>
+                <option value="auto">Otomatis (Moota/penyedia)</option>
+              </select>
+            </div>
+            <div>
+              <label className="label">No. WhatsApp admin</label>
+              <input name="admin_whatsapp" defaultValue={String(settings.admin_whatsapp ?? "")} className="input" placeholder="081234567890" />
+            </div>
+            <div>
+              <label className="label">Link gambar QRIS <span className="font-normal text-muted">(opsional)</span></label>
+              <input name="qris_image_url" defaultValue={String(settings.qris_image_url ?? "")} className="input" placeholder="https://… atau /payments/qris.png" />
+            </div>
+          </div>
           <div className="mt-4">
             <label className="label">Rekening tujuan transfer</label>
             <textarea name="bank_accounts" rows={3} defaultValue={String(settings.bank_accounts ?? "")} className="input resize-y" placeholder={"BCA 1234567890 a.n. PT EClub Indonesia\nMandiri 0987654321 a.n. PT EClub Indonesia"} />
-            <p className="mt-1 text-xs text-muted">Ditampilkan di halaman pembayaran. Harus rekening yang terhubung ke Moota agar terdeteksi otomatis.</p>
+            <p className="mt-1 text-xs text-muted">Ditampilkan di halaman pembayaran. Pada mode otomatis, harus rekening yang terhubung ke Moota.</p>
           </div>
         </section>
 

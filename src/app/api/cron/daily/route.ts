@@ -28,6 +28,30 @@ export async function GET(request: Request) {
     .limit(500);
 
   let sent = 0;
+
+  // Pengingat pesanan yang belum dibayar (notifikasi transaksi: cukup nomor WA tersimpan, tanpa opt-in harian).
+  const { data: pend } = await admin
+    .from("orders")
+    .select("id, user_id, title, amount")
+    .eq("status", "pending")
+    .gt("expires_at", new Date().toISOString())
+    .lt("created_at", new Date(Date.now() - 3 * 3_600_000).toISOString())
+    .limit(50);
+  const reminded = new Set<string>();
+  for (const o of pend ?? []) {
+    if (sent >= MAX_PER_RUN || reminded.has(o.user_id)) continue;
+    const { data: logs } = await admin.from("notification_log").select("id").eq("user_id", o.user_id).eq("kind", "order_reminder").gte("created_at", new Date(Date.now() - 20 * 3_600_000).toISOString()).limit(1);
+    if (logs?.length) continue;
+    const { data: pr } = await admin.from("profiles").select("full_name, whatsapp").eq("id", o.user_id).maybeSingle();
+    if (!pr?.whatsapp) continue;
+    const name = (pr.full_name || "Sahabat").split(" ")[0];
+    const ok = await sendWa(pr.whatsapp, `Halo ${name}, pesanan *${o.title}* (Rp${o.amount.toLocaleString("id-ID")}) masih menunggu pembayaran. Lanjutkan di sini:\n${SITE}/pesanan/${o.id}\n\nSudah bayar? Kirim bukti lewat tombol "Konfirmasi via WhatsApp" di halaman itu.`);
+    await admin.from("notification_log").insert({ user_id: o.user_id, kind: "order_reminder", status: ok ? "sent" : "failed" });
+    reminded.add(o.user_id);
+    if (ok) sent++;
+    await new Promise((r) => setTimeout(r, 700));
+  }
+
   for (const u of users ?? []) {
     if (sent >= MAX_PER_RUN) break;
     const { data: recent } = await admin.from("notification_log").select("kind, created_at").eq("user_id", u.id).gte("created_at", new Date(Date.now() - 30 * 86_400_000).toISOString());

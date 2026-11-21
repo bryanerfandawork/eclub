@@ -57,6 +57,9 @@ export async function saveFeatures(_: FormState, formData: FormData): Promise<Fo
     ["plus_price_yearly", Number(String(formData.get("plus_price_yearly") ?? "").replace(/[^\d]/g, "")) || 0],
     ["upgrade_contact", String(formData.get("upgrade_contact") ?? "").trim().slice(0, 200)],
     ["disc_report_price", Number(String(formData.get("disc_report_price") ?? "").replace(/[^\d]/g, "")) || 29000],
+    ["payment_mode", formData.get("payment_mode") === "auto" ? "auto" : "manual"],
+    ["admin_whatsapp", String(formData.get("admin_whatsapp") ?? "").replace(/[^\d+]/g, "").slice(0, 20)],
+    ["qris_image_url", (() => { const v = String(formData.get("qris_image_url") ?? "").trim(); return /^(https:\/\/|\/)/.test(v) ? v.slice(0, 500) : ""; })()],
     ["bank_accounts", String(formData.get("bank_accounts") ?? "").trim().slice(0, 1000)],
   ];
   for (const [skey, svalue] of settings) {
@@ -65,4 +68,22 @@ export async function saveFeatures(_: FormState, formData: FormData): Promise<Fo
   }
   revalidatePath("/", "layout");
   return { message: "Pengaturan paket tersimpan." };
+}
+
+/** Unggah gambar QRIS ke Supabase Storage (bucket "assets") lalu simpan tautannya di pengaturan. */
+export async function uploadQris(_: FormState, formData: FormData): Promise<FormState> {
+  if (isDemoMode) return { error: DEMO_MSG };
+  const file = formData.get("qris");
+  if (!(file instanceof File) || file.size === 0) return { error: "Pilih file gambar QRIS dulu." };
+  if (!/^image\/(png|jpe?g|webp)$/.test(file.type)) return { error: "Format harus PNG, JPG, atau WEBP." };
+  if (file.size > 2_000_000) return { error: "Ukuran gambar maksimal 2 MB." };
+  const supabase = await createClient();
+  const path = `qris-${Date.now()}.${file.type.split("/")[1].replace("jpeg", "jpg")}`;
+  const { error } = await supabase.storage.from("assets").upload(path, file, { contentType: file.type, upsert: true });
+  if (error) return { error: "Gagal mengunggah: " + error.message + ". Pastikan SQL tahap 11 sudah dijalankan." };
+  const { data } = supabase.storage.from("assets").getPublicUrl(path);
+  const { error: e2 } = await supabase.rpc("admin_set_setting", { skey: "qris_image_url", svalue: data.publicUrl });
+  if (e2) return { error: "Gagal menyimpan: " + e2.message };
+  revalidatePath("/", "layout");
+  return { message: "QRIS tersimpan dan tampil di halaman pembayaran." };
 }

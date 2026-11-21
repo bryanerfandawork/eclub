@@ -33,8 +33,8 @@ export async function notifyOrderPaid(orderId: string) {
     if (!admin || !waConfigured()) return;
     const { data: order } = await admin.from("orders").select("user_id, title, amount, status").eq("id", orderId).maybeSingle();
     if (!order || order.status !== "paid") return;
-    const { data: p } = await admin.from("profiles").select("full_name, whatsapp, wa_opt_in").eq("id", order.user_id).maybeSingle();
-    if (!p?.wa_opt_in || !p.whatsapp) return;
+    const { data: p } = await admin.from("profiles").select("full_name, whatsapp").eq("id", order.user_id).maybeSingle();
+    if (!p?.whatsapp) return; // notifikasi transaksi: cukup nomor tersimpan
     const name = (p.full_name || "Sahabat").split(" ")[0];
     const ok = await sendWa(
       p.whatsapp,
@@ -43,5 +43,48 @@ export async function notifyOrderPaid(orderId: string) {
     await admin.from("notification_log").insert({ user_id: order.user_id, kind: "payment", status: ok ? "sent" : "failed" });
   } catch (e) {
     console.error("notifyOrderPaid", e);
+  }
+}
+
+const idr = (n: number) => "Rp" + n.toLocaleString("id-ID");
+
+async function orderContext(orderId: string) {
+  const admin = createAdminClient();
+  if (!admin || !waConfigured()) return null;
+  const { data: order } = await admin.from("orders").select("id, user_id, title, amount, status, created_at, expires_at").eq("id", orderId).maybeSingle();
+  if (!order) return null;
+  const { data: p } = await admin.from("profiles").select("full_name, whatsapp").eq("id", order.user_id).maybeSingle();
+  const { data: s } = await admin.from("app_settings").select("value").eq("key", "admin_whatsapp").maybeSingle();
+  const adminWa = normalizeWa(String((s?.value as string) ?? ""));
+  return { admin, order, name: (p?.full_name || "Sahabat").split(" ")[0], userWa: (p?.whatsapp as string | null) ?? null, adminWa };
+}
+
+/** Pesanan baru: instruksi bayar ke pembeli + kabar ke admin. Notifikasi transaksi dikirim bila nomor tersimpan. */
+export async function notifyOrderCreated(orderId: string, notifyAdmin = true) {
+  try {
+    const c = await orderContext(orderId);
+    if (!c) return;
+    const link = `${SITE()}/pesanan/${c.order.id}`;
+    if (c.userWa) {
+      const ok = await sendWa(
+        c.userWa,
+        `Halo ${c.name}, pesanan *${c.order.title}* sudah dibuat.\n\nTotal bayar: *${idr(c.order.amount)}* (mohon transfer persis termasuk 3 angka terakhir).\n\nCara bayar & konfirmasi: ${link}\n\nSetelah membayar, kirim bukti transfer lewat tombol "Konfirmasi via WhatsApp" di halaman tersebut.`,
+      );
+      await c.admin.from("notification_log").insert({ user_id: c.order.user_id, kind: "order_created", status: ok ? "sent" : "failed" });
+    }
+    if (notifyAdmin && c.adminWa) await sendWa(c.adminWa, `🛒 Pesanan baru: ${c.order.title} · ${idr(c.order.amount)} dari ${c.name}.\nKode: ${c.order.id.slice(0, 8).toUpperCase()}\nCek di ${SITE()}/admin/pesanan`);
+  } catch (e) {
+    console.error("notifyOrderCreated", e);
+  }
+}
+
+export async function notifyOrderCancelled(orderId: string) {
+  try {
+    const c = await orderContext(orderId);
+    if (!c || !c.userWa) return;
+    const ok = await sendWa(c.userWa, `Halo ${c.name}, pesanan *${c.order.title}* (${idr(c.order.amount)}) dibatalkan. Jika Anda sudah terlanjur membayar atau merasa ini keliru, balas pesan ini atau hubungi admin EClub.`);
+    await c.admin.from("notification_log").insert({ user_id: c.order.user_id, kind: "order_cancelled", status: ok ? "sent" : "failed" });
+  } catch (e) {
+    console.error("notifyOrderCancelled", e);
   }
 }

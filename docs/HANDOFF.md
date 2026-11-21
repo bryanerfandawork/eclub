@@ -133,6 +133,16 @@ Without the Supabase env variables, the app runs in **demo mode**: it shows samp
   - Logs tokens in `ai_messages`.
   - The system prompt is in `src/lib/ai.ts`.
 - **Notifikasi WhatsApp (Fonnte)** — member mengaktifkan sendiri di Profil (nomor + opt-in + pengingat harian). Vercel Cron `vercel.json` memanggil `/api/cron/daily` tiap 07.00 WIB: tes ulang 8 Wheel (>90 hari, maks sebulan sekali) atau pengingat aksi harian; maksimal 1 pesan/orang/hari, 40 pesan/run, jeda 0,7 dtk. Konfirmasi lunas dikirim saat admin menandai lunas / webhook pembayaran (`notifyOrderPaid` di `src/lib/whatsapp.ts`). Log di `notification_log`. Pengingat mentoring menunggu fitur booking.
+- **Manual payment** (current mode, `app_settings.payment_mode = manual`; Moota is on hold):
+  - The order page shows QRIS (uploaded in Admin > Paket & Fitur, stored in the Supabase `assets` bucket), the bank accounts, and a green "Konfirmasi via WhatsApp" button. The button opens wa.me to `admin_whatsapp` with the order code, product, and amount.
+  - The admin then clicks "Tandai lunas" in Admin > Pesanan.
+  - WhatsApp messages at each transaction step (`src/lib/whatsapp.ts`):
+    - order created: sent to the buyer and the admin
+    - unpaid for more than 3 hours: reminder via the daily cron
+    - paid: sent to the buyer
+    - cancelled: sent to the buyer
+  - Transaction messages only need a saved WhatsApp number; the daily-reminder opt-in is not required. The order page asks for the number if it is missing.
+  - The bank accounts and admin WhatsApp number are stored in `app_settings`, never in the repo.
 - **WhatsApp notifications (Fonnte)**:
   - Members turn them on themselves in Profile: WhatsApp number, opt-in, and an optional daily reminder.
   - `vercel.json` schedules Vercel Cron to call `/api/cron/daily` every day at 07:00 WIB. It sends either the 8 Wheel retest reminder (after 90 days, at most once a month) or the daily action reminder.
@@ -155,7 +165,8 @@ Without the Supabase env variables, the app runs in **demo mode**: it shows samp
 | `007_testimonials_sef.sql` (testimonials + `courses.sef_step`) | ✅ run (same content, pasted from the chat) |
 | `008_ai_companion.sql` | ⏳ **not run yet** |
 | `009_whatsapp.sql` (WhatsApp columns on profiles + notification_log) | ⏳ **not run yet** |
-| `010_disc.sql` (report_unlocks, product disc_report, disc_report plan feature, removes wheel_history) | ⏳ **not run yet** |
+| `011_manual_payment.sql` (public storage bucket `assets` for QRIS, payment_mode=manual, 48h expiry) | ⏳ given to Ridha 21 Nov 2026 |
+| `010_disc.sql` (report_unlocks, product disc_report, disc_report plan feature, removes wheel_history) | ✅ run |
 
 New migrations go in `supabase/00N_*.sql`. Every migration must include explicit `GRANT` statements, because "Grant API access" was unchecked when the project was created.
 

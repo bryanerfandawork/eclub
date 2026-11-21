@@ -37,7 +37,7 @@ export const getFeatures = cache(async (): Promise<PlanFeature[]> => {
 });
 
 export const getSettings = cache(async (): Promise<Record<string, unknown>> => {
-  const defaults = { plus_price_monthly: 49000, plus_price_yearly: 499000, upgrade_contact: "", bank_accounts: "", disc_report_price: 29000 };
+  const defaults = { plus_price_monthly: 49000, plus_price_yearly: 499000, upgrade_contact: "", bank_accounts: "", disc_report_price: 29000, payment_mode: "manual", admin_whatsapp: "", qris_image_url: "" };
   if (isDemoMode) return defaults;
   const supabase = await createClient();
   const { data } = await supabase.from("app_settings").select("key, value");
