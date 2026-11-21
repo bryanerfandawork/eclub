@@ -2,12 +2,17 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { SUPABASE_ANON_KEY, SUPABASE_URL, isDemoMode } from "./config";
 
-const PROTECTED = ["/dashboard", "/journey", "/goals", "/learn", "/profile", "/today", "/wheel-of-life", "/progress", "/my-life", "/assessment", "/admin", "/paket", "/beli", "/pesanan", "/posisi", "/disc", "/keuangan"];
+const PROTECTED = ["/dashboard", "/journey", "/goals", "/learn", "/profile", "/today", "/wheel-of-life", "/progress", "/my-life", "/assessment", "/admin", "/paket", "/beli", "/pesanan", "/posisi", "/disc", "/keuangan", "/affiliate"];
 const AUTH_PAGES = ["/masuk", "/daftar"];
 
 export async function updateSession(request: NextRequest) {
   let response = NextResponse.next({ request });
-  if (isDemoMode) return response;
+  const ref = request.nextUrl.searchParams.get("ref");
+  const keepRef = (r: NextResponse) => {
+    if (ref && /^[A-Za-z0-9]{3,16}$/.test(ref)) r.cookies.set("eclub_ref", ref.toUpperCase(), { maxAge: 60 * 60 * 24 * 30, path: "/", sameSite: "lax" });
+    return r;
+  };
+  if (isDemoMode) return keepRef(response);
 
   const supabase = createServerClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     cookies: {
@@ -39,5 +44,5 @@ export async function updateSession(request: NextRequest) {
   if (!user && PROTECTED.some((p) => path === p || path.startsWith(p + "/"))) return redirectTo("/masuk");
   if (user && (AUTH_PAGES.includes(path) || path === "/")) return redirectTo("/dashboard");
 
-  return response;
+  return keepRef(response);
 }

@@ -8,6 +8,7 @@ import {
   PieChart,
   Compass,
   Gem,
+  Gift,
   GraduationCap,
   Home,
   LayoutDashboard,
@@ -60,6 +61,7 @@ export const sidebarNav: { section: string; items: NavItem[] }[] = [
     section: "Akun",
     items: [
       { label: "My Progress", href: "/progress", icon: BarChart3 },
+      { label: "Affiliate", href: "/affiliate", icon: Gift },
       { label: "Profile & Settings", href: "/profile", icon: User },
     ],
   },

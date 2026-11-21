@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { isDemoMode } from "@/lib/supabase/config";
 import { createClient } from "@/lib/supabase/server";
-import { normalizeWa, notifyOrderCancelled, notifyOrderCreated, notifyOrderPaid } from "@/lib/whatsapp";
+import { normalizeWa, notifyOrderCancelled, notifyOrderCreated, notifyOrderPaid, notifyCommission } from "@/lib/whatsapp";
 import type { FormState } from "./auth";
 
 export async function startOrder(_: FormState, formData: FormData): Promise<FormState> {
@@ -25,7 +25,7 @@ export async function adminMarkPaid(formData: FormData) {
   const supabase = await createClient();
   const id = String(formData.get("id"));
   const { error } = await supabase.rpc("admin_mark_paid", { p_order: id });
-  if (!error) await notifyOrderPaid(id);
+  if (!error) await Promise.all([notifyOrderPaid(id), notifyCommission(id)]);
   revalidatePath("/admin/pesanan");
 }
 

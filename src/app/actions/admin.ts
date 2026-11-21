@@ -57,6 +57,7 @@ export async function saveFeatures(_: FormState, formData: FormData): Promise<Fo
     ["plus_price_yearly", Number(String(formData.get("plus_price_yearly") ?? "").replace(/[^\d]/g, "")) || 0],
     ["upgrade_contact", String(formData.get("upgrade_contact") ?? "").trim().slice(0, 200)],
     ["disc_report_price", Number(String(formData.get("disc_report_price") ?? "").replace(/[^\d]/g, "")) || 29000],
+    ["affiliate_rate", Math.min(50, Math.max(0, Number(String(formData.get("affiliate_rate") ?? "").replace(/[^\d]/g, "")) || 20))],
     ["payment_mode", formData.get("payment_mode") === "auto" ? "auto" : "manual"],
     ["admin_whatsapp", String(formData.get("admin_whatsapp") ?? "").replace(/[^\d+]/g, "").slice(0, 20)],
     ["qris_image_url", (() => { const v = String(formData.get("qris_image_url") ?? "").trim(); return /^(https:\/\/|\/)/.test(v) ? v.slice(0, 500) : ""; })()],

@@ -28,6 +28,10 @@ export function FeaturesForm({ features, settings, canEdit }: { features: PlanFe
               <input name="disc_report_price" inputMode="numeric" defaultValue={String(settings.disc_report_price ?? "29000")} className="input" />
             </div>
             <div>
+              <label className="label">Komisi affiliate (%)</label>
+              <input name="affiliate_rate" inputMode="numeric" defaultValue={String(settings.affiliate_rate ?? "20")} className="input" />
+            </div>
+            <div>
               <label className="label">Kontak upgrade</label>
               <input name="upgrade_contact" defaultValue={String(settings.upgrade_contact ?? "")} className="input" placeholder="No. WhatsApp atau link" />
             </div>

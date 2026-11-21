@@ -88,3 +88,45 @@ export async function notifyOrderCancelled(orderId: string) {
     console.error("notifyOrderCancelled", e);
   }
 }
+
+/** Kabar komisi affiliate ke pengajak saat pesanan orang yang diajak lunas. */
+export async function notifyCommission(orderId: string) {
+  try {
+    const admin = createAdminClient();
+    if (!admin || !waConfigured()) return;
+    const { data: c } = await admin.from("affiliate_commissions").select("referrer_id, amount, available_at").eq("order_id", orderId).maybeSingle();
+    if (!c) return;
+    const { data: p } = await admin.from("profiles").select("full_name, whatsapp").eq("id", c.referrer_id).maybeSingle();
+    if (!p?.whatsapp) return;
+    const name = (p.full_name || "Sahabat").split(" ")[0];
+    await sendWa(p.whatsapp, `Selamat ${name}! 🎉 Ada komisi affiliate baru *${idr(Number(c.amount))}* dari orang yang Anda ajak. Bisa dicairkan mulai ${new Date(c.available_at).toLocaleDateString("id-ID", { day: "numeric", month: "long" })}.\n\nLihat: ${SITE()}/affiliate`);
+  } catch (e) {
+    console.error("notifyCommission", e);
+  }
+}
+
+/** Permintaan pencairan: kabar ke admin. Status diproses: kabar ke member. */
+export async function notifyPayout(payoutId: string, event: "requested" | "processed") {
+  try {
+    const admin = createAdminClient();
+    if (!admin || !waConfigured()) return;
+    const { data: o } = await admin.from("affiliate_payouts").select("user_id, amount, status, note").eq("id", payoutId).maybeSingle();
+    if (!o) return;
+    const { data: p } = await admin.from("profiles").select("full_name, whatsapp").eq("id", o.user_id).maybeSingle();
+    const name = (p?.full_name || "Sahabat").split(" ")[0];
+    if (event === "requested") {
+      const { data: s } = await admin.from("app_settings").select("value").eq("key", "admin_whatsapp").maybeSingle();
+      const adminWa = normalizeWa(String((s?.value as string) ?? ""));
+      if (adminWa) await sendWa(adminWa, `💸 Permintaan pencairan affiliate ${idr(Number(o.amount))} dari ${p?.full_name ?? "member"}.\nProses di ${SITE()}/admin/affiliate`);
+    } else if (p?.whatsapp) {
+      await sendWa(
+        p.whatsapp,
+        o.status === "paid"
+          ? `Halo ${name}, pencairan komisi *${idr(Number(o.amount))}* sudah kami transfer ke rekening Anda. Terima kasih sudah mengajak teman bertumbuh bersama EClub! 🙏`
+          : `Halo ${name}, permintaan pencairan ${idr(Number(o.amount))} belum bisa kami proses.${o.note ? ` Catatan: ${o.note}` : ""} Saldo kembali ke akun affiliate Anda: ${SITE()}/affiliate`,
+      );
+    }
+  } catch (e) {
+    console.error("notifyPayout", e);
+  }
+}

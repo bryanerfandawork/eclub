@@ -1,6 +1,6 @@
 "use server";
 
-import { headers } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { isDemoMode } from "@/lib/supabase/config";
 import { createClient } from "@/lib/supabase/server";
@@ -34,11 +34,12 @@ export async function signUp(_: FormState, formData: FormData): Promise<FormStat
   if (password.length < 8) return { error: "Kata sandi minimal 8 karakter." };
 
   const origin = (await headers()).get("origin") ?? "";
+  const ref = (await cookies()).get("eclub_ref")?.value;
   const supabase = await createClient();
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
-    options: { data: { full_name: fullName }, emailRedirectTo: `${origin}/auth/callback` },
+    options: { data: { full_name: fullName, ...(ref ? { ref } : {}) }, emailRedirectTo: `${origin}/auth/callback` },
   });
   if (error) {
     if (error.message.toLowerCase().includes("registered")) return { error: "Email ini sudah terdaftar. Silakan masuk." };
