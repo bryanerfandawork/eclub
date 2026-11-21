@@ -64,6 +64,25 @@ export default async function KeuanganPage({ searchParams }: { searchParams: Pro
         })}
       </div>
 
+      {w === "business" && (
+        <div className="mt-3 grid grid-cols-2 gap-3">
+          <Link href="/keuangan/hpp" className="card flex items-center gap-3 p-3.5 hover:border-gold">
+            <span className="text-2xl">🧮</span>
+            <span className="text-sm leading-tight">
+              <b className="block text-heading">Kalkulator HPP</b>
+              <span className="text-xs text-muted">Harga jual yang untung</span>
+            </span>
+          </Link>
+          <Link href="/keuangan/laba-rugi" className="card flex items-center gap-3 p-3.5 hover:border-gold">
+            <span className="text-2xl">📊</span>
+            <span className="text-sm leading-tight">
+              <b className="block text-heading">Laba rugi</b>
+              <span className="text-xs text-muted">Untung bersih bulan ini</span>
+            </span>
+          </Link>
+        </div>
+      )}
+
       {!hasAny ? (
         <section className="card mt-5 p-6 text-center lg:p-8">
           <div className="text-4xl">👋</div>
