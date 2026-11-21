@@ -533,3 +533,83 @@ language sql stable security definer set search_path = '' as $$
   select name, step, issued_at from public.certificates where code = upper(trim(p_code));
 $$;
 grant execute on function public.verify_certificate to anon, authenticated;
+
+-- ============ 8. Komunitas (circle per fase SEF) ============
+create table if not exists public.community_posts (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users (id) on delete cascade default auth.uid(),
+  circle text not null default 'umum' check (circle in ('umum', 'survive', 'sustain', 'scale', 'spread')),
+  kind text not null default 'cerita' check (kind in ('cerita', 'menang', 'tanya', 'insight')),
+  body text not null check (char_length(body) between 2 and 2000),
+  author_name text,
+  author_plus boolean not null default false,
+  pinned boolean not null default false,
+  created_at timestamptz not null default now()
+);
+create index if not exists community_posts_circle_idx on public.community_posts (circle, created_at desc);
+create table if not exists public.community_comments (
+  id uuid primary key default gen_random_uuid(),
+  post_id uuid not null references public.community_posts (id) on delete cascade,
+  user_id uuid not null references auth.users (id) on delete cascade default auth.uid(),
+  body text not null check (char_length(body) between 1 and 1000),
+  author_name text,
+  author_plus boolean not null default false,
+  created_at timestamptz not null default now()
+);
+create index if not exists community_comments_post_idx on public.community_comments (post_id, created_at);
+create table if not exists public.community_likes (
+  post_id uuid not null references public.community_posts (id) on delete cascade,
+  user_id uuid not null references auth.users (id) on delete cascade default auth.uid(),
+  primary key (post_id, user_id)
+);
+
+-- Isi nama penulis otomatis + batas wajar anti-spam.
+create or replace function public.community_stamp() returns trigger
+language plpgsql security definer set search_path = '' as $$
+declare v_count int;
+begin
+  new.user_id := auth.uid();
+  select coalesce(nullif(split_part(trim(full_name), ' ', 1), ''), 'Member'),
+         (plan = 'plus' and (plan_expires_at is null or plan_expires_at > now())) or role in ('admin', 'super_admin')
+    into new.author_name, new.author_plus from public.profiles where id = auth.uid();
+  if tg_table_name = 'community_posts' then
+    new.pinned := false;
+    select count(*) into v_count from public.community_posts where user_id = auth.uid() and created_at > now() - interval '1 day';
+    if v_count >= 10 then raise exception 'Batas 10 postingan per hari tercapai'; end if;
+  else
+    select count(*) into v_count from public.community_comments where user_id = auth.uid() and created_at > now() - interval '1 day';
+    if v_count >= 60 then raise exception 'Batas komentar harian tercapai'; end if;
+  end if;
+  return new;
+end;
+$$;
+drop trigger if exists community_posts_stamp on public.community_posts;
+create trigger community_posts_stamp before insert on public.community_posts for each row execute function public.community_stamp();
+drop trigger if exists community_comments_stamp on public.community_comments;
+create trigger community_comments_stamp before insert on public.community_comments for each row execute function public.community_stamp();
+
+alter table public.community_posts enable row level security;
+alter table public.community_comments enable row level security;
+alter table public.community_likes enable row level security;
+drop policy if exists "komunitas baca" on public.community_posts;
+create policy "komunitas baca" on public.community_posts for select to authenticated using (true);
+drop policy if exists "komunitas tulis" on public.community_posts;
+create policy "komunitas tulis" on public.community_posts for insert to authenticated with check (auth.uid() = user_id);
+drop policy if exists "komunitas hapus" on public.community_posts;
+create policy "komunitas hapus" on public.community_posts for delete to authenticated using (auth.uid() = user_id or public.is_staff());
+drop policy if exists "komunitas sematkan" on public.community_posts;
+create policy "komunitas sematkan" on public.community_posts for update to authenticated using (public.is_staff()) with check (public.is_staff());
+drop policy if exists "komentar baca" on public.community_comments;
+create policy "komentar baca" on public.community_comments for select to authenticated using (true);
+drop policy if exists "komentar tulis" on public.community_comments;
+create policy "komentar tulis" on public.community_comments for insert to authenticated with check (auth.uid() = user_id);
+drop policy if exists "komentar hapus" on public.community_comments;
+create policy "komentar hapus" on public.community_comments for delete to authenticated using (auth.uid() = user_id or public.is_staff());
+drop policy if exists "suka baca" on public.community_likes;
+create policy "suka baca" on public.community_likes for select to authenticated using (true);
+drop policy if exists "suka sendiri" on public.community_likes;
+create policy "suka sendiri" on public.community_likes for insert to authenticated with check (auth.uid() = user_id);
+drop policy if exists "batal suka" on public.community_likes;
+create policy "batal suka" on public.community_likes for delete to authenticated using (auth.uid() = user_id);
+grant select, insert, delete on public.community_posts, public.community_comments, public.community_likes to authenticated;
+grant update (pinned) on public.community_posts to authenticated;
