@@ -41,7 +41,7 @@ export default async function OnboardingPage() {
         <Logo />
         <div className="mt-8" />
         <p className="eyebrow">
-          {placed.length ? "Data diri" : "Langkah 1 dari 2"}
+          {placed.length ? "Data diri" : "Langkah 1 dari 3"}
         </p>
         <h1 className="mt-2 text-2xl font-bold text-heading lg:text-3xl">
           Selamat datang{firstName ? `, ${firstName}` : ""}! 👋

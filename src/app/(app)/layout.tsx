@@ -6,6 +6,7 @@ import { getAccount, isAdmin } from "@/lib/plans";
 import { isDemoMode } from "@/lib/supabase/config";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
+import { cookies } from "next/headers";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const [profile, account] = await Promise.all([getProfile(), getAccount()]);
@@ -14,6 +15,11 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     const supabase = await createClient();
     const { data: b } = await supabase.from("profiles").select("whatsapp, birth_date, regency").eq("id", profile.id).maybeSingle();
     if (b && (!b.whatsapp || !b.birth_date || !b.regency)) redirect("/lengkapi");
+    // Notifikasi HP wajib diaktifkan, kecuali perangkat tidak mendukung / izin diblokir (cookie dari halaman aktivasi).
+    if (b && !(await cookies()).get("eclub_push_skip")) {
+      const { count, error } = await supabase.from("push_subscriptions").select("id", { count: "exact", head: true }).eq("user_id", profile.id);
+      if (!error && !count) redirect("/aktifkan-notifikasi");
+    }
   }
   return (
     <AppShell name={profile.full_name || "Sahabat EClub"} email={profile.email} demo={isDemoMode} plan={account.plan} admin={isAdmin(account.role)}>

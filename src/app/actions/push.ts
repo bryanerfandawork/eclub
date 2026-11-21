@@ -1,6 +1,8 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 import { isDemoMode } from "@/lib/supabase/config";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -89,4 +91,10 @@ export async function adminCancelBroadcast(formData: FormData) {
   if (!supabase) return;
   await supabase.from("push_broadcasts").update({ status: "cancelled" }).eq("id", String(formData.get("id"))).eq("status", "scheduled");
   revalidatePath("/admin/notifikasi");
+}
+
+/** Perangkat tidak mendukung notifikasi atau izin diblokir: boleh lanjut, diingatkan lagi 30 hari kemudian. */
+export async function skipPushStep(next: string) {
+  (await cookies()).set("eclub_push_skip", "1", { maxAge: 60 * 60 * 24 * 30, path: "/", sameSite: "lax" });
+  redirect(next.startsWith("/") && !next.startsWith("//") ? next : "/dashboard");
 }

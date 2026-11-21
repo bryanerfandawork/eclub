@@ -78,7 +78,16 @@ export function PushToggle({ publicKey, variant = "settings" }: { publicKey: str
   }
 
   if (state === "loading") return null;
-  if (variant === "card" && (state === "on" || state === "unsupported" || state === "denied")) return null;
+  if (variant === "card" && (state === "on" || state === "unsupported")) return null;
+  if (variant === "card" && state === "denied")
+    return (
+      <div className="flex items-start gap-4 rounded-2xl border border-gold/40 bg-gold-soft p-5 text-sm">
+        <BellOff className="mt-0.5 h-5 w-5 shrink-0 text-brand" />
+        <p className="text-heading">
+          <b>Penyemangat pagi belum aktif.</b> <span className="text-muted">Notifikasi diblokir di browser ini. Izinkan Notifikasi untuk EClub di pengaturan situs (ikon gembok di samping alamat), lalu muat ulang halaman.</span>
+        </p>
+      </div>
+    );
 
   if (state === "ios-install") {
     return (

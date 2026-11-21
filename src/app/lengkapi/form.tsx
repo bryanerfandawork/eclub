@@ -114,7 +114,7 @@ export function OnboardingForm({ init, next }: { init: Init; next: string }) {
         </label>
         <FormMessage state={state} />
         <SubmitButton className="btn-primary w-full py-3">
-          {next === "/posisi" ? "Simpan & lanjut cek posisi" : "Simpan"}
+          Simpan & lanjut
         </SubmitButton>
       </form>
     </>
