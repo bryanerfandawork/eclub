@@ -4,6 +4,7 @@ import {
   Radar,
   Heart,
   CalendarCheck2,
+  Coins,
   PieChart,
   Compass,
   Gem,
@@ -24,8 +25,8 @@ export type NavItem = { label: string; href: string; icon: LucideIcon; soon?: bo
 
 export const mobileNav: NavItem[] = [
   { label: "Home", href: "/dashboard", icon: Home },
-  { label: "Journey", href: "/journey", icon: Route },
   { label: "Goals", href: "/goals", icon: Target },
+  { label: "Keuangan", href: "/keuangan", icon: Wallet },
   { label: "Learn", href: "/learn", icon: BookOpen },
   { label: "Profile", href: "/profile", icon: User },
 ];
@@ -42,6 +43,7 @@ export const sidebarNav: { section: string; items: NavItem[] }[] = [
       { label: "8 Wheel Entrepreneur", href: "/assessment/8-wheel-entrepreneur", icon: Radar },
       { label: "My Dreams", href: "/goals", icon: Gem },
       { label: "Daily Action", href: "/today", icon: CalendarCheck2 },
+      { label: "Keuangan", href: "/keuangan", icon: Coins },
       { label: "Revenue Streams", href: "/journey#choose", icon: Wallet, soon: true },
     ],
   },

@@ -8,6 +8,7 @@ import { PLACEMENT_KEY } from "@/lib/placement";
 import { getDiscResult } from "@/lib/disc/server";
 import { DiscSummary } from "@/components/disc-summary";
 import { ProgressBar, Ring } from "@/components/ui";
+import { getFinance, monthSummary } from "@/lib/finance-server";
 
 export const metadata = { title: "Dashboard" };
 
@@ -21,6 +22,8 @@ export default async function DashboardPage() {
     getProgressStats(),
   ]);
   const [ew, placed, disc] = await Promise.all([getAssessmentResults("8-wheel-entrepreneur", 1), getAssessmentResults(PLACEMENT_KEY, 1), getDiscResult()]);
+  const fin = await getFinance(today.slice(0, 7));
+  const finBiz = monthSummary(fin.txs, "business");
   const placement = (placed[0]?.scores as unknown as { placement?: string } | undefined)?.placement;
   const ewDue = ew[0] ? Date.now() - new Date(ew[0].created_at).getTime() > 90 * 86_400_000 : false;
   const firstName = (profile.full_name || "Sahabat").split(" ")[0];
@@ -123,6 +126,31 @@ export default async function DashboardPage() {
           </div>
         </section>
       </div>
+
+      <Link href="/keuangan" className="card flex flex-wrap items-center gap-4 p-5 transition hover:border-gold lg:flex-nowrap">
+        <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-gold-soft text-2xl">💰</span>
+        {fin.hasAny ? (
+          <>
+            <span className="min-w-[40%] flex-1">
+              <span className="block text-xs text-muted">Dompet Pribadi</span>
+              <span className="block font-bold text-heading">{compactRupiah(Math.max(0, fin.balances.personal))}</span>
+            </span>
+            <span className="min-w-[40%] flex-1">
+              <span className="block text-xs text-muted">Dompet Usaha</span>
+              <span className="block font-bold text-heading">{compactRupiah(Math.max(0, fin.balances.business))}</span>
+            </span>
+            <span className="flex-1 text-xs text-muted">
+              Usaha bulan ini: <b className="text-success">+{compactRupiah(finBiz.income)}</b> / <b className="text-brand">−{compactRupiah(finBiz.expense)}</b>
+            </span>
+          </>
+        ) : (
+          <span className="flex-1">
+            <span className="block font-bold text-heading">Rapikan uang pribadi & usaha</span>
+            <span className="block text-sm text-muted">Catat masuk-keluar dalam 5 detik, tidak tercampur lagi.</span>
+          </span>
+        )}
+        <ArrowRight className="h-5 w-5 shrink-0 text-brand" />
+      </Link>
 
       <div className="grid gap-5 lg:grid-cols-3 lg:gap-6">
         {/* Aksi hari ini */}
