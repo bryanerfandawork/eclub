@@ -66,7 +66,7 @@ export default async function LearnPage() {
                   const open = staff || prog.unlocked.has(st.key);
                   const pct = prog.stepPct[st.key];
                   return (
-                    <div key={st.key} className="mt-5">
+                    <div key={st.key} id={st.key} className="mt-5 scroll-mt-24">
                       <div className="mb-3 flex items-center gap-3">
                         <span className={`grid h-8 w-8 place-items-center rounded-full text-sm font-bold ${open ? "bg-brand text-white" : "bg-paper text-muted"}`}>{st.no}</span>
                         <h2 className="font-bold text-heading">{st.name}</h2>
@@ -94,10 +94,11 @@ export default async function LearnPage() {
           )}
         </div>
       )}
-      <div className="mt-8 grid gap-4 sm:grid-cols-2">
+      <div className="mt-8 grid gap-4 sm:grid-cols-3">
         {[
           { icon: Users, title: "Mentoring 1-on-1", desc: "Bawa satu masalah usaha, pulang dengan langkah konkret.", href: "/mentoring" },
           { icon: BookOpen, title: "Event & webinar", desc: "Belajar live bersama mentor dan sesama pelaku usaha.", href: "/event" },
+          { icon: Users, title: "Sertifikat SEF", desc: "Selesaikan satu langkah, dapatkan sertifikat resmi.", href: "/sertifikat" },
         ].map(({ icon: Icon, title, desc, href }) => (
           <Link key={title} href={href} className="card flex gap-4 p-5 transition hover:border-gold">
             <Icon className="h-5 w-5 shrink-0 text-gold" />

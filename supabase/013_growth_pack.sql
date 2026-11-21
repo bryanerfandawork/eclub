@@ -488,3 +488,48 @@ grant select, insert, update, delete on public.habits, public.habit_logs, public
 insert into public.plan_features (key, label, description, free_limit, plus_limit, unit, enforced, sort)
 values ('habits', 'Habit tracker', 'Jumlah kebiasaan yang dipantau', 3, null, 'kebiasaan', true, 25)
 on conflict (key) do nothing;
+
+-- ============ 7. Sertifikat per langkah SEF ============
+create table if not exists public.certificates (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users (id) on delete cascade,
+  step text not null check (step in ('personal_mapping', 'acquisition', 'systemation', 'transformation', 'investation')),
+  code text not null unique,
+  name text not null,
+  issued_at timestamptz not null default now(),
+  unique (user_id, step)
+);
+alter table public.certificates enable row level security;
+drop policy if exists "sertifikat milik sendiri" on public.certificates;
+create policy "sertifikat milik sendiri" on public.certificates for select using (auth.uid() = user_id);
+grant select on public.certificates to authenticated;
+
+-- Terbitkan sertifikat bila semua materi langkah SEF ini sudah selesai.
+create or replace function public.claim_certificate(p_step text) returns public.certificates
+language plpgsql security definer set search_path = '' as $$
+declare v_total int; v_done int; v_cert public.certificates; v_name text;
+begin
+  if auth.uid() is null then raise exception 'Silakan masuk'; end if;
+  select * into v_cert from public.certificates where user_id = auth.uid() and step = p_step;
+  if found then return v_cert; end if;
+  select count(*), count(lp.lesson_id) into v_total, v_done
+    from public.lessons l join public.courses c on c.id = l.course_id
+    left join public.lesson_progress lp on lp.lesson_id = l.id and lp.user_id = auth.uid()
+    where c.sef_step = p_step and c.status = 'published';
+  if v_total = 0 or v_done < v_total then raise exception 'Selesaikan semua materi di langkah ini terlebih dahulu'; end if;
+  select coalesce(nullif(trim(full_name), ''), 'Member EClub') into v_name from public.profiles where id = auth.uid();
+  insert into public.certificates (user_id, step, code, name)
+  values (auth.uid(), p_step, 'EC-' || upper(substr(md5(gen_random_uuid()::text), 1, 8)), v_name)
+  returning * into v_cert;
+  return v_cert;
+end;
+$$;
+grant execute on function public.claim_certificate to authenticated;
+
+-- Cek keaslian sertifikat (publik, tanpa login).
+create or replace function public.verify_certificate(p_code text)
+returns table (name text, step text, issued_at timestamptz)
+language sql stable security definer set search_path = '' as $$
+  select name, step, issued_at from public.certificates where code = upper(trim(p_code));
+$$;
+grant execute on function public.verify_certificate to anon, authenticated;

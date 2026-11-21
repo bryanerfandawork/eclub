@@ -1,4 +1,5 @@
 import {
+  Award,
   BarChart3,
   BookOpen,
   Radar,
@@ -54,6 +55,7 @@ export const sidebarNav: { section: string; items: NavItem[] }[] = [
       { label: "Articles", href: "/learn#artikel", icon: Newspaper, soon: true },
       { label: "Mentoring", href: "/mentoring", icon: Users },
       { label: "Event & Webinar", href: "/event", icon: CalendarDays },
+      { label: "Sertifikat", href: "/sertifikat", icon: Award },
     ],
   },
   {
