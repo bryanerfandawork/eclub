@@ -25,11 +25,7 @@ export function FeaturesForm({ features, settings, canEdit }: { features: PlanFe
             </div>
             <div>
               <label className="label">Laporan DISC (Rp)</label>
-              <input name="disc_report_price" inputMode="numeric" defaultValue={String(settings.disc_report_price ?? "29000")} className="input" />
-            </div>
-            <div>
-              <label className="label">Komisi affiliate (%)</label>
-              <input name="affiliate_rate" inputMode="numeric" defaultValue={String(settings.affiliate_rate ?? "20")} className="input" />
+              <input name="disc_report_price" inputMode="numeric" defaultValue={String(settings.disc_report_price ?? "49000")} className="input" />
             </div>
             <div>
               <label className="label">Kontak upgrade</label>
@@ -57,6 +53,52 @@ export function FeaturesForm({ features, settings, canEdit }: { features: PlanFe
             <label className="label">Rekening tujuan transfer</label>
             <textarea name="bank_accounts" rows={3} defaultValue={String(settings.bank_accounts ?? "")} className="input resize-y" placeholder={"BCA 1234567890 a.n. PT EClub Indonesia\nMandiri 0987654321 a.n. PT EClub Indonesia"} />
             <p className="mt-1 text-xs text-muted">Ditampilkan di halaman pembayaran. Pada mode otomatis, harus rekening yang terhubung ke Moota.</p>
+          </div>
+        </section>
+
+        <section className="card p-5 lg:p-6">
+          <h2 className="font-bold text-heading">Affiliate & kode kupon</h2>
+          <p className="mt-1 text-xs text-muted">Berlaku untuk transaksi berikutnya. Komisi yang sudah tercatat tidak berubah.</p>
+          <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <div>
+              <label className="label">Komisi affiliate (%)</label>
+              <input name="affiliate_rate" inputMode="numeric" defaultValue={String(settings.affiliate_rate ?? "20")} className="input" />
+            </div>
+            <div>
+              <label className="label">Potongan kupon untuk teman (%)</label>
+              <input name="coupon_discount" inputMode="numeric" defaultValue={String(settings.coupon_discount ?? "10")} className="input" />
+            </div>
+            <div>
+              <label className="label">Masa tunggu komisi (hari)</label>
+              <input name="affiliate_hold_days" inputMode="numeric" defaultValue={String(settings.affiliate_hold_days ?? "7")} className="input" />
+            </div>
+            <div>
+              <label className="label">Komisi berlaku (bulan sejak daftar)</label>
+              <input name="affiliate_months" inputMode="numeric" defaultValue={String(settings.affiliate_months ?? "12")} className="input" />
+            </div>
+          </div>
+        </section>
+
+        <section className="card p-5 lg:p-6">
+          <h2 className="font-bold text-heading">Notifikasi WhatsApp</h2>
+          <div className="mt-4 grid gap-4 sm:grid-cols-3">
+            <div>
+              <label className="label">Pengingat perpanjangan (H-berapa)</label>
+              <input name="renewal_days" defaultValue={String(settings.renewal_days ?? "7,3,1")} className="input" placeholder="7,3,1" />
+              <p className="mt-1 text-xs text-muted">Pisahkan dengan koma. Ditambah 1 pesan sehari setelah berakhir.</p>
+            </div>
+            <div>
+              <label className="label">Maks. pesan per pagi</label>
+              <input name="wa_daily_max" inputMode="numeric" defaultValue={String(settings.wa_daily_max ?? "40")} className="input" />
+              <p className="mt-1 text-xs text-muted">Maksimal 70. Sesuaikan dengan kuota paket Fonnte.</p>
+            </div>
+            <div>
+              <label className="label">Kalimat penyemangat pagi</label>
+              <select name="wa_motivation" defaultValue={String(settings.wa_motivation ?? "true")} className="input">
+                <option value="true">Aktif (berganti setiap hari)</option>
+                <option value="false">Nonaktif</option>
+              </select>
+            </div>
           </div>
         </section>
 

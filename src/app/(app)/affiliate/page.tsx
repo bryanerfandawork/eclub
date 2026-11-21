@@ -20,6 +20,7 @@ export default async function AffiliatePage() {
   const rate = Number(s.affiliate_rate) || 20;
   const months = Number(s.affiliate_months) || 12;
   const hold = Number(s.affiliate_hold_days) || 7;
+  const disc = Number(s.coupon_discount) || 10;
   const eligible = acc.plan === "plus" || isAdmin(acc.role);
   const yearly = Number(s.plus_price_yearly) || 0;
   const aff = await getAffiliate();
@@ -69,7 +70,14 @@ export default async function AffiliatePage() {
               <p className="mt-1 mb-4 text-sm text-white/70">
                 Kode: <b className="text-white">{aff.code}</b>
               </p>
-              <ShareLink link={`${origin}/?ref=${aff.code}`} />
+              <ShareLink link={`${origin}/?ref=${aff.code}`} code={aff.code} discount={disc} />
+            </section>
+            <section className="card border-gold/50 p-5">
+              <p className="text-xs font-semibold text-gold">🎟️ Kode kupon pribadi Anda</p>
+              <p className="mt-1 text-2xl font-bold tracking-wider text-heading">{aff.code}</p>
+              <p className="mt-1 text-sm text-muted">
+                Teman hemat <b className="text-heading">{disc}%</b> saat memasukkan kode ini di halaman pembayaran, dan Anda tetap mendapat komisi {rate}%. Kupon aktif otomatis selama Anda member Plus. Cocok dibagikan lewat status WA atau live jualan.
+              </p>
             </section>
             <section className="card p-5">
               <h3 className="font-bold text-heading">Cara kerjanya</h3>

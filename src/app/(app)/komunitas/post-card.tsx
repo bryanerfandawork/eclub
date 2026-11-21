@@ -1,3 +1,4 @@
+import { PendingButton } from "@/components/pending-button";
 import Link from "next/link";
 import { Crown, MessageCircle, Pin, Trash2 } from "lucide-react";
 import { deletePost, toggleLike, togglePin } from "@/app/actions/community";
@@ -43,9 +44,9 @@ export function PostCard({ p, uid, staff, full }: { p: Post; uid: string | null;
         <form action={toggleLike}>
           <input type="hidden" name="post" value={p.id} />
           <input type="hidden" name="liked" value={p.liked ? "1" : "0"} />
-          <button className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 whitespace-nowrap font-semibold transition active:scale-95 ${p.liked ? "bg-gold-soft text-brand" : "text-muted hover:bg-paper"}`}>
+          <PendingButton className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 whitespace-nowrap font-semibold transition active:scale-95 ${p.liked ? "bg-gold-soft text-brand" : "text-muted hover:bg-paper"}`}>
             🔥 {p.likes > 0 ? p.likes : ""} <span className={p.likes > 0 ? "hidden sm:inline" : ""}>Semangat</span>
-          </button>
+          </PendingButton>
         </form>
         <Link href={`/komunitas/${p.id}`} className="flex items-center gap-1.5 rounded-full px-3 py-1.5 font-semibold text-muted hover:bg-paper">
           <MessageCircle className="h-4 w-4" /> {p.comments > 0 ? p.comments : ""} <span className={p.comments > 0 ? "hidden sm:inline" : ""}>Komentar</span>

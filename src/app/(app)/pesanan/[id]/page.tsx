@@ -1,11 +1,12 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { CheckCircle2, Clock, Landmark, MessageCircle, QrCode, XCircle } from "lucide-react";
-import { saveOrderWa } from "@/app/actions/orders";
+import { cookies } from "next/headers";
+import { applyCoupon, saveOrderWa } from "@/app/actions/orders";
 import { getSettings } from "@/lib/plans";
 import { isDemoMode } from "@/lib/supabase/config";
 import { createClient } from "@/lib/supabase/server";
-import { AutoRefresh, CopyButton, SaveWaForm } from "./client";
+import { AutoRefresh, CopyButton, CouponForm, SaveWaForm } from "./client";
 
 export const metadata = { title: "Pesanan" };
 
@@ -20,6 +21,8 @@ type Order = {
   expires_at: string;
   paid_at: string | null;
   course_id: string | null;
+  coupon_code?: string | null;
+  discount?: number;
 };
 
 const idr = (n: number) => n.toLocaleString("id-ID");
@@ -48,6 +51,7 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
     const { data: prof } = await supabase.from("profiles").select("whatsapp").maybeSingle();
     userWa = (prof?.whatsapp as string | null) ?? null;
   }
+  const refCookie = (await cookies()).get("eclub_ref")?.value;
   const expired = o.status === "pending" && new Date(o.expires_at) < new Date();
   const status = expired ? "expired" : o.status;
   const fmt = (iso: string) => new Date(iso).toLocaleString("id-ID", { day: "numeric", month: "long", hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jakarta" });
@@ -86,11 +90,17 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
               </p>
               <CopyButton value={String(o.amount)} />
             </div>
+            {o.coupon_code && (
+              <p className="mt-2 inline-block rounded-full bg-white/15 px-3 py-1 text-xs font-semibold">
+                🎟️ Kupon {o.coupon_code}: hemat Rp{idr(o.discount ?? 0)}
+              </p>
+            )}
             <p className="mt-3 text-xs leading-relaxed text-white/75">
               Tiga angka terakhir (<b>{String(o.amount).slice(-3)}</b>) adalah kode unik agar pembayaran Anda mudah dikenali. Mohon bayar persis sampai angka terakhir.
             </p>
           </div>
           <div className="space-y-5 p-6">
+            {!o.coupon_code && status === "pending" && <CouponForm orderId={o.id} action={applyCoupon} suggested={refCookie} />}
             {manual && (
               <ol className="grid grid-cols-3 gap-2 text-center text-[11px] font-semibold text-muted">
                 {["Bayar", "Kirim bukti via WA", "Admin konfirmasi"].map((t, i) => (

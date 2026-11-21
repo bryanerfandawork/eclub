@@ -10,7 +10,7 @@ const TABS = [
   { href: "/admin/pesanan", label: "Pesanan" },
   { href: "/admin/jadwal", label: "Mentoring & Event" },
   { href: "/admin/affiliate", label: "Affiliate" },
-  { href: "/admin/paket", label: "Paket & Fitur" },
+  { href: "/admin/paket", label: "Pengaturan" },
   { href: "/admin/testimoni", label: "Testimoni" },
 ];
 

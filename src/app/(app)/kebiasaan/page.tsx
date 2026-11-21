@@ -1,3 +1,4 @@
+import { PendingButton } from "@/components/pending-button";
 import { Archive, Flame } from "lucide-react";
 import { archiveHabit, toggleHabit } from "@/app/actions/habits";
 import { PageHeader } from "@/components/ui";
@@ -82,9 +83,9 @@ export default async function KebiasaanPage() {
                       <input type="hidden" name="id" value={h.id} />
                       <input type="hidden" name="date" value={today} />
                       <input type="hidden" name="done" value={done ? "1" : "0"} />
-                      <button className={`grid h-11 w-11 place-items-center rounded-xl text-xl transition active:scale-90 ${done ? "bg-success text-white" : "bg-paper"}`} aria-label={done ? "Batalkan" : "Tandai selesai"}>
+                      <PendingButton className={`grid h-11 w-11 place-items-center rounded-xl text-xl transition active:scale-90 ${done ? "bg-success text-white" : "bg-paper"}`} aria-label={done ? "Batalkan" : "Tandai selesai"}>
                         {done ? "✓" : h.emoji}
-                      </button>
+                      </PendingButton>
                     </form>
                     <span className="min-w-0 flex-1">
                       <span className={`block truncate font-semibold ${done ? "text-success" : "text-heading"}`}>{h.name}</span>

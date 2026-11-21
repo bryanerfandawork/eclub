@@ -55,3 +55,16 @@ export async function saveOrderWa(_: FormState, formData: FormData): Promise<For
   revalidatePath(`/pesanan/${orderId}`);
   return { message: "Nomor tersimpan. Info pembayaran sudah dikirim ke WhatsApp Anda." };
 }
+
+/** Pakai kode kupon member Plus di pesanan yang belum dibayar. */
+export async function applyCoupon(_: FormState, formData: FormData): Promise<FormState> {
+  if (isDemoMode) return { error: "Mode demo: kupon belum bisa dipakai." };
+  const order = String(formData.get("order"));
+  const code = String(formData.get("code") ?? "").trim();
+  if (!code) return { error: "Masukkan kode kupon." };
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("apply_coupon", { p_order: order, p_code: code });
+  if (error) return { error: error.message.includes("function") ? "Fitur kupon belum aktif." : error.message };
+  revalidatePath(`/pesanan/${order}`);
+  return { message: "Kupon dipakai ✓ Total bayar sudah diperbarui." };
+}

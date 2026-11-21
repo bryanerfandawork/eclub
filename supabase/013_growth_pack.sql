@@ -622,3 +622,77 @@ insert into public.plan_features (key, label, description, free_limit, plus_limi
   ('mentoring_price', 'Harga khusus mentoring & event', 'Potongan harga sesi 1-on-1 dan webinar berbayar', 0, null, null, true, 86),
   ('affiliate', 'Program affiliate', 'Bagi hasil dari setiap teman yang membeli lewat link Anda', 0, null, null, true, 90)
 on conflict (key) do nothing;
+
+-- ============ 10. Kode kupon pribadi member Plus ============
+-- Kode kupon = kode affiliate. Aktif selama pemiliknya masih Plus. Teman dapat potongan, pemilik dapat komisi.
+alter table public.orders add column if not exists coupon_code text;
+alter table public.orders add column if not exists coupon_referrer uuid references auth.users (id) on delete set null;
+alter table public.orders add column if not exists discount integer not null default 0;
+insert into public.app_settings (key, value) values ('coupon_discount', '10') on conflict (key) do nothing;
+
+create or replace function public.apply_coupon(p_order uuid, p_code text) returns public.orders
+language plpgsql security definer set search_path = '' as $$
+declare o public.orders; v_owner uuid; v_pct int; v_base int; v_disc int; v_code int;
+begin
+  if auth.uid() is null then raise exception 'Silakan masuk'; end if;
+  select * into o from public.orders where id = p_order and user_id = auth.uid() for update;
+  if not found or o.status <> 'pending' or o.expires_at <= now() then raise exception 'Pesanan tidak bisa diubah'; end if;
+  if o.coupon_code is not null then raise exception 'Kupon sudah dipakai di pesanan ini'; end if;
+  select id into v_owner from public.profiles
+    where ref_code = upper(trim(p_code))
+      and ((plan = 'plus' and (plan_expires_at is null or plan_expires_at > now())) or role in ('admin', 'super_admin'));
+  if v_owner is null then raise exception 'Kode kupon tidak valid atau sudah tidak aktif'; end if;
+  if v_owner = auth.uid() then raise exception 'Kupon milik sendiri tidak bisa dipakai'; end if;
+  select coalesce((select (value #>> '{}')::int from public.app_settings where key = 'coupon_discount'), 10) into v_pct;
+  v_disc := floor(o.base_amount * least(greatest(v_pct, 0), 50) / 100.0);
+  v_base := o.base_amount - v_disc;
+  for i in 1..50 loop
+    v_code := 1 + floor(random() * 499)::integer;
+    exit when not exists (select 1 from public.orders where status = 'pending' and amount = v_base + v_code and id <> o.id);
+    v_code := null;
+  end loop;
+  if v_code is null then raise exception 'Sistem sedang sibuk, coba lagi sebentar'; end if;
+  update public.orders set base_amount = v_base, discount = v_disc, unique_code = v_code, amount = v_base + v_code,
+      coupon_code = upper(trim(p_code)), coupon_referrer = v_owner
+    where id = o.id returning * into o;
+  return o;
+end;
+$$;
+grant execute on function public.apply_coupon to authenticated;
+
+-- Komisi: pemilik kupon diutamakan, lalu orang yang mengajak lewat link.
+create or replace function public.affiliate_on_paid() returns trigger
+language plpgsql security definer set search_path = '' as $$
+declare
+  v_ref uuid; v_joined timestamptz; v_rate int; v_hold int; v_months int;
+begin
+  if new.status = 'paid' and old.status is distinct from 'paid' then
+    select coalesce((select (value #>> '{}')::int from public.app_settings where key = 'affiliate_rate'), 20),
+           coalesce((select (value #>> '{}')::int from public.app_settings where key = 'affiliate_hold_days'), 7),
+           coalesce((select (value #>> '{}')::int from public.app_settings where key = 'affiliate_months'), 12)
+      into v_rate, v_hold, v_months;
+    if new.coupon_referrer is not null and new.coupon_referrer <> new.user_id then
+      v_ref := new.coupon_referrer;
+    else
+      select referrer_id, created_at into v_ref, v_joined from public.referrals where user_id = new.user_id;
+      if v_ref is null or v_joined < now() - make_interval(months => v_months) then return new; end if;
+    end if;
+    if not exists (select 1 from public.profiles where id = v_ref and (
+         (plan = 'plus' and (plan_expires_at is null or plan_expires_at > now())) or role in ('admin', 'super_admin'))) then
+      return new;
+    end if;
+    insert into public.affiliate_commissions (order_id, referrer_id, buyer_id, product, order_amount, amount, available_at)
+    values (new.id, v_ref, new.user_id, new.product, new.base_amount, floor(new.base_amount * v_rate / 100.0), now() + make_interval(days => v_hold))
+    on conflict (order_id) do nothing;
+  elsif old.status = 'paid' and new.status <> 'paid' then
+    update public.affiliate_commissions set status = 'cancelled' where order_id = new.id;
+  end if;
+  return new;
+end;
+$$;
+
+-- ============ 11. Harga baru (memberi ruang komisi 20% + kupon 10%) ============
+-- Bisa diubah kapan saja di Admin > Pengaturan.
+insert into public.app_settings (key, value) values
+  ('plus_price_monthly', '79000'), ('plus_price_yearly', '690000'), ('disc_report_price', '49000')
+on conflict (key) do update set value = excluded.value;

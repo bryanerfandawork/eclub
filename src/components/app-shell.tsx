@@ -6,6 +6,8 @@ import { useState } from "react";
 import { Crown, LayoutGrid, LogOut, ShieldCheck, Sparkles, X } from "lucide-react";
 import { PlanBadge } from "./plan-badge";
 import { InstallPrompt } from "./install-prompt";
+import { NavProgress } from "./nav-progress";
+import { Suspense } from "react";
 import { AiChat } from "./ai-chat";
 import { Logo } from "./logo";
 import { mobileNav, sidebarNav } from "./nav-config";
@@ -44,6 +46,9 @@ export function AppShell({
 
   return (
     <div className="min-h-dvh lg:pl-[264px] print:pl-0">
+      <Suspense fallback={null}>
+        <NavProgress />
+      </Suspense>
       {/* Sidebar desktop */}
       <aside className="fixed inset-y-0 left-0 z-30 hidden print:!hidden w-[264px] flex-col border-r border-line bg-white lg:flex">
         <div className="px-6 pt-6 pb-4">

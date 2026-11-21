@@ -32,11 +32,11 @@ export function SlotForm() {
       </div>
       <div>
         <label className="label">Harga umum (Rp)</label>
-        <input name="price" inputMode="numeric" defaultValue="299000" className="input" />
+        <input name="price" inputMode="numeric" defaultValue="399000" className="input" />
       </div>
       <div>
         <label className="label">Harga member Plus (Rp)</label>
-        <input name="plus_price" inputMode="numeric" defaultValue="199000" className="input" />
+        <input name="plus_price" inputMode="numeric" defaultValue="299000" className="input" />
       </div>
       <div className="sm:col-span-2 lg:col-span-3">
         <label className="label">Link meeting (Zoom/Google Meet, opsional)</label>

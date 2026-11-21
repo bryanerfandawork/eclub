@@ -56,8 +56,14 @@ export async function saveFeatures(_: FormState, formData: FormData): Promise<Fo
     ["plus_price_monthly", Number(String(formData.get("plus_price_monthly") ?? "").replace(/[^\d]/g, "")) || 0],
     ["plus_price_yearly", Number(String(formData.get("plus_price_yearly") ?? "").replace(/[^\d]/g, "")) || 0],
     ["upgrade_contact", String(formData.get("upgrade_contact") ?? "").trim().slice(0, 200)],
-    ["disc_report_price", Number(String(formData.get("disc_report_price") ?? "").replace(/[^\d]/g, "")) || 29000],
+    ["disc_report_price", Number(String(formData.get("disc_report_price") ?? "").replace(/[^\d]/g, "")) || 49000],
     ["affiliate_rate", Math.min(50, Math.max(0, Number(String(formData.get("affiliate_rate") ?? "").replace(/[^\d]/g, "")) || 20))],
+    ["coupon_discount", Math.min(50, Math.max(0, Number(String(formData.get("coupon_discount") ?? "").replace(/[^\d]/g, "")) || 0))],
+    ["affiliate_hold_days", Math.min(60, Math.max(0, Number(String(formData.get("affiliate_hold_days") ?? "").replace(/[^\d]/g, "")) || 7))],
+    ["affiliate_months", Math.min(120, Math.max(1, Number(String(formData.get("affiliate_months") ?? "").replace(/[^\d]/g, "")) || 12))],
+    ["renewal_days", String(formData.get("renewal_days") ?? "7,3,1").replace(/[^\d,]/g, "").slice(0, 30) || "7,3,1"],
+    ["wa_daily_max", Math.min(70, Math.max(1, Number(String(formData.get("wa_daily_max") ?? "").replace(/[^\d]/g, "")) || 40))],
+    ["wa_motivation", formData.get("wa_motivation") !== "false"],
     ["payment_mode", formData.get("payment_mode") === "auto" ? "auto" : "manual"],
     ["admin_whatsapp", String(formData.get("admin_whatsapp") ?? "").replace(/[^\d+]/g, "").slice(0, 20)],
     ["qris_image_url", (() => { const v = String(formData.get("qris_image_url") ?? "").trim(); return /^(https:\/\/|\/)/.test(v) ? v.slice(0, 500) : ""; })()],
@@ -68,7 +74,7 @@ export async function saveFeatures(_: FormState, formData: FormData): Promise<Fo
     if (error) return { error: "Gagal menyimpan pengaturan: " + error.message };
   }
   revalidatePath("/", "layout");
-  return { message: "Pengaturan paket tersimpan." };
+  return { message: "Pengaturan tersimpan." };
 }
 
 /** Unggah gambar QRIS ke Supabase Storage (bucket "assets") lalu simpan tautannya di pengaturan. */
@@ -87,4 +93,17 @@ export async function uploadQris(_: FormState, formData: FormData): Promise<Form
   if (e2) return { error: "Gagal menyimpan: " + e2.message };
   revalidatePath("/", "layout");
   return { message: "QRIS tersimpan dan tampil di halaman pembayaran." };
+}
+
+/** Kirim pesan uji WhatsApp ke nomor admin untuk memastikan Fonnte tersambung. */
+export async function testWhatsapp(): Promise<FormState> {
+  if (isDemoMode) return { error: DEMO_MSG };
+  const { sendWa, normalizeWa, waConfigured } = await import("@/lib/whatsapp");
+  if (!waConfigured()) return { error: "FONNTE_TOKEN belum diisi di Vercel (lalu Redeploy)." };
+  const supabase = await createClient();
+  const { data } = await supabase.from("app_settings").select("value").eq("key", "admin_whatsapp").maybeSingle();
+  const wa = normalizeWa(String((data?.value as string) ?? ""));
+  if (!wa) return { error: "Isi dulu No. WhatsApp admin di bawah, lalu simpan." };
+  const ok = await sendWa(wa, "✅ Tes dari EClub: WhatsApp (Fonnte) sudah tersambung dengan benar.");
+  return ok ? { message: "Pesan uji terkirim. Cek WhatsApp admin." } : { error: "Gagal mengirim. Periksa token Fonnte dan pastikan perangkat WA di Fonnte berstatus Connected." };
 }

@@ -2,11 +2,12 @@ import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sendWa, waConfigured } from "@/lib/whatsapp";
 import { todayJakarta } from "@/lib/format";
+import { motivationOfDay } from "@/lib/motivation";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
 
-const MAX_PER_RUN = 40; // batas aman per hari di paket gratis Vercel
+let MAX_PER_RUN = 40; // diatur admin lewat app_settings.wa_daily_max (maks 70 agar selesai < 60 detik)
 const SITE = process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.eclub.co.id";
 
 /** Dipanggil Vercel Cron setiap pagi (07.00 WIB). Mengirim maksimal 1 pengingat per orang per hari. */
@@ -19,6 +20,12 @@ export async function GET(request: Request) {
   if (!admin || !waConfigured()) return NextResponse.json({ ok: false, error: "not configured" }, { status: 500 });
 
   const today = todayJakarta();
+  const { data: cfg } = await admin.from("app_settings").select("key, value").in("key", ["wa_daily_max", "renewal_days", "wa_motivation"]);
+  const setting = (k: string) => (cfg ?? []).find((c) => c.key === k)?.value as unknown;
+  MAX_PER_RUN = Math.min(70, Math.max(1, Number(setting("wa_daily_max")) || 40));
+  const renewalDays = String(setting("renewal_days") ?? "7,3,1").split(/[,\s]+/).map(Number).filter((n) => n > 0 && n <= 30);
+  const motivationOn = setting("wa_motivation") !== false && setting("wa_motivation") !== "false";
+  const quote = motivationOfDay(today);
   const dayStart = new Date(today + "T00:00:00+07:00").toISOString();
   const { data: users } = await admin
     .from("profiles")
@@ -48,6 +55,37 @@ export async function GET(request: Request) {
     const ok = await sendWa(pr.whatsapp, `Halo ${name}, pesanan *${o.title}* (Rp${o.amount.toLocaleString("id-ID")}) masih menunggu pembayaran. Lanjutkan di sini:\n${SITE}/pesanan/${o.id}\n\nSudah bayar? Kirim bukti lewat tombol "Konfirmasi via WhatsApp" di halaman itu.`);
     await admin.from("notification_log").insert({ user_id: o.user_id, kind: "order_reminder", status: ok ? "sent" : "failed" });
     reminded.add(o.user_id);
+    if (ok) sent++;
+    await new Promise((r) => setTimeout(r, 700));
+  }
+
+  // Pengingat perpanjangan EClub Plus (H-7, H-3, H-1 sesuai pengaturan) + sehari setelah berakhir.
+  const { data: subs } = await admin
+    .from("profiles")
+    .select("id, full_name, whatsapp, plan_expires_at")
+    .eq("plan", "plus")
+    .not("whatsapp", "is", null)
+    .not("plan_expires_at", "is", null)
+    .gt("plan_expires_at", new Date(Date.now() - 2 * 86_400_000).toISOString())
+    .lt("plan_expires_at", new Date(Date.now() + 31 * 86_400_000).toISOString())
+    .limit(200);
+  for (const u of subs ?? []) {
+    if (sent >= MAX_PER_RUN) break;
+    const exp = new Date(u.plan_expires_at as string);
+    const expDay = exp.toLocaleDateString("en-CA", { timeZone: "Asia/Jakarta" });
+    const days = Math.round((new Date(expDay + "T00:00:00Z").getTime() - new Date(today + "T00:00:00Z").getTime()) / 86_400_000);
+    const ended = days === -1;
+    if (!ended && !renewalDays.includes(days)) continue;
+    const kind = ended ? "renew_ended" : `renew_${days}`;
+    const { data: logs } = await admin.from("notification_log").select("id").eq("user_id", u.id).eq("kind", kind).gte("created_at", new Date(Date.now() - 5 * 86_400_000).toISOString()).limit(1);
+    if (logs?.length) continue;
+    const name = (u.full_name || "Sahabat").split(" ")[0];
+    const tgl = exp.toLocaleDateString("id-ID", { day: "numeric", month: "long", timeZone: "Asia/Jakarta" });
+    const msg = ended
+      ? `Halo ${name}, masa EClub Plus Anda berakhir kemarin. Data Anda tetap aman, tapi fitur Plus (laporan laba rugi, affiliate, harga khusus mentoring) sedang terkunci.\n\nAktifkan lagi di sini: ${SITE}/beli/plus`
+      : `Halo ${name} 👋 EClub Plus Anda berakhir ${days === 1 ? "besok" : `dalam ${days} hari`} (${tgl}).\n\nPerpanjang sekarang supaya laporan keuangan, kode kupon affiliate, dan komisi Anda tetap aktif tanpa jeda:\n${SITE}/beli/plus`;
+    const ok = await sendWa(u.whatsapp as string, msg);
+    await admin.from("notification_log").insert({ user_id: u.id, kind, status: ok ? "sent" : "failed" });
     if (ok) sent++;
     await new Promise((r) => setTimeout(r, 700));
   }
@@ -114,9 +152,10 @@ export async function GET(request: Request) {
       // 2) Pengingat aksi harian
       const { count } = await admin.from("daily_actions").select("id", { count: "exact", head: true }).eq("user_id", u.id).eq("action_date", today).eq("done", false);
       kind = "daily";
+      const spark = motivationOn ? `✨ _${quote}_\n\n` : "";
       message = count
-        ? `Selamat pagi, ${name} 🌱 Hari ini ada ${count} aksi yang menunggu Anda. Satu langkah kecil hari ini lebih baik dari rencana besar besok.\n${SITE}/today`
-        : `Selamat pagi, ${name} 🌱 Apa satu langkah kecil menuju mimpi Anda hari ini? Tulis di EClub supaya rangkaian konsisten Anda terjaga.\n${SITE}/today`;
+        ? `Selamat pagi, ${name} 🌱\n\n${spark}Hari ini ada ${count} aksi yang menunggu Anda.\n${SITE}/today`
+        : `Selamat pagi, ${name} 🌱\n\n${spark}Apa satu langkah kecil menuju mimpi Anda hari ini?\n${SITE}/today`;
     }
     if (!kind) continue;
     const ok = await sendWa(u.whatsapp as string, message + "\n\nUntuk berhenti, matikan notifikasi di menu Profil EClub.");

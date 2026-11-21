@@ -7,9 +7,9 @@ import { SubmitButton } from "@/components/submit-button";
 import { FormMessage } from "@/components/ui";
 import type { FormState } from "@/app/actions/auth";
 
-export function ShareLink({ link }: { link: string }) {
+export function ShareLink({ link, code, discount }: { link: string; code: string; discount: number }) {
   const [copied, setCopied] = useState(false);
-  const text = `Aku lagi pakai EClub buat menata mimpi, keuangan pribadi & usaha, dan belajar bisnis step by step. Coba gratis lewat link ini ya: ${link}`;
+  const text = `Aku lagi pakai EClub buat menata mimpi, keuangan pribadi & usaha, dan belajar bisnis step by step. Coba gratis lewat link ini ya: ${link}\n\nKalau mau upgrade, pakai kode kupon *${code}* biar hemat ${discount}%.`;
   return (
     <div>
       <div className="flex items-center gap-2 rounded-xl bg-white/10 p-1.5 pl-3.5">

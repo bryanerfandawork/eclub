@@ -48,3 +48,10 @@ body {
 @media print {
   body { background: #fff; }
 }
+
+@keyframes navbar {
+  0% { width: 0%; }
+  30% { width: 55%; }
+  70% { width: 80%; }
+  100% { width: 92%; }
+}

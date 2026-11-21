@@ -43,7 +43,7 @@ export const getFeatures = cache(async (): Promise<PlanFeature[]> => {
 });
 
 export const getSettings = cache(async (): Promise<Record<string, unknown>> => {
-  const defaults = { plus_price_monthly: 49000, plus_price_yearly: 499000, upgrade_contact: "", bank_accounts: "", disc_report_price: 29000, payment_mode: "manual", admin_whatsapp: "", qris_image_url: "", affiliate_rate: 20, affiliate_hold_days: 7, affiliate_months: 12 };
+  const defaults = { plus_price_monthly: 79000, plus_price_yearly: 690000, upgrade_contact: "", bank_accounts: "", disc_report_price: 49000, payment_mode: "manual", admin_whatsapp: "", qris_image_url: "", coupon_discount: 10, affiliate_rate: 20, affiliate_hold_days: 7, affiliate_months: 12, renewal_days: "7,3,1", wa_daily_max: 40, wa_motivation: true };
   if (isDemoMode) return defaults;
   const supabase = await createClient();
   const { data } = await supabase.from("app_settings").select("key, value");
