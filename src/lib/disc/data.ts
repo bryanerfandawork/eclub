@@ -1,6 +1,5 @@
-// Data Tes DISC dari file Excel milik EClub ("Tes_DISC.xlsx"): pernyataan, kunci jawaban, tabel konversi, kode grafik, dan deskripsi tipe.
-// Dihasilkan otomatis dari Excel, jangan diubah manual tanpa mencocokkan ke file aslinya.
-// Catatan: file sumber mencantumkan "Copyright 1986-2000 Target Training International, Ltd."
+// Data Tes DISC EClub: 24 kelompok pernyataan (ditulis ulang oleh EClub dengan makna yang sama), kunci jawaban, tabel konversi, kode grafik, dan deskripsi tipe.
+// Urutan pilihan dan kunci jawaban tidak boleh diubah: penilaian memakai indeks pilihan (a-d).
 
 export type DiscQuestion = { options: string[]; most: string; least: string };
 export type DiscTypeInfo = { strengths: string[]; improve: string[]; pursues: string; judged: string; influence: string; value: string; overuse: string; stress: string; fear: string };
@@ -8,240 +7,240 @@ export type DiscTypeInfo = { strengths: string[]; improve: string[]; pursues: st
 export const DISC_QUESTIONS: DiscQuestion[] = [
  {
   "options": [
-   "Lembut, ramah",
-   "Membujuk, meyakinkan",
-   "Sederhana, mudah menerima, rendah hati",
-   "Orisinal, berdayacipta, individulis"
+   "Hangat dan bersahabat",
+   "Pandai meyakinkan orang lain",
+   "Bersahaja, rendah hati, mudah menerima",
+   "Punya gagasan sendiri, kreatif, mandiri"
   ],
   "most": "SICX",
   "least": "SXCD"
  },
  {
   "options": [
-   "Menarik, mempesona, menarik bagi orang lain",
-   "Dapat bekerja sama, mudah meyetujui",
-   "Keras kepala, tidak mudah menyerah",
-   "Manis, memuaskan/menyenangkan"
+   "Memikat dan disukai banyak orang",
+   "Kooperatif, mudah sepakat",
+   "Teguh pendirian, pantang mundur",
+   "Menyenangkan dan suka membuat orang puas"
   ],
   "most": "ICDX",
   "least": "ICDS"
  },
  {
   "options": [
-   "Mau dipimpin, cenderung mengikuti/pengikut",
-   "Tangguh, berani",
-   "Loyal, setia, mengabdi",
-   "Mempesona, menyenangkan"
+   "Nyaman mengikuti arahan orang lain",
+   "Kuat dan berani menghadapi tantangan",
+   "Setia dan berdedikasi",
+   "Memesona dan enak diajak bergaul"
   ],
   "most": "XDSI",
   "least": "CDXI"
  },
  {
   "options": [
-   "Berpandangan terbuka, mau menerima",
-   "Tegar, suka menolong",
-   "Tekun, berkemauan keras",
-   "Periang, selalu bergembira"
+   "Berpikiran terbuka, mau menerima masukan",
+   "Kokoh dan senang membantu",
+   "Tekun dan berkemauan kuat",
+   "Ceria dan selalu bersemangat"
   ],
   "most": "CSXI",
   "least": "XSDI"
  },
  {
   "options": [
-   "Periang, suka bergurau",
-   "Teliti, tepat",
-   "Kasar, berani, kurang sopan, tidak mudah malu",
-   "Tenang, emosi terkendali, tidak mudah heboh"
+   "Ceria dan suka bercanda",
+   "Cermat dan tepat",
+   "Blak-blakan, berani, tidak mudah sungkan",
+   "Kalem, mampu menahan emosi"
   ],
   "most": "XCXS",
   "least": "ICDS"
  },
  {
   "options": [
-   "Kompetitif, selalu ingin berhasil",
-   "Timbang rasa, peduli, bijaksana",
-   "Terbuka, ramah, suka senang-senang",
-   "Harmonis, mudah menyetujui"
+   "Suka bersaing dan ingin selalu menang",
+   "Penuh perhatian dan bijak",
+   "Supel dan suka bersenang-senang",
+   "Suka keselarasan, mudah sepakat"
   ],
   "most": "DSXX",
   "least": "DSIC"
  },
  {
   "options": [
-   "Rewel, cerewet, sulit untuk dipuaskan hatinya",
-   "Taat, melakukan apa yg diperintahkan, patuh",
-   "Tidak mudah mundur, fokus akan satu hal, ulet",
-   "Suka melucu, lincah, periang"
+   "Banyak menuntut, tidak mudah merasa puas",
+   "Patuh dan menjalankan perintah",
+   "Fokus pada satu tujuan dan pantang menyerah",
+   "Jenaka, lincah, dan riang"
   ],
   "most": "XSDI",
   "least": "CXDI"
  },
  {
   "options": [
-   "Berani, tidak gentar, tangguh",
-   "Membangkitkan semangat, memotivasi",
-   "Patuh, berhasil, menyerah",
-   "Takut-takut, malu, pendiam"
+   "Berani dan tidak gentar",
+   "Mampu membangkitkan semangat orang lain",
+   "Penurut, mudah mengalah",
+   "Pemalu, pendiam, mudah sungkan"
   ],
   "most": "DIXX",
   "least": "XXSC"
  },
  {
   "options": [
-   "Suka bergaul dan ber-sosialisasi",
-   "Sabar, penuh keyakinan, bersikap toleransi",
-   "Percaya diri, mandiri",
-   "Berwatak halus/lembut, pendiam, suka menyendiri"
+   "Senang bergaul dan bersosialisasi",
+   "Sabar, yakin, dan toleran",
+   "Percaya diri dan mandiri",
+   "Halus perangainya, pendiam, suka menyendiri"
   ],
   "most": "ISDC",
   "least": "ISDX"
  },
  {
   "options": [
-   "Menyukai hal-hal baru, suka tantangan",
-   "Terbuka dan mau menerima ide-ide baru dan saran",
-   "Ramah, hangat, bersahabat",
-   "Moderat, menghindari hal-hal yg ekstrim atau aneh"
+   "Suka hal baru dan tantangan",
+   "Terbuka pada gagasan dan saran baru",
+   "Ramah, hangat, mudah akrab",
+   "Sedang-sedang saja, menghindari hal ekstrem"
   ],
   "most": "DCXS",
   "least": "DXIS"
  },
  {
   "options": [
-   "Banyak bicara, cerewet",
-   "Terkendali, mudah diatur",
-   "Melakukan hal-hal yg sudah biasa, tidak berlebihan",
-   "Tegas, cepat dalam membuat keputusan"
+   "Senang berbicara, banyak cerita",
+   "Terkendali dan mudah diarahkan",
+   "Menjalankan kebiasaan yang biasa, tidak berlebihan",
+   "Tegas dan cepat mengambil keputusan"
   ],
   "most": "ISXD",
   "least": "ISCD"
  },
  {
   "options": [
-   "Berbudi bahasa halus, tingkah laku halus",
-   "Berani, suka mengambil resiko",
-   "Diplomatik, bijaksana",
-   "Mudah puas atau senang"
+   "Santun dalam tutur kata dan sikap",
+   "Berani mengambil risiko",
+   "Diplomatis dan bijaksana",
+   "Mudah merasa puas dan senang"
   ],
   "most": "XDCS",
   "least": "IDXS"
  },
  {
   "options": [
-   "Agresif, suka tantangan, penuh inisiatif",
-   "Menyukai hiburan, ramah, suka pesta/acara kumpul",
-   "Pengikut, mudah didayagunakan oleh orang lain",
-   "Gelisah, khawatir"
+   "Agresif, berinisiatif, suka tantangan",
+   "Suka keramaian, hiburan, dan acara kumpul",
+   "Mudah ikut dan dimanfaatkan orang lain",
+   "Mudah cemas dan khawatir"
   ],
   "most": "DISX",
   "least": "XISC"
  },
  {
   "options": [
-   "Berhati-hati",
-   "Fokus pada satu hal tertentu, tidah mudah goyah",
-   "Meyakinkan",
-   "Baik hati, menyenangkan"
+   "Penuh kehati-hatian",
+   "Teguh pada satu hal, tidak mudah goyah",
+   "Pandai meyakinkan",
+   "Baik hati dan menyenangkan"
   ],
   "most": "CDIS",
   "least": "CXIX"
  },
  {
   "options": [
-   "Rela berkorban, mengikuti arus",
-   "Antusias, selalu ingin tahu",
-   "Mudah menyetujui",
-   "Lincah, antusias"
+   "Mau berkorban, mengikuti keadaan",
+   "Bersemangat dan selalu ingin tahu",
+   "Mudah setuju",
+   "Gesit dan antusias"
   ],
   "most": "SXCX",
   "least": "XICD"
  },
  {
   "options": [
-   "Percaya diri, yakin pada diri sendiri",
-   "Simpatik, orang yg pengertian",
+   "Yakin pada kemampuan diri sendiri",
+   "Penuh empati, mudah memahami orang lain",
    "Toleran",
-   "Tegas, agresif"
+   "Tegas dan agresif"
   ],
   "most": "IXXD",
   "least": "XSCD"
  },
  {
   "options": [
-   "Disiplin, terkendali",
-   "Dermawan, suka berbagi",
-   "Suka berekspresi, banyak menggerakkan tubuh",
-   "Gigih, tidak mudah menyerah"
+   "Disiplin dan terkendali",
+   "Murah hati, suka berbagi",
+   "Ekspresif, banyak bergerak saat berbicara",
+   "Gigih, pantang menyerah"
   ],
   "most": "CSXD",
   "least": "XSID"
  },
  {
   "options": [
-   "Terpuji, dapat dikagumi, patut dipuji",
-   "Ramah, senang menolong",
-   "Mudah Menyerah/menerima pendapat yg lain",
-   "Memiliki karakter kuat, tangguh"
+   "Layak dikagumi dan dipuji",
+   "Ramah dan senang membantu",
+   "Mudah mengalah pada pendapat orang lain",
+   "Berkarakter kuat dan tangguh"
   ],
   "most": "ISXD",
   "least": "XXCD"
  },
  {
   "options": [
-   "Menunjukkan rasa hormat",
-   "Pelopor, perintis, giat, mau berusaha",
-   "Optimis, pandangan positif",
-   "Selalu siap untuk membantu"
+   "Menghargai dan menghormati orang lain",
+   "Perintis, giat, dan mau berusaha",
+   "Optimis, selalu melihat sisi baik",
+   "Selalu siap membantu"
   ],
   "most": "CDIS",
   "least": "XDIS"
  },
  {
   "options": [
-   "Dapat ber-argumentasi",
-   "Fleksibel, mudah beradaptasi",
-   "Tak peduli, acuh tak acuh, tidak perhatian",
-   "Riang, tiada yg dipikirkan sama sekali"
+   "Pandai beradu argumen",
+   "Luwes, mudah menyesuaikan diri",
+   "Cuek, kurang peduli",
+   "Santai, riang tanpa beban pikiran"
   ],
   "most": "DCXI",
   "least": "DXSI"
  },
  {
   "options": [
-   "Dapat dipercaya, percaya kepada orang lain",
-   "Mudah puas, selalu merasa cukup",
-   "Selalu positif, tidak diragukan",
-   "Tenang, Pendiam"
+   "Bisa dipercaya dan mudah percaya pada orang lain",
+   "Mudah puas, merasa cukup",
+   "Selalu berpikir positif dan yakin",
+   "Tenang dan pendiam"
   ],
   "most": "SXDC",
   "least": "ISDC"
  },
  {
   "options": [
-   "Mudah bergaul, suka berteman",
-   "Berbudaya, memiliki banyak pengetahuan",
-   "Bersemangat, giat",
-   "Toleransi, tidak tegas"
+   "Supel, mudah berteman",
+   "Berwawasan luas dan berbudaya",
+   "Penuh semangat dan giat",
+   "Toleran, kurang tegas"
   ],
   "most": "IXDS",
   "least": "ICDS"
  },
  {
   "options": [
-   "Menyenangkan, ramah",
-   "Teliti, akurat",
-   "Terus terang, bicara bebas",
-   "Terkendali, emosi terkendali"
+   "Menyenangkan dan ramah",
+   "Teliti dan akurat",
+   "Bicara apa adanya, lugas",
+   "Tenang, emosi terjaga"
   ],
   "most": "ICDX",
   "least": "IXDS"
  },
  {
   "options": [
-   "Resah, tidak bisa santai",
-   "Baik hati, ramah",
+   "Gelisah, sulit bersantai",
+   "Baik hati dan ramah",
    "Populer, disukai banyak orang",
-   "Rapi, teratur"
+   "Rapi dan teratur"
   ],
   "most": "DSIC",
   "least": "DSIC"
