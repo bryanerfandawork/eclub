@@ -1,7 +1,6 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { isDemoMode } from "@/lib/supabase/config";
 import { createClient } from "@/lib/supabase/server";
@@ -70,8 +69,6 @@ export async function updateBio(_: FormState, formData: FormData): Promise<FormS
   return { message: "Data diri tersimpan." };
 }
 
-const BIO_SKIP_COOKIE = "eclub_bio_skip";
-
 /** Langkah "Lengkapi data diri" setelah daftar (WA, tanggal lahir, domisili). */
 export async function completeOnboarding(_: FormState, formData: FormData): Promise<FormState> {
   if (isDemoMode) redirect("/posisi");
@@ -95,11 +92,6 @@ export async function completeOnboarding(_: FormState, formData: FormData): Prom
     .eq("id", user.id);
   if (error) return { error: "Gagal menyimpan. Coba lagi sebentar lagi." };
   revalidatePath("/", "layout");
-  redirect(safeNext(formData.get("next")));
-}
-
-export async function skipOnboarding(formData: FormData) {
-  (await cookies()).set(BIO_SKIP_COOKIE, "1", { maxAge: 60 * 60 * 24 * 30, path: "/", sameSite: "lax" });
   redirect(safeNext(formData.get("next")));
 }
 

@@ -11,8 +11,6 @@ import { ProgressBar, Ring } from "@/components/ui";
 import { getFinance, monthSummary } from "@/lib/finance-server";
 import { isDemoMode } from "@/lib/supabase/config";
 import { createClient } from "@/lib/supabase/server";
-import { cookies } from "next/headers";
-import { redirect } from "next/navigation";
 
 export const metadata = { title: "Dashboard" };
 
@@ -32,8 +30,6 @@ export default async function DashboardPage() {
     const supabase = await createClient();
     const { data: b } = await supabase.from("profiles").select("whatsapp, birth_date, regency").eq("id", profile.id).maybeSingle();
     bioMissing = !!b && (!b.whatsapp || !b.birth_date || !b.regency);
-    // Member lama yang datanya belum lengkap: tampilkan langkah "Lengkapi data diri" sekali.
-    if (bioMissing && !(await cookies()).get("eclub_bio_skip")) redirect("/lengkapi");
   }
   const finBiz = monthSummary(fin.txs, "business");
   const placement = (placed[0]?.scores as unknown as { placement?: string } | undefined)?.placement;
