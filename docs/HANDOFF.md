@@ -199,7 +199,7 @@ Without the Supabase env variables, the app runs in **demo mode**: it shows samp
 | `011_manual_payment.sql` | ✅ run (plus a chat-only seed for bank accounts and admin WhatsApp) |
 | `012_finance.sql` (fin_transactions, fin_balances) | ✅ run 21 Nov 2026 |
 | `013_growth_pack.sql` (fin_products, affiliate + coupons, mentoring, events, habits, gratitude, certificates, community, new plan_features rows, new prices) | ✅ run 21 Nov 2026 |
-| `016_push.sql` (push_subscriptions, push_secrets for auto-generated VAPID keys, push_broadcasts, push_morning settings, push_device_count) | ⏳ given to Ridha 21 Nov 2026. Tested on local Postgres. |
+| `016_push.sql` (push_subscriptions, push_secrets for auto-generated VAPID keys, push_broadcasts, push_morning settings, push_device_count) | ✅ run 21 Nov 2026 |
 | `015_event_courses_articles.sql` (event Gathering Yogyakarta 1 Des 2026 13:00 WIB, 8 SEF courses / 44 reading lessons with literature references, articles + article_bodies + get_article RPC, 12 seed articles: 8 free, 4 Plus) | ✅ run 21 Nov 2026 |
 | `014_journey_profile.sql` (3 free HPP products, profile birth_date/province/regency, birthday_promo, event regency/location, public_events, collab_inquiries + submit_inquiry) | ✅ run 21 Nov 2026 |
 
