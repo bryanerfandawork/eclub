@@ -2,7 +2,7 @@
 // Urutan pilihan dan kunci jawaban tidak boleh diubah: penilaian memakai indeks pilihan (a-d).
 
 export type DiscQuestion = { options: string[]; most: string; least: string };
-export type DiscTypeInfo = { strengths: string[]; improve: string[]; pursues: string; judged: string; influence: string; value: string; overuse: string; stress: string; fear: string };
+export type DiscTypeInfo = { name: string; tagline: string; strengths: string[]; improve: string[]; pursues: string; judged: string; influence: string; value: string; overuse: string; stress: string; fear: string };
 
 export const DISC_QUESTIONS: DiscQuestion[] = [
  {
@@ -312,482 +312,530 @@ export const DISC_CODES: Record<string, string> = {
 
 export const DISC_TYPES: Record<string, DiscTypeInfo> = {
  "Analyzer #7": {
+  "name": "Sang Penjamin Mutu",
+  "tagline": "Sekali kerja, langsung benar.",
   "strengths": [
-   "Kemampuan untuk menyelesaikan tugas berat dengan benar pada kali pertama",
-   "Sensitif dan peka terhadap kesalahan saat kemampuan presisi dan akurasi diperlukan",
-   "Melakukan pendekatan yang profesional dan disiplin pada hal yang berkaitan dengan bidang keahlian mereka",
-   "Keterampilan berorganisasi, mampu mengatur waktu secara bijaksana"
+   "Menyelesaikan pekerjaan sulit dengan benar sejak percobaan pertama",
+   "Cepat menangkap kesalahan kecil saat ketelitian sangat dibutuhkan",
+   "Profesional dan disiplin dalam bidang keahliannya",
+   "Rapi dalam mengatur pekerjaan dan pandai memakai waktu"
   ],
   "improve": [
-   "Tidak terlalu perfeksionis",
-   "Bersikap lebih luwes (tidak semua hal harus selalu sesuai dengan aturan)",
-   "Meningkatkan antusiasme, mengurangi ketergantungan pada data"
+   "Melepas tuntutan untuk selalu sempurna",
+   "Lebih luwes: tidak semua hal harus persis sesuai aturan",
+   "Menunjukkan antusiasme dan berani memutuskan tanpa menunggu data lengkap"
   ],
-  "pursues": "Akurasi dan kualitas",
-  "judged": "Hasil kerjanya yang baik (menyajikan bukti dan fakta)",
-  "influence": "Penggunaan data dan ketepatannya",
-  "value": "Memiliki standar tinggi untuk diri sendiri dan bawahan, serta disiplin yang baik",
-  "overuse": "Aturan dan ketentuan",
-  "stress": "Menjadi terlalu kritis terhadap diri sendiri dan orang lain",
-  "fear": "Keputusan beresiko tinggi"
+  "pursues": "Hasil yang akurat dan berkualitas",
+  "judged": "Dari mutu hasil kerjanya, lengkap dengan bukti dan fakta",
+  "influence": "Dengan data yang tepat dan bisa dipertanggungjawabkan",
+  "value": "Menetapkan standar tinggi bagi diri sendiri dan tim, dengan disiplin yang kuat",
+  "overuse": "Aturan dan prosedur",
+  "stress": "Terlalu keras mengkritik diri sendiri dan orang lain",
+  "fear": "Mengambil keputusan yang berisiko tinggi"
  },
  "Coordinator #21": {
+  "name": "Sang Penjaga Standar",
+  "tagline": "Rapi, aman, dan selalu bisa diandalkan.",
   "strengths": [
-   "Kemampuan untuk menetapkan dan mencapai standar perilaku dan kerja yang tinggi",
-   "Sensitif dan peka terhadap masalah, aturan, kesalahan, dan prosedur",
-   "Kemampuan untuk membuat keputusan sulit tanpa melibatkan emosi",
-   "Kemampuan untuk memahami apa yang dibutuhkan suatu sistem agar tetap terjaga kualitasnya"
+   "Menetapkan dan menjaga standar kerja serta perilaku yang tinggi",
+   "Peka terhadap masalah, aturan, kesalahan, dan prosedur",
+   "Mampu mengambil keputusan sulit dengan kepala dingin",
+   "Paham apa yang dibutuhkan sebuah sistem agar mutunya tetap terjaga"
   ],
   "improve": [
-   "Jujur mengungkapkan pendapatnya tentang suatu masalah",
-   "Mengurangi anggapan bahwa setiap perubahan akan selalu berdampak pada rusaknya hubungan atau kualitas",
-   "Meningkatkan percaya diri, saling mengandalkan antar anggota tim"
+   "Lebih berani menyampaikan pendapat secara jujur",
+   "Melihat perubahan sebagai peluang, bukan ancaman bagi mutu atau hubungan",
+   "Lebih percaya diri dan mau mengandalkan rekan satu tim"
   ],
-  "pursues": "Keamanan dan kerapian",
-  "judged": "Standar yang tepat",
-  "influence": "Dapat diandalkan, memperhatikan hal detail",
-  "value": "Berhati-hati, dapat mempertahankan standar",
+  "pursues": "Rasa aman dan keteraturan",
+  "judged": "Dari ketepatan mereka memenuhi standar",
+  "influence": "Dengan bisa diandalkan dan teliti pada detail",
+  "value": "Berhati-hati dan konsisten menjaga standar",
   "overuse": "Ketergantungan pada SOP",
-  "stress": "Menjadi tertutup, keras kepala",
-  "fear": "Pertentangan"
+  "stress": "Menutup diri dan bertahan pada pendapatnya",
+  "fear": "Konflik dan pertentangan"
  },
  "Implementor #24": {
+  "name": "Sang Arsitek Sistem",
+  "tagline": "Kualitas terjaga, cara kerja terus disempurnakan.",
   "strengths": [
-   "Kemampuan untuk menyelesaikan pekerjaan yang berkualitas sambil mengeksplorasi cara-cara baru untuk meningkatkan kuantitas",
-   "Kemampuan untuk membuat keputusan yang sulit menggunakan wawasan dan fakta, namun tetap tidak emosional",
-   "Daya juang yang tinggi untuk menemukan solusi paling tepat untuk sebuah masalah",
-   "Ahli dibidangnya dan mampu memacu tim untuk mencapai kinerja yang lebih baik"
+   "Menjaga mutu sambil terus mencari cara agar hasil lebih banyak",
+   "Mengambil keputusan sulit berdasarkan wawasan dan fakta, bukan emosi",
+   "Pantang berhenti sebelum menemukan solusi yang paling tepat",
+   "Ahli di bidangnya dan mendorong tim mencapai kinerja lebih tinggi"
   ],
   "improve": [
-   "Peka terhadap perasaan orang lain",
-   "Tidak terlalu blak-blakan dan terusterang",
-   "Menunjukkan lebih banyak ketulusan"
+   "Lebih peka terhadap perasaan orang lain",
+   "Menyampaikan kritik dengan cara yang lebih halus",
+   "Menunjukkan kepedulian yang tulus kepada tim"
   ],
-  "pursues": "Merancang sistem",
-  "judged": "Standar pribadi mereka yang tinggi",
-  "influence": "Dapat mengatur ritme kerja dalam mengembangkan sistem",
-  "value": "Pekerja yang teliti dan berhati-hati",
+  "pursues": "Merancang sistem yang lebih baik",
+  "judged": "Dari standar pribadi mereka yang tinggi",
+  "influence": "Dengan mengatur ritme kerja saat membangun sistem",
+  "value": "Teliti, cermat, dan berhati-hati",
   "overuse": "Fakta dan angka",
-  "stress": "Terlalu gelisah",
-  "fear": "Kekacauan"
+  "stress": "Mudah gelisah",
+  "fear": "Keadaan yang kacau dan tidak teratur"
  },
  "Analyzer #60": {
+  "name": "Sang Diplomat Berkualitas",
+  "tagline": "Menjaga mutu sambil merawat relasi.",
   "strengths": [
-   "Seorang promotor sistem yang berkualitas",
-   "Paham jika suatu hal mendesak untuk diselesaikan namun tetap mempertahankan standar yang tinggi",
-   "Terorganisir, bahkan dalam hubungan sekalipun. Menghargai orang-orang dengan ide-ide yang serupa, suka kerapihan dan sadar kualitas",
-   "Peka terhadap perubahan di lingkungan sosial dan pekerjaan"
+   "Pendukung sistem yang bermutu",
+   "Tahu mana yang mendesak, tanpa menurunkan standar",
+   "Teratur, bahkan dalam menjalin hubungan; menghargai orang yang sepemikiran, rapi, dan sadar mutu",
+   "Peka terhadap perubahan di lingkungan sosial maupun pekerjaan"
   ],
   "improve": [
-   "Lebih menerima ide dan kepercayaan yang dianut orang lain",
-   "Menyusun target yang realistis",
-   "Tidak terlalu peduli pada komentar orang lain"
+   "Lebih terbuka pada gagasan dan keyakinan orang lain",
+   "Menetapkan target yang realistis",
+   "Tidak terlalu terpengaruh komentar orang"
   ],
-  "pursues": "Diplomatis",
-  "judged": "Siapa yang mereka kenal, gengsi dan pencapaian",
-  "influence": "Strateginya dalam membangun relasi yang baik",
-  "value": "Menciptakan lingkungan kerja yang baik",
-  "overuse": "Kebijaksanaan",
-  "stress": "Menjadi terlalu ramah",
-  "fear": "Harus mengabaikan kualitas demi menjaga hubungan baik."
+  "pursues": "Hubungan yang baik melalui sikap diplomatis",
+  "judged": "Dari siapa yang mereka kenal, reputasi, dan pencapaian",
+  "influence": "Dengan strategi membangun relasi yang baik",
+  "value": "Menciptakan suasana kerja yang nyaman",
+  "overuse": "Sikap serba bijaksana",
+  "stress": "Menjadi terlalu ramah demi menghindari masalah",
+  "fear": "Terpaksa mengorbankan mutu demi menjaga hubungan"
  },
  "Analyzer #55": {
+  "name": "Sang Pengelola Proyek",
+  "tagline": "Banyak target, standar tetap tinggi.",
   "strengths": [
-   "Kemampuan untuk menyelesaikan banyak proyek dengan standar tinggi",
-   "Memiliki intuisi yang kuat pada hal-hal tertentu",
-   "Mendelegasi orang lain untuk membantunya mencapai hasil yang diinginkan",
-   "Mampu mempertahankan standar dengan mengikuti prosedur yang teruji"
+   "Mampu menuntaskan banyak proyek dengan standar tinggi",
+   "Punya intuisi tajam di bidang tertentu",
+   "Pandai membagi tugas agar orang lain ikut membantu mencapai hasil",
+   "Menjaga standar dengan prosedur yang sudah terbukti"
   ],
   "improve": [
-   "Tidak bersikap terlalu mengendalikan dalam berbagai situasi",
-   "Bersikap realistis saat menilai orang lain",
-   "Meningkatkan kemampuan beradaptasi di bawah tekanan"
+   "Tidak ingin mengendalikan semua hal",
+   "Lebih realistis saat menilai orang lain",
+   "Tetap luwes saat berada di bawah tekanan"
   ],
-  "pursues": "Tantangan yang banyak",
-  "judged": "Keahlian dan komitmen mereka",
-  "influence": "Sifat optimisnya",
-  "value": "Mampu membagi tugas kepada anggota tim sesuai dengan kapasitasnya masing-masing",
+  "pursues": "Banyak tantangan sekaligus",
+  "judged": "Dari keahlian dan komitmen mereka",
+  "influence": "Dengan sikap optimis",
+  "value": "Membagi tugas kepada tim sesuai kemampuan masing-masing",
   "overuse": "Prosedur standar",
   "stress": "Terlalu mengendalikan",
-  "fear": "Meleset dari Deadline"
+  "fear": "Gagal memenuhi tenggat waktu"
  },
  "Analyzer #38": {
+  "name": "Sang Pemecah Masalah",
+  "tagline": "Menggali fakta sampai ke akarnya.",
   "strengths": [
-   "Kemampuan berjuang dengan kesungguhan untuk memastikan kualitas dan kebenaran dari sebuah prosedur dan / atau hasil",
-   "Kemampuan untuk mengajukan pertanyaan yang tepat demi mengungkap fakta yang tersembunyi",
-   "Menghindari sikap pilih kasih saat mengevaluasi personil dalam tim",
-   "Akan menggabungkan keterampilan analitis dan intuitif ketika berhadapan dengan masalah yang kompleks"
+   "Bersungguh-sungguh memastikan prosedur dan hasil benar serta bermutu",
+   "Pandai mengajukan pertanyaan yang tepat untuk menemukan fakta tersembunyi",
+   "Adil dan tidak pilih kasih saat menilai anggota tim",
+   "Memadukan analisis dan intuisi untuk masalah yang rumit"
   ],
   "improve": [
-   "Tidak bersikap  terlalu analitis dalam berusaha mencari kebenaran",
-   "Tidak memendam emosi dan mulai lebih banyak menyampaikan gagasan kepada orang lain",
-   "Berbagi informasi, kerja sama tim"
+   "Tidak berlebihan menganalisis saat mencari kebenaran",
+   "Mengungkapkan perasaan dan lebih sering berbagi gagasan",
+   "Berbagi informasi dan bekerja sama dengan tim"
   ],
-  "pursues": "Pemecah masalah",
-  "judged": "Penggunaan data mereka",
-  "influence": "Kekuatannya pada fakta dan angka",
-  "value": "Secara sukarela menerima tugas analitis yang menantang",
-  "overuse": "Kesempurnaan",
-  "stress": "Menjadi tidak sopan",
-  "fear": "Kontak dengan orang lain, hal yang berisiko tinggi dan kurangnya privasi"
+  "pursues": "Memecahkan masalah",
+  "judged": "Dari cara mereka memakai data",
+  "influence": "Dengan kekuatan fakta dan angka",
+  "value": "Sukarela mengambil tugas analisis yang menantang",
+  "overuse": "Tuntutan kesempurnaan",
+  "stress": "Bersikap ketus dan kurang sopan",
+  "fear": "Terlalu banyak berinteraksi, risiko tinggi, dan kurangnya ruang pribadi"
  },
  "Conductor #1": {
+  "name": "Sang Pendobrak",
+  "tagline": "Bergerak cepat, menembus rintangan.",
   "strengths": [
-   "Kemampuan untuk mengatasi masalah sulit yang kompleks",
-   "Progresif, agresif dan kompetitif",
-   "Kemampuan untuk bekerja di lingkungan yang heterogen dan dinamis",
-   "Memulai pergerakan dan menetapkan langkah untuk mencapai hasil yang diinginkan"
+   "Berani menghadapi masalah sulit dan rumit",
+   "Progresif, agresif, dan senang bersaing",
+   "Nyaman bekerja di lingkungan yang beragam dan cepat berubah",
+   "Memulai gerakan dan menentukan langkah menuju hasil"
   ],
   "improve": [
-   "Tidak bersikap terlalu keras, egois, dan blak-blakan",
-   "Tidak memaksa orang lain yang tidak memiliki komitmen pada suatu proyek untuk mengerjakannya",
-   "Bersikap sabar, peduli terhadap orang lain, rendah hati"
+   "Mengurangi sikap keras, egois, dan terlalu blak-blakan",
+   "Tidak memaksa orang yang belum berkomitmen untuk ikut mengerjakan proyek",
+   "Lebih sabar, peduli, dan rendah hati"
   ],
-  "pursues": "Dominasi dan kemandirian",
-  "judged": "Kemampuan mereka untuk menyelesaikan tugas dengan cepat",
-  "influence": "Kekuatan karakter, ketekunan",
-  "value": "Memiliki attitude",
-  "overuse": "Tantangan dan kompetisi",
-  "stress": "Menjadi pendiam dan analitis",
-  "fear": "Kehilangan kontrol"
+  "pursues": "Kendali dan kemandirian",
+  "judged": "Dari kecepatan mereka menyelesaikan tugas",
+  "influence": "Dengan karakter yang kuat dan kegigihan",
+  "value": "Punya sikap dan pendirian yang jelas",
+  "overuse": "Tantangan dan persaingan",
+  "stress": "Menarik diri dan menjadi sangat analitis",
+  "fear": "Kehilangan kendali"
  },
  "Persuader #12": {
+  "name": "Sang Penggerak Target",
+  "tagline": "Mengajak tim mengejar hasil.",
   "strengths": [
-   "Berorientasi pada hasil dan memiliki urgensi untuk dapat menyelesaikan target sesuai deadline yang telah ditentukan",
-   "Tegas dan agresif ketika dihadapkan dengan tantangan",
-   "Memulai aktivitas dengan mendelegasi orang lain (tim) untuk mendapatkan hasil yang diinginkan",
-   "Ekstrovert dan senang menjalin relasi dengan berbagai orang"
+   "Fokus pada hasil dan bergerak cepat agar target selesai tepat waktu",
+   "Tegas dan berani saat menghadapi tantangan",
+   "Memulai pekerjaan dengan menggerakkan tim untuk mencapai hasil",
+   "Supel dan senang menjalin relasi dengan banyak orang"
   ],
   "improve": [
-   "Tidak bersikap terlalu kesal jika deadline tertunda atau terlewati",
-   "Tidak mengambil terlalu banyak tanggung jawab pada satu waktu, bersikap lebih konsisten",
-   "Meningkatkan kinerja, bersikap lebih terusterang, mengurangi ekspektasi"
+   "Tidak mudah kesal saat tenggat mundur atau terlewat",
+   "Tidak memikul terlalu banyak tanggung jawab sekaligus, lebih konsisten",
+   "Lebih lugas dan menurunkan ekspektasi yang berlebihan"
   ],
-  "pursues": "Agresif dan percaya diri untuk menang",
-  "judged": "Kemampuan berkomunikasi dan berpikir",
-  "influence": "Memiliki keramahan dan keinginan yang kuat untuk mencapai target",
-  "value": "Perencana yang baik, pemecah masalah dan banyak akal",
-  "overuse": "Posisi (jabatan) dan cara kerja mereka pribadi",
-  "stress": "Menjadi gelisah, tidak sabar dan tidak sensitif",
+  "pursues": "Kemenangan dengan percaya diri dan agresif",
+  "judged": "Dari kemampuan berkomunikasi dan berpikir",
+  "influence": "Dengan keramahan dan semangat kuat mencapai target",
+  "value": "Perencana yang baik, pemecah masalah, dan banyak akal",
+  "overuse": "Jabatan dan cara kerjanya sendiri",
+  "stress": "Gelisah, tidak sabar, dan kurang peka",
   "fear": "Kekalahan dan kekacauan"
  },
  "Implementor #9": {
+  "name": "Sang Pelopor Berstandar",
+  "tagline": "Mendobrak dengan rencana yang rapi.",
   "strengths": [
-   "Menetapkan standar tinggi untuk diri sendiri dan orang lain, mengharapkan kinerja yang baik dan kerja tim",
-   "Sadar dan peka terhadap dampak yang akan ditimbulkan dari suatu kesalahan dan kekeliruan",
-   "Menggunakan waktu secara terstruktur",
-   "Memecahkan masalah secara sistematis tanpa membiarkan emosi memengaruhi keputusan"
+   "Menuntut standar tinggi dari diri sendiri dan tim, serta kerja sama yang baik",
+   "Sadar akan dampak dari setiap kesalahan",
+   "Memakai waktu secara terstruktur",
+   "Memecahkan masalah secara sistematis tanpa terbawa emosi"
   ],
   "improve": [
-   "Bersikap lebih hangat dan menghargai anggota tim lainnya",
-   "Bisa membedakan antara \"buruknya kualitas yang disebabkan oleh suatu keputusan yang salah\" versus kualitas yang memang sudah bermasalah dari awal",
-   "Tidak bersikap blak-blakan atau terlalu mengkritisi orang lain yang tidak memenuhi standar mereka"
+   "Lebih hangat dan menghargai anggota tim",
+   "Membedakan mutu buruk karena keputusan keliru dengan masalah yang sudah ada sejak awal",
+   "Tidak terlalu blak-blakan atau keras mengkritik orang yang belum memenuhi standar"
   ],
-  "pursues": "Dominasi dan kepeloporan",
-  "judged": "Standar dan ide-ide progresif mereka",
-  "influence": "Ketertarikannya pada kompetisi dan tantangan yang unik",
-  "value": "Mandiri dalam menciptakan perubahan ",
-  "overuse": "Blak-blakan dan terlalu kritis",
-  "stress": "Mendikte dan menuntut",
-  "fear": "Tidak memiliki pengaruh"
+  "pursues": "Kendali dan kepeloporan",
+  "judged": "Dari standar dan gagasan maju mereka",
+  "influence": "Dengan semangat menghadapi persaingan dan tantangan yang unik",
+  "value": "Mandiri dalam mendorong perubahan",
+  "overuse": "Sikap blak-blakan dan kritis",
+  "stress": "Mendikte dan banyak menuntut",
+  "fear": "Tidak punya pengaruh"
  },
  "Conductor #57": {
+  "name": "Sang Eksekutor Gigih",
+  "tagline": "Ide baru dikawal sampai tuntas.",
   "strengths": [
-   "Kemampuan untuk memunculkan ide-ide baru dan menindaklanjutinya hingga selesai",
-   "Mengapresiasi orang lain yang merupakan anggota di dalam tim",
-   "Kemampuan melihat \"gambaran besar\" beserta detail kecilnya",
-   "Memiliki tekad dan kegigihan"
+   "Melahirkan ide baru dan mengawalnya sampai selesai",
+   "Menghargai setiap anggota tim",
+   "Bisa melihat gambaran besar sekaligus detail kecilnya",
+   "Punya tekad dan kegigihan yang kuat"
   ],
   "improve": [
-   "Tidak terlalu fokus pada satu masalah sehingga kehilangan peluang lainnya",
-   "Tidak terlalu berpegang pada standar pribadi",
-   "Mendiskusikan prioritas kerja dengan anggota tim lainnya"
+   "Tidak terpaku pada satu masalah sampai melewatkan peluang lain",
+   "Tidak terlalu kaku pada standar pribadi",
+   "Membicarakan prioritas kerja bersama tim"
   ],
-  "pursues": "Tekad yang kuat",
-  "judged": "Jumlah pekerjaan yang mereka selesaikan",
-  "influence": "Kegigihan dan ketekunannya",
-  "value": "Berorientasi pada hasil dan konsisten",
+  "pursues": "Mewujudkan tekad",
+  "judged": "Dari banyaknya pekerjaan yang diselesaikan",
+  "influence": "Dengan kegigihan dan ketekunan",
+  "value": "Fokus pada hasil dan konsisten",
   "overuse": "Mengandalkan diri sendiri",
-  "stress": "Keras kepala, pendiam dan tidak demonstratif",
-  "fear": "Keterlibatan dengan terlalu banyak orang"
+  "stress": "Keras kepala, diam, dan menyimpan perasaan",
+  "fear": "Harus terlibat dengan terlalu banyak orang"
  },
  "Conductor #27": {
+  "name": "Sang Penggerak Optimis",
+  "tagline": "Target tinggi, tim ikut bergerak.",
   "strengths": [
-   "Mampu mendelegasi orang lain untuk mencapai targetnya",
-   "Menghadapi rintangan dan tantangan dengan optimis",
-   "Memiliki target personal yang tinggi",
-   "Memiliki rasa keterdesakan (sense of urgency) untuk mewujudkan sesuatu"
+   "Pandai menggerakkan orang lain untuk mencapai target",
+   "Menghadapi rintangan dengan optimis",
+   "Menetapkan target pribadi yang tinggi",
+   "Punya dorongan kuat untuk segera mewujudkan sesuatu"
   ],
   "improve": [
-   "Lebih teliti dengan hal detail",
-   "Bersikap lebih santai saat mendelegasikan semua pekerjaan",
-   "Lebih konsisten ketika mendisiplinkan orang lain"
+   "Lebih teliti pada detail",
+   "Lebih santai saat menyerahkan pekerjaan kepada orang lain",
+   "Lebih konsisten saat menegakkan disiplin"
   ],
-  "pursues": "Secara agresif mendelegasi orang untuk mencapai hasil yang diinginkan",
-  "judged": "Partisipasi dalam tim",
-  "influence": "Sika persuasif yang dimilikinya",
-  "value": "Berinovasi dan futuristik",
-  "overuse": "Tekad yang kuat",
-  "stress": "Tidak sabar dan mengendalikan",
-  "fear": "Tidak mencapai tujuan yang diinginkan"
+  "pursues": "Menggerakkan orang secara aktif untuk mencapai hasil",
+  "judged": "Dari keterlibatan mereka dalam tim",
+  "influence": "Dengan kemampuan membujuk",
+  "value": "Inovatif dan berpikir jauh ke depan",
+  "overuse": "Tekad yang terlalu kuat",
+  "stress": "Tidak sabar dan ingin mengendalikan",
+  "fear": "Gagal mencapai tujuan"
  },
  "Conductor #42": {
+  "name": "Sang Pemikir Strategis",
+  "tagline": "Logis, fokus, dan mandiri.",
   "strengths": [
-   "Kemampuan untuk mengekspresikan ide secara logis tanpa melibatkan perasaan",
-   "Konsentrasi tunggal hanya pada target dan masalah-masalah vital",
-   "Meneliti dengan cermat orang - orang sekitar yang dapat memengaruhi kinerjanya",
-   "Kemampuan untuk menjelaskan data teknis dengan jelas dan menerjemahkan teori menjadi solusi yang bisa diterapkan"
+   "Menyampaikan gagasan secara logis tanpa terbawa perasaan",
+   "Fokus penuh pada target dan masalah yang paling penting",
+   "Cermat mengamati orang-orang yang memengaruhi kinerjanya",
+   "Menjelaskan data teknis dengan jelas dan mengubah teori menjadi solusi nyata"
   ],
   "improve": [
    "Berbagi pengetahuan, pikiran, dan perasaan dengan orang lain",
-   "Tidak ragu untuk bertindak di bawah tekanan berat",
-   "Meningkatkan kemampuan berinteraksi dan berbicara"
+   "Tidak ragu bertindak saat tekanan tinggi",
+   "Melatih kemampuan berinteraksi dan berbicara"
   ],
-  "pursues": "Mampu memenuhi kebutuhannya secara mandiri",
-  "judged": "Pemahaman dan kekuatan penalaran",
-  "influence": "Sikap rasional dan tidak terusterang",
-  "value": "Inisiatif, berorientasi pada tujuan",
+  "pursues": "Memenuhi kebutuhannya secara mandiri",
+  "judged": "Dari pemahaman dan daya nalar",
+  "influence": "Dengan sikap rasional dan tidak menunjukkan semua isi pikiran",
+  "value": "Berinisiatif dan fokus pada tujuan",
   "overuse": "Kemandirian",
-  "stress": "Ambivalen dan pesimis",
-  "fear": "Deadline tanpa alokasi waktu untuk mengecek kualitas hasil pekerjaan"
+  "stress": "Bimbang dan pesimis",
+  "fear": "Tenggat yang tidak menyisakan waktu untuk memeriksa mutu"
  },
  "Supporter #5": {
+  "name": "Sang Penenang Tim",
+  "tagline": "Stabil, sabar, dan setia pada tugas.",
   "strengths": [
-   "Kemampuan untuk bersikap tenang dan terkendali, menggunakan kemampuan konsentrasi sebagai sarana untuk mendengarkan dan belajar",
-   "Kemampuan untuk tetap konsisten menjalani tugas yang dapat memberikan kontribusi berarti bagi organisasi",
-   "Seorang anggota tim yang besifat terbuka, sabar dan toleran terhadap perbedaan",
-   "Senang memuji orang lain"
+   "Tenang dan terkendali, fokus mendengarkan dan belajar",
+   "Konsisten menjalankan tugas yang berarti bagi organisasi",
+   "Anggota tim yang terbuka, sabar, dan menerima perbedaan",
+   "Senang memberi pujian kepada orang lain"
   ],
   "improve": [
-   "Menunjukkan urgensi/keterdesakan saat diperlukan",
-   "Mengurangi ketergantungan pada rutinitas",
-   "Meningkatkan inisiatif, dan kemampuan beradaptasi pada perubahan"
+   "Bergerak cepat saat keadaan mendesak",
+   "Tidak terlalu bergantung pada rutinitas",
+   "Lebih berinisiatif dan siap menghadapi perubahan"
   ],
-  "pursues": "Stabilitas dan keterandalan",
-  "judged": "Konsistensi mereka",
-  "influence": "Watak yang menyenangkan, melayani orang lain",
-  "value": "Menstabilkan lingkungan dengan cara yang baik",
-  "overuse": "Tetap bersikap tenang",
-  "stress": "Tidak ekspresif",
-  "fear": "Tidak dihargai, dan tidak dikenal"
+  "pursues": "Kestabilan dan keandalan",
+  "judged": "Dari konsistensi mereka",
+  "influence": "Dengan sikap yang menyenangkan dan suka melayani",
+  "value": "Membuat suasana kerja tetap stabil",
+  "overuse": "Sikap tenang",
+  "stress": "Memendam perasaan",
+  "fear": "Tidak dihargai dan tidak dikenali"
  },
  "Coordinator #20": {
+  "name": "Sang Penuntas Andal",
+  "tagline": "Memulai, mengawal, dan menyelesaikan.",
   "strengths": [
-   "Kemampuan untuk memulai sebuah proyek dan menindaklanjutinya sampai selesai",
-   "Bersedia bekerja untuk pemimpin dan mengerjakan pekerjaan diluar jobdescnya saat diperlukan",
-   "Pandai mencari solusi yang komprehensif dan menyenangkan bagi semua yang terlibat dengan menggunakan logika",
-   "Memimpin dengan energi yang positif, mempertimbangan perasaan orang lain dalam tim dalam setiap keputusan"
+   "Memulai proyek dan mengawalnya sampai tuntas",
+   "Siap membantu pimpinan dan mengerjakan tugas di luar perannya saat dibutuhkan",
+   "Pandai menemukan solusi menyeluruh yang adil bagi semua pihak dengan logika",
+   "Memimpin dengan energi positif dan mempertimbangkan perasaan tim"
   ],
   "improve": [
-   "Belajar untuk mempromosikan kemampuan diri agar orang lain tau",
-   "Menggunakan pendekatan langsung pada masalah",
-   "Menyampaikan kekhawatiran dan apa yang ia rasakan pada anggota tim"
+   "Berani menunjukkan kemampuan diri agar dikenal",
+   "Menghadapi masalah secara langsung",
+   "Menyampaikan kekhawatiran dan perasaan kepada tim"
   ],
-  "pursues": "Mencapai standar tinggi (yang ia tetapkan untuk dirinya sendiri)",
-  "judged": "Penggunaan pengetahuan mereka",
-  "influence": "Kemampuan untuk menindaklanjuti suatru pekerjaan",
-  "value": "Menggunakan logika fokus saat dibutuhkan",
+  "pursues": "Standar tinggi yang ditetapkannya sendiri",
+  "judged": "Dari cara mereka memakai pengetahuan",
+  "influence": "Dengan kemampuan mengawal pekerjaan sampai selesai",
+  "value": "Berpikir logis dan fokus saat dibutuhkan",
   "overuse": "Menolak perubahan",
-  "stress": "Mempunyai tekad yang kuat, keras kepala",
-  "fear": "Tidak memenuhi syarat tertentu yang spesifik"
+  "stress": "Bertahan keras pada kemauannya",
+  "fear": "Tidak memenuhi persyaratan tertentu"
  },
  "Relater #17": {
+  "name": "Sang Pendengar Empatik",
+  "tagline": "Membuat orang merasa berarti.",
   "strengths": [
-   "Keterampilan mendengarkan yang baik dilengkapi dengan kemampuan berempati kepada orang lain",
-   "Terampil dalam membantu dan mendukung orang lain mencapai tujuan dan aspirasinya",
-   "Berbakat dalam memahami perasaan, kepercayaan, dan nilai-nilai yang diyakini orang lain",
-   "Kemampuan untuk menciptakan lingkungan di mana orang merasa dirinya penting/dibutuhkan"
+   "Pendengar yang baik dan mampu berempati",
+   "Senang membantu orang lain meraih tujuan dan cita-citanya",
+   "Mudah memahami perasaan, keyakinan, dan nilai orang lain",
+   "Menciptakan suasana di mana setiap orang merasa penting"
   ],
   "improve": [
-   "Bersikap tegas dan teguh pada pendirian",
-   "Tidak terlena dengan status quo",
-   "Meningkatkan kekuatan, ketegasan, dan kepercayaan diri"
+   "Lebih tegas dan teguh pendirian",
+   "Tidak terlena dengan keadaan yang sudah nyaman",
+   "Membangun ketegasan dan kepercayaan diri"
   ],
-  "pursues": "Menerima keadaaan",
-  "judged": "Loyalitas, ketulusan, keterandalan",
-  "influence": "Pengertian, bersahabat",
-  "value": "Mendukung, menyelaraskan dan memberikan stabilitas meski di bawah tekanan",
-  "overuse": "Kebaikan, kasih sayang",
-  "stress": "Menyendiri",
-  "fear": "Pertikaian, konflik, tidak disukai"
+  "pursues": "Kenyamanan dan penerimaan",
+  "judged": "Dari kesetiaan, ketulusan, dan keandalan",
+  "influence": "Dengan pengertian dan sikap bersahabat",
+  "value": "Mendukung, menyelaraskan, dan menenangkan tim meski di bawah tekanan",
+  "overuse": "Kebaikan hati",
+  "stress": "Menarik diri",
+  "fear": "Konflik dan tidak disukai"
  },
  "Supporter #59": {
+  "name": "Sang Pejuang Tangguh",
+  "tagline": "Gigih mengejar target, setia pada prinsip.",
   "strengths": [
-   "Kemampuan untuk menghadapi masalah dan menyelesaikannya dengan baik",
-   "Gigih, logis, bertekad kuat, dan ulet dalam mengejar target",
-   "Pandai menjaga hubungan baik di dalam maupun di luar pekerjaan",
-   "Anggota tim yang memancarkan jiwa kepemimpinan dan mampu mempertahankan apa yang mereka yakini benar"
+   "Berani menghadapi masalah dan menyelesaikannya dengan baik",
+   "Gigih, logis, dan ulet mengejar target",
+   "Pandai menjaga hubungan baik di dalam dan di luar pekerjaan",
+   "Berjiwa pemimpin dan teguh membela apa yang diyakini benar"
   ],
   "improve": [
-   "Kurangi bersikap pasif, bahkan jika hal itu dapat mengancam keamanan mereka",
-   "Menggunakan pemikiran dari sudut pandang baru dan kreatif saat memecahkan masalah",
-   "Tidak menolak situasi baru yang mungkin mengharuskan untuk keluar dari zona nyaman"
+   "Tidak pasif, bahkan saat merasa posisinya terancam",
+   "Mencoba sudut pandang baru dan kreatif saat memecahkan masalah",
+   "Mau keluar dari zona nyaman saat menghadapi situasi baru"
   ],
-  "pursues": "Pencapaian personal",
-  "judged": "Prestasi dan keberhasilan mereka",
-  "influence": "Kegigihan  ",
-  "value": "Bekerja secara mandiri dan menyukai tantangan",
-  "overuse": "Blak-blakan, terlalu kritis",
-  "stress": "Keras kepala, tidak fleksibel, keras hati",
-  "fear": "Tidak mencapai hasil yang diinginkan"
+  "pursues": "Pencapaian pribadi",
+  "judged": "Dari prestasi dan keberhasilan mereka",
+  "influence": "Dengan kegigihan",
+  "value": "Bekerja mandiri dan menyukai tantangan",
+  "overuse": "Sikap blak-blakan dan kritis",
+  "stress": "Keras kepala dan sulit berkompromi",
+  "fear": "Gagal mencapai hasil yang diinginkan"
  },
  "Supporter #35": {
+  "name": "Sang Penyeimbang Hangat",
+  "tagline": "Ramah, seimbang, dan menenangkan tim.",
   "strengths": [
-   "Kemampuan untuk mendukung, bersikap ramah, dan optimis dalam hubungan apa pun",
-   "Mudah bergaul dan mampu menikmati berbagai keunikan yang berbeda dari setiap manusia",
-   "Kemampuan untuk mengambil keputusan yang seimbang, membawa stabilitas ke seluruh tim",
-   "Bagus dalam menganalisis situasi yang dapat dirasakan, disentuh, dilihat, didengar, diamati atau dialami secara pribadi"
+   "Suportif, ramah, dan optimis dalam setiap hubungan",
+   "Mudah bergaul dan menikmati keunikan setiap orang",
+   "Mengambil keputusan yang seimbang sehingga tim tetap stabil",
+   "Pandai menilai situasi dari pengalaman nyata yang bisa dilihat dan dirasakan"
   ],
   "improve": [
-   "Tetap fokus pada peran dan harapan agar bisa bekerja lebih efektif",
-   "Memiliki rasa keterdesakan (sense of urgency)",
-   "Lebih menghargai metode pintas (tidak harus selalu menggunakan metode yang lengkap dan sempurna)"
+   "Tetap fokus pada peran dan target agar kerja lebih efektif",
+   "Lebih sigap saat keadaan mendesak",
+   "Mau memakai cara yang lebih praktis, tidak harus selalu lengkap dan sempurna"
   ],
-  "pursues": "Status quo",
-  "judged": "Pertemanan",
-  "influence": "Konsistensi dalam kinerja, dan mampu mengakomodasi",
-  "value": "Perencana, konsisten, dapat mempertahankan ritme kerja",
-  "overuse": "Sederhana dan kolot",
-  "stress": "Pendendam",
-  "fear": "Konflik, dipermalukan"
+  "pursues": "Keadaan yang tetap dan nyaman",
+  "judged": "Dari pertemanan",
+  "influence": "Dengan kinerja yang konsisten dan sikap akomodatif",
+  "value": "Perencana yang konsisten dan menjaga ritme kerja",
+  "overuse": "Cara lama yang sederhana",
+  "stress": "Menyimpan rasa kesal",
+  "fear": "Konflik dan dipermalukan"
  },
  "Supporter #50": {
+  "name": "Sang Negosiator Empatik",
+  "tagline": "Mandiri, gigih, dan pandai merangkul.",
   "strengths": [
-   "Kemampuan untuk tetap bersikap mandiri meskipun memiliki rasa empati yang tinggi",
-   "Unggul dalam urusan yang membutuhkan tekad dan kegigihan yang kuat untuk berhasil",
-   "Mampu memberi pengaruh positif pada anggota tim yang tidak kooperatif atau bersikap negatif",
-   "Lihai menggiring lawan bicara untuk bernegosiasi dan mampu mendengarkan pendapat yang berbeda"
+   "Tetap mandiri meski sangat berempati",
+   "Unggul dalam tugas yang menuntut tekad dan kegigihan",
+   "Mampu membawa pengaruh positif pada rekan yang kurang kooperatif",
+   "Pandai mengajak orang bernegosiasi dan mau mendengar pendapat yang berbeda"
   ],
   "improve": [
-   "Membuat skala prioritas kegiatan harian",
-   "Lebih mempertimbangkan pro dan kontra terkait suatu masalah",
-   "Bersikap lebih tegas dan konsisten atas pendirian mereka"
+   "Menyusun prioritas kegiatan harian",
+   "Menimbang untung rugi sebelum memutuskan",
+   "Lebih tegas dan konsisten pada pendirian"
   ],
-  "pursues": "Sukses melalui konsistensi",
-  "judged": "Pertemanan mereka yang loyal",
-  "influence": "Keterampilan persuasif",
-  "value": "Memecahkan masalah secara kreatif dan berinovasi melalui orang-orang",
-  "overuse": "Intensitas",
-  "stress": "Bersemangat, kuat",
-  "fear": "Tidak didukung oleh tim dan perubahan"
+  "pursues": "Sukses lewat konsistensi",
+  "judged": "Dari kesetiaan dalam pertemanan",
+  "influence": "Dengan kemampuan membujuk",
+  "value": "Memecahkan masalah secara kreatif dan berinovasi bersama orang lain",
+  "overuse": "Intensitas yang tinggi",
+  "stress": "Terlalu menggebu-gebu",
+  "fear": "Tidak didukung tim dan perubahan mendadak"
  },
  "Promoter #3": {
+  "name": "Sang Pembawa Ceria",
+  "tagline": "Optimis, hangat, dan mudah berteman.",
   "strengths": [
-   "Seseorang yang sangat optimis dengan selera humor yang positif",
-   "Memperhatikan orang lain dan menaruh kepercayaan tinggi dalam suatu hubungan relasi",
-   "Mudah berteman dengan orang baru, senang berjejaring",
-   "Menggunakan pendekatan konsensus (musyawarah) untuk pengambilan keputusan"
+   "Sangat optimis dan punya selera humor yang menyenangkan",
+   "Perhatian dan mudah memercayai orang dalam hubungan",
+   "Cepat akrab dengan orang baru dan senang berjejaring",
+   "Mengambil keputusan lewat musyawarah"
   ],
   "improve": [
-   "Mengawasi target pekerjaan",
-   "Mengurangi rasa terlalu peduli pada perasaan orang lain",
-   "Menjadi lebih terorganisir dan bersikap realistis"
+   "Lebih disiplin memantau target kerja",
+   "Tidak terlalu memikirkan perasaan semua orang",
+   "Lebih teratur dan realistis"
   ],
-  "pursues": "Melayani dan mengakomodasi",
-  "judged": "Kehangatan mereka",
-  "influence": "Keterampilan interpersonal dan bersahabat",
-  "value": "Pandai mengkomunikasikan \"mimpi besar\", memiliki kemampuan untuk menyatukan tim",
-  "overuse": "Kebergantungan pada orang lain dan optimisme",
-  "stress": "Terlalu mendahulukan emosi",
-  "fear": "Tidak cukup disukai orang lain"
+  "pursues": "Melayani dan menyenangkan orang lain",
+  "judged": "Dari kehangatan mereka",
+  "influence": "Dengan keterampilan bergaul dan sikap bersahabat",
+  "value": "Pandai menyampaikan mimpi besar dan menyatukan tim",
+  "overuse": "Optimisme dan ketergantungan pada orang lain",
+  "stress": "Terlalu mengikuti perasaan",
+  "fear": "Tidak disukai"
  },
  "Persuader #13": {
+  "name": "Sang Pemengaruh Karismatik",
+  "tagline": "Ide jadi gerakan lewat kata-kata.",
   "strengths": [
-   "Kemampuan untuk mempengaruhi orang lain supaya sejalan dengan pendapatnya",
+   "Pandai mengajak orang lain sependapat",
    "Berkomunikasi dengan sangat terbuka",
-   "Kemampuan untuk menenangkan situasi konflik",
-   "Kemampuan untuk mempromosikan ide dan produk baru"
+   "Mampu meredakan suasana saat terjadi konflik",
+   "Piawai mempromosikan ide dan produk baru"
   ],
   "improve": [
-   "Mengurangi keterlibatan emosi saat mengambil keputusan",
-   "Bersedia berkonfrontasi saat diperlukan",
-   "Mempunyai deadline yang realistis dan pandai mengatur waktu"
+   "Tidak terlalu melibatkan emosi saat memutuskan",
+   "Berani berhadapan langsung saat dibutuhkan",
+   "Menetapkan tenggat yang realistis dan mengatur waktu dengan baik"
   ],
-  "pursues": "Memelihara hubungan pertemanan",
-  "judged": "Relasi mereka yang memiliki pengaruh, komitmen",
-  "influence": "Inspirasi dan karisma",
-  "value": "Stabil, dapat diandalkan, memiliki jaringan yang luas",
+  "pursues": "Merawat pertemanan",
+  "judged": "Dari relasi berpengaruh yang mereka miliki dan komitmennya",
+  "influence": "Dengan inspirasi dan karisma",
+  "value": "Stabil, bisa diandalkan, dan punya jaringan luas",
   "overuse": "Antusiasme",
   "stress": "Terlalu banyak bicara",
   "fear": "Kegagalan"
  },
  "Relater #16": {
+  "name": "Sang Sahabat Setia",
+  "tagline": "Hangat, sabar, dan selalu ada.",
   "strengths": [
-   "Kemampuan untuk membantu orang lain menggunakan kehangatan, empati dan pengertian",
-   "Melindungi dan menghargai orang maupun benda",
-   "Pendengar dan pembicara yang baik"
+   "Membantu orang dengan kehangatan, empati, dan pengertian",
+   "Melindungi dan menghargai orang maupun barang yang dipercayakan",
+   "Pendengar sekaligus pembicara yang baik"
   ],
   "improve": [
-   "Bersikap tegas dan teguh pada keputusan ketika dibutuhkan",
-   "Tidak menghindari konfrontasi, bahkan ketika berisiko",
-   "Lebih inisiatif, memiliki rasa keterdesakan (sense of urgency)"
+   "Tegas mengambil keputusan saat dibutuhkan",
+   "Tidak menghindari konfrontasi meski berisiko",
+   "Lebih berinisiatif dan sigap saat keadaan mendesak"
   ],
-  "pursues": "mempertahankan pertemanan jangka panjang",
-  "judged": "Loyalitas mereka terhadap suatu hubungan",
-  "influence": "Memberi contoh yang baik dalam hubungan personal",
-  "value": "Pendengar yang baik, sabar menghadapi orang lain",
+  "pursues": "Pertemanan yang langgeng",
+  "judged": "Dari kesetiaan mereka dalam hubungan",
+  "influence": "Dengan memberi teladan dalam hubungan pribadi",
+  "value": "Pendengar yang baik dan sabar menghadapi orang",
   "overuse": "Toleransi",
-  "stress": "Pendendam, gelisah dalam situasi yang penuh tekanan",
-  "fear": "Konfrontasi"
+  "stress": "Menyimpan rasa kesal dan gelisah saat tertekan",
+  "fear": "Berhadapan langsung dalam konflik"
  },
  "Promoter #58": {
+  "name": "Sang Pencair Suasana",
+  "tagline": "Membuat orang nyaman, membuat ide terdengar.",
   "strengths": [
-   "Kemampuan untuk menangani situasi sulit dengan bijaksana, peka terhadap kebutuhan orang lain",
-   "Kemampuan untuk menciptakan suasana yang menyenangkan dan nyaman",
-   "Kemampuan untuk menyampaikan ide secara efektif",
-   "Lebih nyaman berada pada lingkungan yang pergerakannya cepat"
+   "Menangani situasi sulit dengan bijak dan peka pada kebutuhan orang",
+   "Menciptakan suasana yang menyenangkan dan nyaman",
+   "Menyampaikan ide dengan efektif",
+   "Nyaman di lingkungan yang bergerak cepat"
   ],
   "improve": [
-   "Tidak terlalu analitis berlebih demi mencapai akurasi",
-   "Mengomunikasikan lebih sedikit informasi saat menjual produk atau ide",
-   "Menjadi lebih tegas"
+   "Tidak berlebihan menganalisis demi ketepatan",
+   "Lebih ringkas saat menawarkan produk atau ide",
+   "Lebih tegas"
   ],
   "pursues": "Persetujuan dan penerimaan",
-  "judged": "Kemampuan mereka membaca gelagat verbal dan nonverbal",
-  "influence": "Ketenangan dan kepercayaan diri",
-  "value": "Pencair suasana, pandai dalam mempromosikan orang dan proyek",
-  "overuse": "Mendominasi pada percakapan",
-  "stress": "Kata-katanya pedas terhadap orang lain",
-  "fear": "Kehilangan ciri khas"
+  "judged": "Dari kemampuan membaca isyarat ucapan dan bahasa tubuh",
+  "influence": "Dengan ketenangan dan rasa percaya diri",
+  "value": "Mencairkan suasana dan pandai mempromosikan orang serta proyek",
+  "overuse": "Menguasai pembicaraan",
+  "stress": "Kata-katanya bisa menyakitkan",
+  "fear": "Kehilangan jati diri"
  },
  "Promoter #47": {
+  "name": "Sang Perekat Tim",
+  "tagline": "Luwes, kooperatif, dan menyatukan.",
   "strengths": [
-   "Kemampuan untuk beradaptasi dalam banyak situasi",
-   "Anggota tim yang optimis, mudah bergaul, dan kooperatif",
-   "Akan berusaha untuk menyatukan tim secara teratur",
-   "Sabar mendengarkan apa yang orang lain katakan"
+   "Mudah menyesuaikan diri di berbagai situasi",
+   "Anggota tim yang optimis, supel, dan kooperatif",
+   "Rutin berupaya menyatukan tim",
+   "Sabar mendengarkan orang lain"
   ],
   "improve": [
-   "Mengurangi keramah-tamahan terhadap orang lain",
-   "Menampilkan ketegasan dengan lebih konsisten",
-   "Bersikap lebih terusterang dan meningkatkan kemampuan manajemen waktu "
+   "Tidak terlalu berbasa-basi kepada semua orang",
+   "Lebih konsisten bersikap tegas",
+   "Lebih lugas dan melatih pengaturan waktu"
   ],
-  "pursues": "Mampu mengarahkan timnya untuk menyusun hasil kerja yang sistematis",
-  "judged": "Kemampuan mereka untuk berkomunikasi dan berpikir",
-  "influence": "Diplomasi",
-  "value": "Berhati-hati dan berkepribadian",
-  "overuse": "Posisi dan standar mereka",
-  "stress": "Posesif dan terlalu sensitif",
-  "fear": "Tidak menjadi bagian dari tim"
+  "pursues": "Mengarahkan tim menghasilkan kerja yang sistematis",
+  "judged": "Dari kemampuan berkomunikasi dan berpikir",
+  "influence": "Dengan diplomasi",
+  "value": "Berhati-hati dan berkarakter",
+  "overuse": "Posisi dan standarnya sendiri",
+  "stress": "Posesif dan mudah tersinggung",
+  "fear": "Tidak dianggap bagian dari tim"
  },
  "Promoter #30": {
+  "name": "Sang Presenter Meyakinkan",
+  "tagline": "Tenang, tegas, dan memikat saat bicara.",
   "strengths": [
-   "Kemampuan untuk menjadi persuasif, tegas dan bersikap tenang",
-   "Kemampuan untuk menjadi mandiri ketika dibutuhkan",
-   "Kemampuan untuk membuat dan menyampaikan ide pada orang lain",
-   "Kemampuan untuk mempresentasikan ide dengan baik dan gamblang"
+   "Persuasif, tegas, dan tetap tenang",
+   "Bisa bekerja mandiri saat dibutuhkan",
+   "Pandai merumuskan dan menyampaikan ide kepada orang lain",
+   "Mempresentasikan ide dengan jelas dan menarik"
   ],
   "improve": [
-   "Mengurangi sikap berpendirian terlalu keras",
+   "Tidak terlalu keras mempertahankan pendapat",
    "Mengumpulkan informasi yang cukup sebelum bertindak",
-   "Lebih memperhatikan hal detail, dan terorganisir"
+   "Lebih teliti pada detail dan lebih teratur"
   ],
-  "pursues": "Pandai bersosialisasi dan meyakinkan",
-  "judged": "Dedikasi dan keuletan mereka",
-  "influence": "Mengambil tanggungjawab",
-  "value": "Antusias dan berterusterang akan gagasan dan pendapat baru",
+  "pursues": "Bergaul luas dan meyakinkan orang",
+  "judged": "Dari dedikasi dan keuletan mereka",
+  "influence": "Dengan berani mengambil tanggung jawab",
+  "value": "Antusias dan terbuka menyampaikan gagasan baru",
   "overuse": "Ambisi",
-  "stress": "Dangkal",
-  "fear": "Tidak dianggap sebagai anggota tim"
+  "stress": "Terlihat dangkal",
+  "fear": "Tidak dianggap bagian dari tim"
  }
 };

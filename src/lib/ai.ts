@@ -3,6 +3,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { getAssessmentResults, getDreams, getLifePlan, getProfile } from "./data";
 import { getDiscResult } from "./disc/server";
 import { INSIGHTS } from "./disc/insights";
+import { DISC_TYPES } from "./disc/data";
 import { getLimit } from "./plans";
 import { PLACEMENT_COPY, PLACEMENT_KEY, type Placement } from "./placement";
 import { rupiah } from "./format";
@@ -69,7 +70,7 @@ export async function buildUserContext(): Promise<string> {
     );
   if (disc) {
     const n = disc.result.natural;
-    lines.push(`Profil DISC (diri alami, 0-100): D ${n.values.D}, I ${n.values.I}, S ${n.values.S}, C ${n.values.C}. Dominan ${n.primary} (${INSIGHTS[n.primary].name}, ${INSIGHTS[n.primary].tagline})${n.type ? `, pola ${n.type}` : ""}.`);
+    lines.push(`Profil DISC (diri alami, 0-100): D ${n.values.D}, I ${n.values.I}, S ${n.values.S}, C ${n.values.C}. Dominan ${n.primary} (${INSIGHTS[n.primary].name}, ${INSIGHTS[n.primary].tagline})${n.type && DISC_TYPES[n.type] ? `, pola ${DISC_TYPES[n.type].name} (${DISC_TYPES[n.type].tagline})` : ""}.`);
   }
   if (ew[0]) lines.push("8 Wheel Entrepreneur terakhir (0-10): " + Object.entries(ew[0].scores).map(([k, v]) => `${k} ${v}`).join(", "));
   return lines.length ? lines.join("\n") : "";

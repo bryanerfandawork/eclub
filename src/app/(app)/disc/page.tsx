@@ -62,7 +62,7 @@ export default async function DiscPage({ searchParams }: { searchParams: Promise
         <p className="mt-1 text-sm font-semibold text-white/80">
           {ins.name}
           {secondary && ` dengan sisi ${INSIGHTS[secondary].name} (${secondary})`}
-          {natural.type && ` · Pola ${natural.type.replace(/ #\d+/, "")}`}
+          {typeN && ` · Pola ${typeN.name}`}
         </p>
         <p className="mt-4 max-w-2xl leading-relaxed text-white/90">{ins.summary}</p>
       </section>
@@ -98,7 +98,10 @@ export default async function DiscPage({ searchParams }: { searchParams: Promise
 
       {typeN && (
         <section className="card mt-5 p-5 lg:p-6">
-          <h3 className="font-bold text-heading">Kelebihan utama Anda</h3>
+          <p className="eyebrow">Pola Anda</p>
+          <h3 className="mt-1 text-xl font-bold text-heading">{typeN.name}</h3>
+          <p className="mt-1 text-sm italic text-muted">&ldquo;{typeN.tagline}&rdquo;</p>
+          <h3 className="mt-5 font-bold text-heading">Kelebihan utama Anda</h3>
           <List items={typeN.strengths} />
         </section>
       )}
@@ -158,7 +161,7 @@ export default async function DiscPage({ searchParams }: { searchParams: Promise
               {typeA && adapted.type !== natural.type && (
                 <>
                   <h3 className="mt-5 font-bold text-heading">Saat menyesuaikan diri ({adapted.primary})</h3>
-                  <p className="mt-1 text-sm text-muted">Di lingkungan kerja Anda cenderung tampil sebagai pola {adapted.type?.replace(/ #\d+/, "")}, dengan kelebihan:</p>
+                  <p className="mt-1 text-sm text-muted">Di lingkungan kerja Anda cenderung tampil sebagai pola {typeA.name}, dengan kelebihan:</p>
                   <List items={typeA.strengths.slice(0, 2)} />
                   <p className="mt-3 text-xs text-muted">Jika diri alami dan diri di lingkungan sangat berbeda, Anda mungkin sedang banyak menyesuaikan diri. Ini bisa menguras energi bila berlangsung lama.</p>
                 </>

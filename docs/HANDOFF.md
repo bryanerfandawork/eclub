@@ -96,7 +96,7 @@ Without the Supabase env variables, the app runs in **demo mode**: it shows samp
   - `src/lib/disc/data.ts` is auto-generated from the Excel: statements, answer key, conversion tables, 55 graph codes, 24 type descriptions.
   - Scoring is in `src/lib/disc/score.ts`. Graph I = Most (Adapted), Graph II = Least (Natural).
   - Verified identical to the Excel via LibreOffice recalculation. Where the Excel returns #N/A for a graph code, the app falls back to the closest code (matching the top 2 factors, then the top 1).
-  - DISC statements were rewritten by EClub (21 Nov 2026) with the same meaning; scoring keys, conversion tables, and option order are unchanged. Type names (e.g. "Analyzer #7") and type descriptions still come from the original source file.
+  - DISC statements, the 24 type names (EClub names such as "Sang Penjamin Mutu" with a tagline) and all type descriptions were rewritten by EClub (21 Nov 2026) with the same meaning. Internal type keys (e.g. "Analyzer #7"), scoring keys, conversion tables, and option order are unchanged, so old results still resolve.
   - Free: both graphs, dominant style, meaning of each letter, key strengths.
   - Paid "Laporan Lengkap DISC" (price set in `app_settings.disc_report_price`, default Rp29.000 one-time, included in Plus; unlocks live in `report_unlocks`):
     - from the Excel: ways to be more effective, tendencies, stress triggers, fears
