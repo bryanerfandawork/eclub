@@ -26,6 +26,11 @@ export const DEFAULT_FEATURES: PlanFeature[] = [
   { key: "disc_report", label: "Laporan lengkap DISC", description: "Interpretasi mendalam, rekomendasi karier & bisnis", free_limit: 0, plus_limit: null, unit: null, enforced: true, sort: 45 },
   { key: "assessment_attempts", label: "8 Wheel Entrepreneur", description: "Jumlah tes dalam 3 bulan", free_limit: 1, plus_limit: null, unit: "kali / 3 bulan", enforced: true, sort: 50 },
   { key: "ai_messages", label: "AI Companion", description: "Kuota pesan AI per hari", free_limit: 5, plus_limit: 50, unit: "pesan/hari", enforced: true, sort: 60 },
+  { key: "finance", label: "Keuangan pribadi & usaha", description: "Dua dompet, catat cepat, ringkasan bulanan, kalkulator HPP", free_limit: null, plus_limit: null, unit: null, enforced: true, sort: 35 },
+  { key: "finance_reports", label: "Laporan laba rugi & simpan produk", description: "Laba rugi otomatis, cetak PDF, daftar produk & HPP", free_limit: 0, plus_limit: null, unit: null, enforced: true, sort: 36 },
+  { key: "community", label: "Komunitas & event gratis", description: "Circle per fase SEF, event terbuka", free_limit: null, plus_limit: null, unit: null, enforced: true, sort: 85 },
+  { key: "mentoring_price", label: "Harga khusus mentoring & event", description: "Potongan harga sesi 1-on-1 dan webinar berbayar", free_limit: 0, plus_limit: null, unit: null, enforced: true, sort: 86 },
+  { key: "affiliate", label: "Program affiliate", description: "Bagi hasil dari setiap teman yang membeli lewat link Anda", free_limit: 0, plus_limit: null, unit: null, enforced: true, sort: 90 },
   { key: "premium_articles", label: "Artikel premium", description: "Akses artikel premium", free_limit: 0, plus_limit: null, unit: null, enforced: false, sort: 70 },
   { key: "paid_courses", label: "Course berbayar", description: "Akses course khusus member", free_limit: 0, plus_limit: null, unit: null, enforced: false, sort: 80 },
 ];

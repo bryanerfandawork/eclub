@@ -613,3 +613,12 @@ drop policy if exists "batal suka" on public.community_likes;
 create policy "batal suka" on public.community_likes for delete to authenticated using (auth.uid() = user_id);
 grant select, insert, delete on public.community_posts, public.community_comments, public.community_likes to authenticated;
 grant update (pinned) on public.community_posts to authenticated;
+
+-- ============ 9. Tampilkan fitur baru di tabel perbandingan paket ============
+insert into public.plan_features (key, label, description, free_limit, plus_limit, unit, enforced, sort) values
+  ('finance', 'Keuangan pribadi & usaha', 'Dua dompet, catat cepat, ringkasan bulanan, kalkulator HPP', null, null, null, true, 35),
+  ('finance_reports', 'Laporan laba rugi & simpan produk', 'Laba rugi otomatis, cetak PDF, daftar produk & HPP', 0, null, null, true, 36),
+  ('community', 'Komunitas & event gratis', 'Circle per fase SEF, event terbuka', null, null, null, true, 85),
+  ('mentoring_price', 'Harga khusus mentoring & event', 'Potongan harga sesi 1-on-1 dan webinar berbayar', 0, null, null, true, 86),
+  ('affiliate', 'Program affiliate', 'Bagi hasil dari setiap teman yang membeli lewat link Anda', 0, null, null, true, 90)
+on conflict (key) do nothing;

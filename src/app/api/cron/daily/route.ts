@@ -52,6 +52,44 @@ export async function GET(request: Request) {
     await new Promise((r) => setTimeout(r, 700));
   }
 
+  // Pengingat jadwal mentoring & event yang berlangsung dalam 24 jam ke depan (sekali saja).
+  const soon = new Date(Date.now() + 24 * 3_600_000).toISOString();
+  const nowIso = new Date().toISOString();
+  const jamWib = (iso: string) => new Date(iso).toLocaleString("id-ID", { weekday: "long", hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jakarta" }) + " WIB";
+  const { data: books } = await admin
+    .from("mentoring_bookings")
+    .select("id, user_id, mentoring_slots!inner(mentor, starts_at, meet_link)")
+    .eq("status", "confirmed")
+    .eq("reminded", false)
+    .gt("mentoring_slots.starts_at", nowIso)
+    .lt("mentoring_slots.starts_at", soon)
+    .limit(30);
+  for (const b of (books ?? []) as unknown as { id: string; user_id: string; mentoring_slots: { mentor: string; starts_at: string; meet_link: string | null } }[]) {
+    if (sent >= MAX_PER_RUN) break;
+    const { data: pr } = await admin.from("profiles").select("full_name, whatsapp").eq("id", b.user_id).maybeSingle();
+    await admin.from("mentoring_bookings").update({ reminded: true }).eq("id", b.id);
+    if (!pr?.whatsapp) continue;
+    const s = b.mentoring_slots;
+    const ok = await sendWa(pr.whatsapp, `Halo ${(pr.full_name || "Sahabat").split(" ")[0]}, pengingat sesi mentoring dengan *${s.mentor}* ${jamWib(s.starts_at)} 🗓️\n${s.meet_link ? `Link: ${s.meet_link}` : `Detail: ${SITE}/mentoring`}\n\nSiapkan 1 masalah utama yang ingin dibahas ya.`);
+    await admin.from("notification_log").insert({ user_id: b.user_id, kind: "mentoring_reminder", status: ok ? "sent" : "failed" });
+    if (ok) sent++;
+    await new Promise((r) => setTimeout(r, 700));
+  }
+  const { data: evs } = await admin.from("events").select("id, title, starts_at, meet_link").gt("starts_at", nowIso).lt("starts_at", soon).limit(5);
+  for (const e of evs ?? []) {
+    const { data: regs } = await admin.from("event_registrations").select("user_id").eq("event_id", e.id).eq("status", "confirmed").eq("reminded", false).limit(MAX_PER_RUN);
+    for (const r of regs ?? []) {
+      if (sent >= MAX_PER_RUN) break;
+      await admin.from("event_registrations").update({ reminded: true }).eq("event_id", e.id).eq("user_id", r.user_id);
+      const { data: pr } = await admin.from("profiles").select("full_name, whatsapp").eq("id", r.user_id).maybeSingle();
+      if (!pr?.whatsapp) continue;
+      const ok = await sendWa(pr.whatsapp, `Halo ${(pr.full_name || "Sahabat").split(" ")[0]}, jangan lupa *${e.title}* ${jamWib(e.starts_at)} 🎤\n${e.meet_link ? `Link: ${e.meet_link}` : `Detail: ${SITE}/event`}`);
+      await admin.from("notification_log").insert({ user_id: r.user_id, kind: "event_reminder", status: ok ? "sent" : "failed" });
+      if (ok) sent++;
+      await new Promise((res) => setTimeout(res, 700));
+    }
+  }
+
   for (const u of users ?? []) {
     if (sent >= MAX_PER_RUN) break;
     const { data: recent } = await admin.from("notification_log").select("kind, created_at").eq("user_id", u.id).gte("created_at", new Date(Date.now() - 30 * 86_400_000).toISOString());
