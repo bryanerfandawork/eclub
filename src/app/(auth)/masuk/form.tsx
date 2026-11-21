@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useActionState } from "react";
 import { signIn } from "@/app/actions/auth";
 import { SubmitButton } from "@/components/submit-button";
@@ -14,7 +15,10 @@ export function SignInForm({ initialError }: { initialError?: string }) {
         <input id="email" name="email" type="email" autoComplete="email" className="input" placeholder="nama@email.com" required />
       </div>
       <div>
-        <label className="label" htmlFor="password">Kata sandi</label>
+        <div className="flex items-center justify-between">
+          <label className="label" htmlFor="password">Kata sandi</label>
+          <Link href="/lupa-sandi" className="mb-1.5 text-xs font-medium text-muted hover:text-brand">Lupa kata sandi?</Link>
+        </div>
         <input id="password" name="password" type="password" autoComplete="current-password" className="input" required />
       </div>
       <FormMessage state={state} />

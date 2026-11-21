@@ -56,3 +56,25 @@ export async function signOut() {
   }
   redirect("/");
 }
+
+export async function requestPasswordReset(_: FormState, formData: FormData): Promise<FormState> {
+  if (isDemoMode) return { error: DEMO_MSG };
+  const email = String(formData.get("email") ?? "").trim();
+  if (!email) return { error: "Isi email Anda." };
+  const origin = (await headers()).get("origin") ?? "";
+  const supabase = await createClient();
+  await supabase.auth.resetPasswordForEmail(email, { redirectTo: `${origin}/auth/callback?next=/atur-sandi` });
+  // Pesan sama untuk email terdaftar maupun tidak, supaya daftar member tidak bisa ditebak.
+  return { message: "Jika email ini terdaftar, kami sudah mengirim tautan untuk membuat kata sandi baru. Cek kotak masuk atau folder spam." };
+}
+
+export async function setNewPassword(_: FormState, formData: FormData): Promise<FormState> {
+  if (isDemoMode) return { error: DEMO_MSG };
+  const password = String(formData.get("password") ?? "");
+  if (password.length < 8) return { error: "Kata sandi minimal 8 karakter." };
+  if (password !== String(formData.get("confirm") ?? "")) return { error: "Kedua kata sandi belum sama." };
+  const supabase = await createClient();
+  const { error } = await supabase.auth.updateUser({ password });
+  if (error) return { error: error.message.toLowerCase().includes("different") ? "Gunakan kata sandi yang berbeda dari sebelumnya." : "Tautan sudah kedaluwarsa. Minta tautan baru dari halaman Lupa kata sandi." };
+  redirect("/dashboard");
+}
