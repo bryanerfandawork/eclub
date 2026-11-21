@@ -22,7 +22,7 @@ export const DEFAULT_FEATURES: PlanFeature[] = [
   { key: "dreams", label: "Dream Planner", description: "Jumlah mimpi yang bisa direncanakan", free_limit: 1, plus_limit: null, unit: "mimpi", enforced: true, sort: 10 },
   { key: "daily_action", label: "Daily Action", description: "Aksi harian & rangkaian konsisten", free_limit: null, plus_limit: null, unit: null, enforced: true, sort: 20 },
   { key: "my_life", label: "My Life", description: "Definisi sukses, nilai, visi, dan dokumen hidup", free_limit: null, plus_limit: null, unit: null, enforced: true, sort: 30 },
-  { key: "wheel_history", label: "Wheel of Life", description: "Riwayat penilaian yang bisa dibandingkan", free_limit: 2, plus_limit: 24, unit: "riwayat", enforced: true, sort: 40 },
+  { key: "disc_report", label: "Laporan lengkap DISC", description: "Interpretasi mendalam, rekomendasi karier & bisnis", free_limit: 0, plus_limit: null, unit: null, enforced: true, sort: 45 },
   { key: "assessment_attempts", label: "8 Wheel Entrepreneur", description: "Jumlah tes dalam 3 bulan", free_limit: 1, plus_limit: null, unit: "kali / 3 bulan", enforced: true, sort: 50 },
   { key: "ai_messages", label: "AI Companion", description: "Kuota pesan AI per hari", free_limit: 5, plus_limit: 50, unit: "pesan/hari", enforced: true, sort: 60 },
   { key: "premium_articles", label: "Artikel premium", description: "Akses artikel premium", free_limit: 0, plus_limit: null, unit: null, enforced: false, sort: 70 },
@@ -37,7 +37,7 @@ export const getFeatures = cache(async (): Promise<PlanFeature[]> => {
 });
 
 export const getSettings = cache(async (): Promise<Record<string, unknown>> => {
-  const defaults = { plus_price_monthly: 49000, plus_price_yearly: 499000, upgrade_contact: "", bank_accounts: "" };
+  const defaults = { plus_price_monthly: 49000, plus_price_yearly: 499000, upgrade_contact: "", bank_accounts: "", disc_report_price: 29000 };
   if (isDemoMode) return defaults;
   const supabase = await createClient();
   const { data } = await supabase.from("app_settings").select("key, value");

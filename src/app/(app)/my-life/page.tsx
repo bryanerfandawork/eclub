@@ -3,8 +3,9 @@ import { CheckCircle2, Pencil } from "lucide-react";
 import { LogoMark } from "@/components/logo";
 import { PrintButton } from "@/components/print-button";
 import { PageHeader } from "@/components/ui";
-import { WheelChart } from "@/components/wheel-chart";
-import { getDreams, getLifePlan, getProfile, getWheelHistory } from "@/lib/data";
+import { DiscSummary } from "@/components/disc-summary";
+import { getDiscResult } from "@/lib/disc/server";
+import { getDreams, getLifePlan, getProfile } from "@/lib/data";
 import { tanggal } from "@/lib/format";
 import { WHEEL_AREAS } from "@/lib/types";
 import { LifeForm } from "./life-form";
@@ -21,11 +22,11 @@ function Block({ title, children }: { title: string; children: React.ReactNode }
 }
 
 export default async function MyLifePage({ searchParams }: { searchParams: Promise<{ ubah?: string; tersimpan?: string }> }) {
-  const [{ ubah, tersimpan }, profile, plan, wheel, dreams] = await Promise.all([
+  const [{ ubah, tersimpan }, profile, plan, disc, dreams] = await Promise.all([
     searchParams,
     getProfile(),
     getLifePlan(),
-    getWheelHistory(1),
+    getDiscResult(),
     getDreams(),
   ]);
   const editing = !plan || ubah === "1";
@@ -120,16 +121,8 @@ export default async function MyLifePage({ searchParams }: { searchParams: Promi
               <p className="text-sm text-muted">Belum dipilih.</p>
             )}
           </Block>
-          <Block title="Keseimbangan hidup">
-            {wheel[0] ? (
-              <div className="mx-auto w-full max-w-[240px]">
-                <WheelChart scores={wheel[0].scores} size={240} />
-              </div>
-            ) : (
-              <Link href="/wheel-of-life" className="text-sm font-semibold text-brand hover:underline">
-                Isi Wheel of Life →
-              </Link>
-            )}
+          <Block title="Gaya kepribadian (DISC)">
+            <DiscSummary result={disc?.result ?? null} className="print:shadow-none" />
           </Block>
         </div>
 

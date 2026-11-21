@@ -2,13 +2,14 @@ import Link from "next/link";
 import { CheckCircle2, Flame, Gem, Trophy } from "lucide-react";
 import { PageHeader } from "@/components/ui";
 import { WeekBars } from "@/components/week-bars";
-import { WheelChart, wheelAverage } from "@/components/wheel-chart";
-import { getProgressStats, getWheelHistory } from "@/lib/data";
+import { DiscSummary } from "@/components/disc-summary";
+import { getDiscResult } from "@/lib/disc/server";
+import { getProgressStats } from "@/lib/data";
 
 export const metadata = { title: "My Progress" };
 
 export default async function ProgressPage() {
-  const [stats, wheel] = await Promise.all([getProgressStats(), getWheelHistory(2)]);
+  const [stats, disc] = await Promise.all([getProgressStats(), getDiscResult()]);
   const tiles = [
     { icon: Flame, value: `${stats.streak} hari`, label: "Rangkaian konsisten" },
     { icon: CheckCircle2, value: stats.dailyDone30, label: "Aksi harian selesai (30 hari)" },
@@ -38,22 +39,12 @@ export default async function ProgressPage() {
           <WeekBars days={stats.last7} />
           <Link href="/today" className="btn-ghost mt-5 w-full">Buka aksi hari ini</Link>
         </section>
-        <section className="card flex flex-col items-center p-5 lg:p-6">
-          <div className="flex w-full items-baseline justify-between">
-            <h2 className="font-bold text-heading">Wheel of Life</h2>
-            {wheel[0] && <span className="text-xs text-muted">Rata-rata <b className="text-heading">{wheelAverage(wheel[0].scores)}</b></span>}
-          </div>
-          {wheel[0] ? (
-            <>
-              <WheelChart scores={wheel[0].scores} previous={wheel[1]?.scores} size={280} />
-              <Link href="/wheel-of-life" className="btn-ghost w-full">Lihat detail</Link>
-            </>
-          ) : (
-            <div className="flex flex-1 flex-col items-center justify-center gap-3 py-10 text-center">
-              <p className="max-w-xs text-sm text-muted">Belum ada penilaian. Mulai dengan menilai delapan area hidup Anda.</p>
-              <Link href="/wheel-of-life" className="btn-primary">Isi Wheel of Life</Link>
-            </div>
-          )}
+        <section className="space-y-4">
+          <DiscSummary result={disc?.result ?? null} />
+          <Link href="/assessment/8-wheel-entrepreneur" className="card block p-6 transition hover:shadow-lift">
+            <p className="eyebrow">8 Wheel Entrepreneur</p>
+            <p className="mt-1 font-semibold text-heading">Lihat perkembangan kompetensi entrepreneur Anda</p>
+          </Link>
         </section>
       </div>
       <p className="mt-5 text-center text-xs text-muted">{stats.dreamActionsDone} langkah aksi mimpi sudah Anda selesaikan sejauh ini.</p>

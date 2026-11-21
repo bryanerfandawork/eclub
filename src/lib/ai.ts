@@ -1,9 +1,10 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { getAssessmentResults, getDreams, getLifePlan, getProfile, getWheelHistory } from "./data";
+import { getAssessmentResults, getDreams, getLifePlan, getProfile } from "./data";
+import { getDiscResult } from "./disc/server";
+import { INSIGHTS } from "./disc/insights";
 import { getLimit } from "./plans";
 import { PLACEMENT_COPY, PLACEMENT_KEY, type Placement } from "./placement";
-import { WHEEL_AREAS } from "./types";
 import { rupiah } from "./format";
 
 export const AI_MODEL = "claude-haiku-5-5";
@@ -20,7 +21,7 @@ Metode EClub adalah Sustainable Entrepreneur Framework (SEF), berjenjang:
 - Fase Scale Up: 4. Transformation (digitalisasi, inovasi, ekspansi).
 - Fase Spread Up: 5. Investation (aset, investasi, dampak, warisan).
 
-Fitur aplikasi yang bisa Anda sarankan: My Life (definisi sukses, nilai, visi), Wheel of Life, Tes 8 Wheel Entrepreneur, Dream Planner (mimpi jadi target dana & tanggal), Daily Action (aksi harian & rangkaian konsisten), Learning Center (kelas per langkah SEF), Cek Posisi.
+Fitur aplikasi yang bisa Anda sarankan: My Life (definisi sukses, nilai, visi), Tes Kepribadian DISC (gaya perilaku D/I/S/C), Tes 8 Wheel Entrepreneur, Dream Planner (mimpi jadi target dana & tanggal), Daily Action (aksi harian & rangkaian konsisten), Learning Center (kelas per langkah SEF), Cek Posisi.
 
 Cara Anda membantu:
 - Bahasa Indonesia yang hangat, sederhana, dan membumi. Sapa dengan "Anda".
@@ -41,11 +42,11 @@ export async function aiQuota(supabase: SupabaseClient) {
 
 /** Ringkasan data pengguna untuk personalisasi (hanya jika pengguna mengizinkan). */
 export async function buildUserContext(): Promise<string> {
-  const [profile, life, dreams, wheel, ew, placed] = await Promise.all([
+  const [profile, life, dreams, disc, ew, placed] = await Promise.all([
     getProfile(),
     getLifePlan(),
     getDreams(),
-    getWheelHistory(1),
+    getDiscResult(),
     getAssessmentResults("8-wheel-entrepreneur", 1),
     getAssessmentResults(PLACEMENT_KEY, 1),
   ]);
@@ -66,7 +67,10 @@ export async function buildUserContext(): Promise<string> {
           .map((d) => `- ${d.title}${d.target_amount ? ` (target ${rupiah(d.target_amount)}, terkumpul ${rupiah(d.saved_amount)}${d.target_date ? `, sebelum ${d.target_date}` : ""})` : ""}`)
           .join("\n"),
     );
-  if (wheel[0]) lines.push("Wheel of Life terakhir (1-10): " + WHEEL_AREAS.map((a) => `${a.label} ${wheel[0].scores[a.key as keyof typeof wheel[0]["scores"]] ?? "-"}`).join(", "));
+  if (disc) {
+    const n = disc.result.natural;
+    lines.push(`Profil DISC (diri alami, 0-100): D ${n.values.D}, I ${n.values.I}, S ${n.values.S}, C ${n.values.C}. Dominan ${n.primary} (${INSIGHTS[n.primary].name}, ${INSIGHTS[n.primary].tagline})${n.type ? `, pola ${n.type}` : ""}.`);
+  }
   if (ew[0]) lines.push("8 Wheel Entrepreneur terakhir (0-10): " + Object.entries(ew[0].scores).map(([k, v]) => `${k} ${v}`).join(", "));
   return lines.length ? lines.join("\n") : "";
 }

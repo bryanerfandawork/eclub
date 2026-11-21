@@ -11,7 +11,7 @@ export default async function BuyPlus() {
   const monthly = Number(s.plus_price_monthly) || 0;
   const yearly = Number(s.plus_price_yearly) || 0;
   const save = monthly && yearly ? Math.round((1 - yearly / (monthly * 12)) * 100) : 0;
-  const perks = ["Dream Planner tanpa batas", "Riwayat Wheel of Life lengkap", "Tes 8 Wheel Entrepreneur kapan saja", "Course khusus member Plus"];
+  const perks = ["Laporan lengkap DISC & rekomendasi karier", "Dream Planner tanpa batas", "Tes 8 Wheel Entrepreneur kapan saja", "Course khusus member Plus"];
   return (
     <>
       <PageHeader eyebrow="EClub Plus" title="Pilih periode langganan" desc="Bayar lewat transfer bank. Paket aktif otomatis setelah pembayaran terdeteksi." />

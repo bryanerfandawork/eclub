@@ -1,26 +1,26 @@
 import Link from "next/link";
 import { ArrowRight, CalendarCheck2, CheckCircle2, Circle, Compass, Flame, Gem, Plus, Quote } from "lucide-react";
-import { getAssessmentResults, getDailyRange, getDreams, getOpenActions, getProfile, getProgressStats, getWheelHistory } from "@/lib/data";
+import { getAssessmentResults, getDailyRange, getDreams, getOpenActions, getProfile, getProgressStats } from "@/lib/data";
 import { compactRupiah, dreamProgress, greeting, todayJakarta } from "@/lib/format";
 import { DailyList } from "@/components/daily-list";
-import { WheelChart, wheelAverage } from "@/components/wheel-chart";
 import { STAGES } from "@/lib/journey";
 import { PLACEMENT_KEY } from "@/lib/placement";
+import { getDiscResult } from "@/lib/disc/server";
+import { DiscSummary } from "@/components/disc-summary";
 import { ProgressBar, Ring } from "@/components/ui";
 
 export const metadata = { title: "Dashboard" };
 
 export default async function DashboardPage() {
   const today = todayJakarta();
-  const [profile, dreams, actions, todayItems, wheel, stats] = await Promise.all([
+  const [profile, dreams, actions, todayItems, stats] = await Promise.all([
     getProfile(),
     getDreams(),
     getOpenActions(4),
     getDailyRange(today, today),
-    getWheelHistory(1),
     getProgressStats(),
   ]);
-  const [ew, placed] = await Promise.all([getAssessmentResults("8-wheel-entrepreneur", 1), getAssessmentResults(PLACEMENT_KEY, 1)]);
+  const [ew, placed, disc] = await Promise.all([getAssessmentResults("8-wheel-entrepreneur", 1), getAssessmentResults(PLACEMENT_KEY, 1), getDiscResult()]);
   const placement = (placed[0]?.scores as unknown as { placement?: string } | undefined)?.placement;
   const ewDue = ew[0] ? Date.now() - new Date(ew[0].created_at).getTime() > 90 * 86_400_000 : false;
   const firstName = (profile.full_name || "Sahabat").split(" ")[0];
@@ -33,7 +33,7 @@ export default async function DashboardPage() {
   const steps = [
     { done: !!placement, label: "Cek posisi Anda di peta SEF (3 menit)", href: "/posisi" },
     { done: !!profile.success_definition, label: "Tuliskan definisi sukses Anda", href: "/my-life" },
-    { done: wheel.length > 0, label: "Nilai keseimbangan hidup (Wheel of Life)", href: "/wheel-of-life" },
+    { done: !!disc, label: "Kenali kepribadian Anda (Tes DISC)", href: "/disc" },
     { done: ew.length > 0, label: "Ikuti tes 8 Wheel Entrepreneur", href: "/assessment/8-wheel-entrepreneur" },
     { done: dreams.length > 0, label: "Buat mimpi pertama Anda", href: "/goals/baru" },
     { done: stats.dailyTotal30 > 0, label: "Rencanakan aksi harian pertama", href: "/today" },
@@ -229,26 +229,7 @@ export default async function DashboardPage() {
           </section>
         )}
 
-        <Link href="/wheel-of-life" className="card flex items-center gap-4 p-6 transition hover:shadow-lift">
-          {wheel[0] ? (
-            <>
-              <div className="w-[110px] shrink-0">
-                <WheelChart scores={wheel[0].scores} size={110} labels={false} />
-              </div>
-              <div>
-                <p className="eyebrow">Wheel of Life</p>
-                <p className="mt-1 text-2xl font-bold text-heading">{wheelAverage(wheel[0].scores)}<span className="text-sm font-medium text-muted"> / 10</span></p>
-                <p className="text-xs text-muted">Keseimbangan hidup Anda</p>
-              </div>
-            </>
-          ) : (
-            <div>
-              <p className="eyebrow">Wheel of Life</p>
-              <p className="mt-1 font-semibold text-heading">Seberapa seimbang hidup Anda?</p>
-              <p className="mt-1 text-sm text-muted">Nilai 8 area kehidupan dalam 2 menit.</p>
-            </div>
-          )}
-        </Link>
+        <DiscSummary result={disc?.result ?? null} />
 
         {profile.success_definition ? (
           <section className="card flex gap-4 p-6">

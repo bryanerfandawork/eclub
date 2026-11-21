@@ -91,7 +91,17 @@ Without the Supabase env variables, the app runs in **demo mode**: it shows samp
 - **My Journey**: map of Spark plus the 5 SEF steps.
 - **Cek Posisi** onboarding (see section 2).
 - **My Life**: definition of success, values, vision, priorities, plus a printable document.
-- **Wheel of Life**: radar chart and history (limited per plan).
+- **DISC personality test** (replaced Wheel of Life on 21 Nov 2026 at Ridha's request; the old `/wheel-of-life` page and data still exist, just unlinked):
+  - Source: Ridha's Excel `Tes_DISC.xlsx`, a 24-item forced choice (most / least).
+  - `src/lib/disc/data.ts` is auto-generated from the Excel: statements, answer key, conversion tables, 55 graph codes, 24 type descriptions.
+  - Scoring is in `src/lib/disc/score.ts`. Graph I = Most (Adapted), Graph II = Least (Natural).
+  - Verified identical to the Excel via LibreOffice recalculation. Where the Excel returns #N/A for a graph code, the app falls back to the closest code (matching the top 2 factors, then the top 1).
+  - The source file states "Copyright TTI Ltd". This licensing risk was flagged to Ridha.
+  - Free: both graphs, dominant style, meaning of each letter, key strengths.
+  - Paid "Laporan Lengkap DISC" (price set in `app_settings.disc_report_price`, default Rp29.000 one-time, included in Plus; unlocks live in `report_unlocks`):
+    - from the Excel: ways to be more effective, tendencies, stress triggers, fears
+    - written by EClub in `src/lib/disc/insights.ts`: career recommendations, business ideas, motivators, communication tips, blind spots, growth steps, SEF tie-in
+  - Results are stored in `assessment_results` with key `disc` and are fed into the AI context.
 - **8 Wheel Entrepreneur**: 40-statement Likert questionnaire covering 8 dimensions (vision, mindset, resilience, opportunity, market, money, systems, networks). Scored on the server. Retest every 90 days. This is an EClub draft and has not been validated. Content is in `src/lib/assessments/eight-wheel.ts`.
 - **Dream Planner**: dreams become a target amount and date, with action steps (the free plan allows 1 dream).
 - **Daily Action** and **My Progress**: daily actions, streak with milestones, 7-day chart.
@@ -145,6 +155,7 @@ Without the Supabase env variables, the app runs in **demo mode**: it shows samp
 | `007_testimonials_sef.sql` (testimonials + `courses.sef_step`) | ✅ run (same content, pasted from the chat) |
 | `008_ai_companion.sql` | ⏳ **not run yet** |
 | `009_whatsapp.sql` (WhatsApp columns on profiles + notification_log) | ⏳ **not run yet** |
+| `010_disc.sql` (report_unlocks, product disc_report, disc_report plan feature, removes wheel_history) | ⏳ **not run yet** |
 
 New migrations go in `supabase/00N_*.sql`. Every migration must include explicit `GRANT` statements, because "Grant API access" was unchecked when the project was created.
 

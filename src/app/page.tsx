@@ -18,7 +18,6 @@ import {
   Sparkles,
 } from "lucide-react";
 import { Logo } from "@/components/logo";
-import { WheelChart } from "@/components/wheel-chart";
 import { SEF_PHASES, SEF_STEPS, SPARK } from "@/lib/sef";
 import { getFeatures, getSettings } from "@/lib/plans";
 import { listTestimonials } from "@/lib/testimonials";
@@ -47,7 +46,7 @@ const PAINS = [
 
 const FAQ = [
   { q: "Apakah EClub hanya untuk pengusaha?", a: "Tidak. EClub untuk siapa saja yang ingin bertumbuh: pelajar, karyawan, profesional, freelancer, maupun pemilik bisnis. Setiap orang punya definisi sukses dan kendaraan yang berbeda." },
-  { q: "Apakah versi gratis benar-benar bisa dipakai?", a: "Ya. My Life, Wheel of Life, Daily Action, satu Dream Planner, dan tes 8 Wheel Entrepreneur bisa dipakai gratis selamanya. EClub Plus membuka batas dan fitur lanjutan." },
+  { q: "Apakah versi gratis benar-benar bisa dipakai?", a: "Ya. My Life, Tes Kepribadian DISC beserta hasil dasarnya, Daily Action, satu Dream Planner, dan tes 8 Wheel Entrepreneur bisa dipakai gratis selamanya. EClub Plus membuka laporan lengkap DISC, batas, dan fitur lanjutan." },
   { q: "Apakah data saya aman?", a: "Data tersimpan terenkripsi dan setiap akun hanya bisa mengakses datanya sendiri. Tim admin tidak bisa membaca isi mimpi, jawaban tes, atau catatan pribadi Anda." },
   { q: "Bisakah dipakai di HP?", a: "Bisa. EClub dirancang seperti aplikasi di HP dan bisa dipasang ke layar utama tanpa unduh dari Play Store atau App Store." },
   { q: "Apakah tes 8 Wheel Entrepreneur tes psikologi?", a: "Bukan. Ini instrumen refleksi diri yang disusun EClub dari riset kompetensi kewirausahaan. Hasilnya membantu Anda menentukan area yang perlu dikembangkan." },
@@ -92,12 +91,14 @@ function PhoneMockup() {
             ))}
           </div>
           <div className="flex items-center gap-2 rounded-2xl border border-line bg-white p-2.5">
-            <div className="w-16 shrink-0">
-              <WheelChart scores={{ karier: 7, keuangan: 5, kesehatan: 6, keluarga: 8, relasi: 6, diri: 7, spiritual: 7, rekreasi: 4 }} size={64} labels={false} />
+            <div className="flex h-12 w-16 shrink-0 items-end justify-center gap-1">
+              {[["#b42318", 70], ["#c6a15b", 90], ["#2f7d5b", 40], ["#1f4f8b", 55]].map(([c, h]) => (
+                <span key={c} className="w-2.5 rounded-t" style={{ background: c as string, height: `${h}%` }} />
+              ))}
             </div>
             <div>
-              <p className="text-[9px] font-semibold tracking-widest text-gold uppercase">Wheel of Life</p>
-              <p className="text-sm font-bold text-heading">6.3 / 10</p>
+              <p className="text-[9px] font-semibold tracking-widest text-gold uppercase">Profil DISC</p>
+              <p className="text-sm font-bold text-heading">I · Si Penyemangat</p>
             </div>
           </div>
         </div>
@@ -346,7 +347,7 @@ export default async function Home() {
               <p className="mt-3 text-4xl font-bold text-heading">Gratis</p>
               <p className="mt-1 text-sm text-muted">Selamanya</p>
               <ul className="mt-5 space-y-2 text-sm text-ink">
-                {["My Life & Wheel of Life", "Daily Action & rangkaian konsisten", "1 Dream Planner", "Tes 8 Wheel setiap 3 bulan"].map((p) => (
+                {["My Life & Tes DISC (hasil dasar)", "Daily Action & rangkaian konsisten", "1 Dream Planner", "Tes 8 Wheel setiap 3 bulan"].map((p) => (
                   <li key={p} className="flex items-center gap-2">
                     <Check className="h-4 w-4 text-success" /> {p}
                   </li>
@@ -368,7 +369,7 @@ export default async function Home() {
                 ditagih {rupiah(yearly)} per tahun · atau {rupiah(monthly)} bulanan
               </p>
               <ul className="mt-5 space-y-2 text-sm text-white/85">
-                {["Dream Planner tanpa batas", "Riwayat Wheel of Life lengkap", "Tes 8 Wheel kapan saja", "Course khusus member Plus"].map((p) => (
+                {["Laporan lengkap DISC + rekomendasi karier", "Dream Planner tanpa batas", "Tes 8 Wheel kapan saja", "Course khusus member Plus"].map((p) => (
                   <li key={p} className="flex items-center gap-2">
                     <Check className="h-4 w-4 text-gold" /> {p}
                   </li>

@@ -161,7 +161,7 @@ export function AiChat({ onClose }: { onClose: () => void }) {
         <div className="border-t border-line bg-white px-4 pt-3 pb-4">
           <label className="mb-2 flex items-center gap-2 text-xs text-muted">
             <input type="checkbox" checked={consent} onChange={toggleConsent} className="h-3.5 w-3.5 accent-[#8b2220]" />
-            Izinkan AI membaca data EClub saya (mimpi, Wheel of Life, hasil tes) agar saran lebih personal
+            Izinkan AI membaca data EClub saya (mimpi, profil DISC, hasil tes) agar saran lebih personal
           </label>
           <form
             onSubmit={(e) => {
