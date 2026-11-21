@@ -34,6 +34,11 @@ export function SignUpForm() {
       </div>
       <FormMessage state={state} />
       <SubmitButton className="btn-primary w-full py-3" pendingText="Mendaftar…">Buat akun</SubmitButton>
+      <p className="text-center text-xs leading-relaxed text-muted">
+        Dengan mendaftar, Anda menyetujui{" "}
+        <a href="/syarat-ketentuan" target="_blank" className="font-semibold text-heading hover:underline">Syarat & Ketentuan</a> dan{" "}
+        <a href="/kebijakan-privasi" target="_blank" className="font-semibold text-heading hover:underline">Kebijakan Privasi</a> EClub.
+      </p>
     </form>
   );
 }

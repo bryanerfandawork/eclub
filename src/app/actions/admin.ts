@@ -122,3 +122,34 @@ export async function adminSavePushSettings(_: FormState, formData: FormData): P
   revalidatePath("/admin/notifikasi");
   return { message: "Pengaturan notifikasi pagi tersimpan." };
 }
+
+const BRAND_KEYS = { light: "logo_url", dark: "logo_dark_url", icon: "icon_url" } as const;
+
+/** Unggah logo: "light" (untuk latar terang), "dark" (untuk latar marun/gelap), "icon" (persegi, untuk ikon HP & favicon). */
+export async function uploadBrandAsset(_: FormState, formData: FormData): Promise<FormState> {
+  if (isDemoMode) return { error: DEMO_MSG };
+  const kind = String(formData.get("kind")) as keyof typeof BRAND_KEYS;
+  const key = BRAND_KEYS[kind];
+  if (!key) return { error: "Jenis logo tidak dikenal." };
+  if (formData.get("reset") === "1") {
+    const supabase = await createClient();
+    const { error } = await supabase.rpc("admin_set_setting", { skey: key, svalue: "" });
+    if (error) return { error: "Gagal: " + error.message };
+    revalidatePath("/", "layout");
+    return { message: "Kembali ke logo bawaan." };
+  }
+  const file = formData.get("file");
+  if (!(file instanceof File) || file.size === 0) return { error: "Pilih file gambar dulu." };
+  const types: Record<string, string> = { "image/png": "png", "image/jpeg": "jpg", "image/webp": "webp", "image/svg+xml": "svg" };
+  if (!types[file.type] || (kind === "icon" && file.type === "image/svg+xml")) return { error: kind === "icon" ? "Ikon harus PNG/JPG/WEBP persegi (disarankan 512×512 px)." : "Format harus PNG, JPG, WEBP, atau SVG." };
+  if (file.size > 1_000_000) return { error: "Ukuran maksimal 1 MB." };
+  const supabase = await createClient();
+  const path = `brand/${kind}-${Date.now()}.${types[file.type]}`;
+  const { error } = await supabase.storage.from("assets").upload(path, file, { contentType: file.type, upsert: true, cacheControl: "31536000" });
+  if (error) return { error: "Gagal mengunggah: " + error.message };
+  const { data } = supabase.storage.from("assets").getPublicUrl(path);
+  const { error: e2 } = await supabase.rpc("admin_set_setting", { skey: key, svalue: data.publicUrl });
+  if (e2) return { error: "Gagal menyimpan: " + e2.message };
+  revalidatePath("/", "layout");
+  return { message: "Logo tersimpan dan langsung dipakai di seluruh aplikasi." };
+}

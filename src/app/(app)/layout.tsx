@@ -7,6 +7,7 @@ import { isDemoMode } from "@/lib/supabase/config";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
+import { aiConfigured } from "@/lib/ai";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const [profile, account] = await Promise.all([getProfile(), getAccount()]);
@@ -22,7 +23,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     }
   }
   return (
-    <AppShell name={profile.full_name || "Sahabat EClub"} email={profile.email} demo={isDemoMode} plan={account.plan} admin={isAdmin(account.role)}>
+    <AppShell name={profile.full_name || "Sahabat EClub"} email={profile.email} demo={isDemoMode} plan={account.plan} admin={isAdmin(account.role)} ai={isDemoMode || aiConfigured()}>
       {children}
     </AppShell>
   );

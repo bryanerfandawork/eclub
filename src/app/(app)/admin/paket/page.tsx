@@ -1,6 +1,7 @@
 import { getAccount, getFeatures, getSettings } from "@/lib/plans";
 import { FeaturesForm } from "./features-form";
 import { QrisForm } from "./qris-form";
+import { BrandForm } from "./brand-form";
 import { WaStatus } from "./wa-status";
 
 export const metadata = { title: "Admin · Paket" };
@@ -19,6 +20,7 @@ export default async function AdminPlans() {
           ]}
         />
       )}
+      {account.role === "super_admin" && <BrandForm logo={String(settings.logo_url ?? "")} logoDark={String(settings.logo_dark_url ?? "")} icon={String(settings.icon_url ?? "")} />}
       {account.role === "super_admin" && <QrisForm current={String(settings.qris_image_url ?? "")} />}
       <FeaturesForm features={features} settings={settings} canEdit={account.role === "super_admin"} />
     </>

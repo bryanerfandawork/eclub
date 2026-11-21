@@ -625,6 +625,8 @@ export default async function Home() {
             <a href="#kolaborasi" className="hover:text-brand">Kolaborasi</a>
             <Link href="/artikel" className="hover:text-brand">Artikel</Link>
             <Link href="/cek-sertifikat" className="hover:text-brand">Cek sertifikat</Link>
+            <Link href="/kebijakan-privasi" className="hover:text-brand">Privasi</Link>
+            <Link href="/syarat-ketentuan" className="hover:text-brand">Syarat & Ketentuan</Link>
             <Link href="/masuk" className="hover:text-brand">Masuk</Link>
           </div>
           <p>© {new Date().getFullYear()} EClub Indonesia</p>
