@@ -1,4 +1,5 @@
-import { adminDeleteEvent, adminDeleteSlot } from "@/app/actions/schedule";
+import { adminDeleteEvent, adminDeleteSlot, adminNotifyCity } from "@/app/actions/schedule";
+import { regencyName } from "@/lib/regions";
 import { rupiah } from "@/lib/format";
 import { jam } from "@/lib/schedule";
 import { isDemoMode } from "@/lib/supabase/config";
@@ -8,7 +9,7 @@ import { EventForm, SlotForm } from "./forms";
 export const metadata = { title: "Admin · Jadwal" };
 
 type AdminSlot = { id: string; mentor: string; topic: string; starts_at: string; duration_min: number; price: number; plus_price: number; meet_link: string | null; booking: { name: string | null; whatsapp: string | null; goal: string | null; status: string } | null };
-type Ev = { id: string; title: string; starts_at: string; price: number; plus_price: number; capacity: number | null };
+type Ev = { id: string; title: string; starts_at: string; price: number; plus_price: number; capacity: number | null; regency: string | null };
 
 export default async function AdminJadwal() {
   let slots: AdminSlot[] = [];
@@ -20,7 +21,7 @@ export default async function AdminJadwal() {
     if (res.error) ready = false;
     else {
       slots = res.data as AdminSlot[];
-      const { data } = await supabase.from("events").select("id, title, starts_at, price, plus_price, capacity").order("starts_at", { ascending: false }).limit(20);
+      const { data } = await supabase.from("events").select("id, title, starts_at, price, plus_price, capacity, regency").order("starts_at", { ascending: false }).limit(20);
       events = await Promise.all(
         ((data ?? []) as Ev[]).map(async (e) => ({ ...e, attendees: ((await supabase.rpc("admin_event_attendees", { p_event: e.id })).data ?? []) as { name: string | null; whatsapp: string | null }[] })),
       );
@@ -86,9 +87,15 @@ export default async function AdminJadwal() {
                     <b className="text-heading">{e.title}</b>
                     <span className="block text-xs text-muted">
                       {jam(e.starts_at)} · {e.price ? rupiah(e.price) : "gratis"} · {e.attendees.length}
-                      {e.capacity ? `/${e.capacity}` : ""} peserta
+                      {e.capacity ? `/${e.capacity}` : ""} peserta{e.regency ? ` · 📍 ${regencyName(e.regency)}` : ""}
                     </span>
                   </span>
+                  {e.regency && new Date(e.starts_at) > new Date() && (
+                    <form action={adminNotifyCity}>
+                      <input type="hidden" name="id" value={e.id} />
+                      <button className="btn-ghost py-1.5 text-xs">Kabari kota via WA</button>
+                    </form>
+                  )}
                   <form action={adminDeleteEvent}>
                     <input type="hidden" name="id" value={e.id} />
                     <button className="btn-ghost py-1.5 text-xs">Hapus</button>

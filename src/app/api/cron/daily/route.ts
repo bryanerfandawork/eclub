@@ -20,7 +20,7 @@ export async function GET(request: Request) {
   if (!admin || !waConfigured()) return NextResponse.json({ ok: false, error: "not configured" }, { status: 500 });
 
   const today = todayJakarta();
-  const { data: cfg } = await admin.from("app_settings").select("key, value").in("key", ["wa_daily_max", "renewal_days", "wa_motivation"]);
+  const { data: cfg } = await admin.from("app_settings").select("key, value").in("key", ["wa_daily_max", "renewal_days", "wa_motivation", "birthday_promo"]);
   const setting = (k: string) => (cfg ?? []).find((c) => c.key === k)?.value as unknown;
   MAX_PER_RUN = Math.min(70, Math.max(1, Number(setting("wa_daily_max")) || 40));
   const renewalDays = String(setting("renewal_days") ?? "7,3,1").split(/[,\s]+/).map(Number).filter((n) => n > 0 && n <= 30);
@@ -55,6 +55,22 @@ export async function GET(request: Request) {
     const ok = await sendWa(pr.whatsapp, `Halo ${name}, pesanan *${o.title}* (Rp${o.amount.toLocaleString("id-ID")}) masih menunggu pembayaran. Lanjutkan di sini:\n${SITE}/pesanan/${o.id}\n\nSudah bayar? Kirim bukti lewat tombol "Konfirmasi via WhatsApp" di halaman itu.`);
     await admin.from("notification_log").insert({ user_id: o.user_id, kind: "order_reminder", status: ok ? "sent" : "failed" });
     reminded.add(o.user_id);
+    if (ok) sent++;
+    await new Promise((r) => setTimeout(r, 700));
+  }
+
+  // Ucapan ulang tahun + promo spesial (sekali setahun, untuk member yang menyimpan nomor WA & tanggal lahir).
+  const mmdd = today.slice(5);
+  const { data: bdays } = await admin.from("profiles").select("id, full_name, whatsapp, birth_date").not("birth_date", "is", null).not("whatsapp", "is", null).limit(5000);
+  const promo = String(setting("birthday_promo") ?? "").trim();
+  for (const u of (bdays ?? []).filter((b) => String(b.birth_date).slice(5) === mmdd)) {
+    if (sent >= MAX_PER_RUN) break;
+    const kind = `birthday_${today.slice(0, 4)}`;
+    const { data: logs } = await admin.from("notification_log").select("id").eq("user_id", u.id).eq("kind", kind).limit(1);
+    if (logs?.length) continue;
+    const name = (u.full_name || "Sahabat").split(" ")[0];
+    const ok = await sendWa(u.whatsapp as string, `Selamat ulang tahun, ${name}! 🎂🎉\n\nSemoga tahun ini penuh berkah, sehat, dan satu per satu mimpi Anda terwujud. Tim EClub bangga berjalan bersama Anda.${promo ? `\n\n🎁 ${promo}` : ""}\n\n${SITE}/dashboard`);
+    await admin.from("notification_log").insert({ user_id: u.id, kind, status: ok ? "sent" : "failed" });
     if (ok) sent++;
     await new Promise((r) => setTimeout(r, 700));
   }

@@ -175,3 +175,40 @@ export async function notifyItemPaid(orderId: string) {
     console.error("notifyItemPaid", e);
   }
 }
+
+/** Kabar ke admin saat ada permintaan in-house training / kolaborasi. */
+export async function notifyInquiry(summary: string) {
+  try {
+    const admin = createAdminClient();
+    if (!admin || !waConfigured()) return;
+    const { data: s } = await admin.from("app_settings").select("value").eq("key", "admin_whatsapp").maybeSingle();
+    const adminWa = normalizeWa(String((s?.value as string) ?? ""));
+    if (adminWa) await sendWa(adminWa, `🤝 Permintaan kolaborasi baru\n${summary}\n\nLihat: ${SITE()}/admin/kolaborasi`);
+  } catch (e) {
+    console.error("notifyInquiry", e);
+  }
+}
+
+/** Kabarkan event ke member yang berdomisili di kota/kabupaten event (maks 60 pesan per kirim). */
+export async function notifyEventCity(eventId: string): Promise<{ sent: number; total: number }> {
+  const admin = createAdminClient();
+  if (!admin || !waConfigured()) return { sent: 0, total: 0 };
+  const { data: e } = await admin.from("events").select("id, title, starts_at, regency, location, price, plus_price").eq("id", eventId).maybeSingle();
+  if (!e?.regency) return { sent: 0, total: 0 };
+  const { data: users } = await admin.from("profiles").select("id, full_name, whatsapp").eq("regency", e.regency).eq("wa_opt_in", true).not("whatsapp", "is", null).limit(300);
+  const { data: logs } = await admin.from("notification_log").select("user_id").eq("kind", `event_city_${e.id.slice(0, 8)}`);
+  const done = new Set((logs ?? []).map((l) => l.user_id));
+  const todo = (users ?? []).filter((u) => !done.has(u.id));
+  let sent = 0;
+  for (const u of todo.slice(0, 60)) {
+    const name = (u.full_name || "Sahabat").split(" ")[0];
+    const ok = await sendWa(
+      u.whatsapp as string,
+      `Halo ${name} 👋 Ada event EClub di kota Anda!\n\n*${e.title}*\n🗓️ ${wib(e.starts_at)}${e.location ? `\n📍 ${e.location}` : ""}\n${e.price > 0 ? `💳 ${idr(e.price)} (member Plus ${e.plus_price > 0 ? idr(e.plus_price) : "gratis"})` : "🎟️ Gratis"}\n\nDaftar: ${SITE()}/event`,
+    );
+    await admin.from("notification_log").insert({ user_id: u.id, kind: `event_city_${e.id.slice(0, 8)}`, status: ok ? "sent" : "failed" });
+    if (ok) sent++;
+    await new Promise((r) => setTimeout(r, 700));
+  }
+  return { sent, total: todo.length };
+}

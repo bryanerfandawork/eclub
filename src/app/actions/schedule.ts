@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { isDemoMode } from "@/lib/supabase/config";
 import { createClient } from "@/lib/supabase/server";
-import { notifyOrderCreated, notifyScheduleConfirmed } from "@/lib/whatsapp";
+import { notifyEventCity, notifyOrderCreated, notifyScheduleConfirmed } from "@/lib/whatsapp";
 import type { FormState } from "./auth";
 
 const DEMO = { error: "Mode demo: pemesanan belum aktif." };
@@ -96,13 +96,20 @@ export async function adminSaveEvent(_: FormState, formData: FormData): Promise<
     capacity: Number(formData.get("capacity")) || null,
     meet_link: link(formData.get("meet_link")),
     recording_url: link(formData.get("recording_url")),
+    regency: /^\d{2}\.\d{2}$/.test(String(formData.get("regency") ?? "")) ? String(formData.get("regency")) : null,
+    location: String(formData.get("location") ?? "").trim().slice(0, 200) || null,
   };
   const id = String(formData.get("id") ?? "");
   const supabase = await createClient();
-  const { error } = id ? await supabase.from("events").update(row).eq("id", id) : await supabase.from("events").insert(row);
-  if (error) return { error: "Gagal menyimpan: " + error.message };
+  const res = id ? await supabase.from("events").update(row).eq("id", id).select("id").single() : await supabase.from("events").insert(row).select("id").single();
+  if (res.error) return { error: "Gagal menyimpan: " + res.error.message };
   revalidatePath("/admin/jadwal");
   revalidatePath("/event");
+  revalidatePath("/");
+  if (row.regency && formData.get("notify_city") === "on") {
+    const r = await notifyEventCity(res.data.id);
+    return { message: `Event tersimpan. WhatsApp terkirim ke ${r.sent} member di kota tersebut${r.total > r.sent ? ` (sisa ${r.total - r.sent}, klik "Kabari kota" lagi besok)` : ""}.` };
+  }
   return { message: "Event tersimpan." };
 }
 
@@ -110,5 +117,14 @@ export async function adminDeleteEvent(formData: FormData) {
   if (isDemoMode) return;
   const supabase = await createClient();
   await supabase.from("events").delete().eq("id", String(formData.get("id")));
+  revalidatePath("/admin/jadwal");
+}
+
+export async function adminNotifyCity(formData: FormData) {
+  if (isDemoMode) return;
+  const supabase = await createClient();
+  const { data: staff } = await supabase.rpc("is_staff");
+  if (!staff) return;
+  await notifyEventCity(String(formData.get("id")));
   revalidatePath("/admin/jadwal");
 }

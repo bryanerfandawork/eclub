@@ -6,6 +6,7 @@ import { signOut } from "@/app/actions/auth";
 import { PageHeader } from "@/components/ui";
 import { getProfile } from "@/lib/data";
 import { ProfileForm } from "./profile-form";
+import { BioForm, type Bio } from "./bio-form";
 import { WhatsAppForm, type WaSettings } from "./whatsapp-form";
 import { isDemoMode } from "@/lib/supabase/config";
 import { createClient } from "@/lib/supabase/server";
@@ -15,10 +16,13 @@ export const metadata = { title: "Profil" };
 export default async function ProfilePage() {
   const [profile, account] = await Promise.all([getProfile(), getAccount()]);
   let wa: WaSettings = { whatsapp: null, wa_opt_in: false, wa_daily: true };
+  let bio: Bio = { birth_date: null, province: null, regency: null };
   if (!isDemoMode) {
     const supabase = await createClient();
     const { data } = await supabase.from("profiles").select("whatsapp, wa_opt_in, wa_daily").eq("id", profile.id).maybeSingle();
     if (data) wa = data as WaSettings;
+    const { data: b } = await supabase.from("profiles").select("birth_date, province, regency").eq("id", profile.id).maybeSingle();
+    if (b) bio = b as Bio;
   }
   const initials = (profile.full_name || "E")
     .split(" ")
@@ -61,6 +65,7 @@ export default async function ProfilePage() {
         <div className="lg:col-span-2">
           <ProfileForm profile={profile} />
           <WhatsAppForm s={wa} />
+          <BioForm bio={bio} />
         </div>
       </div>
     </>

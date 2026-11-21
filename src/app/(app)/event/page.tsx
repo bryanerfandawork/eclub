@@ -5,12 +5,22 @@ import { rupiah } from "@/lib/format";
 import { getAccount } from "@/lib/plans";
 import { getEvents, jam } from "@/lib/schedule";
 import { RegisterButton } from "../mentoring/client";
+import { regencyName } from "@/lib/regions";
+import { isDemoMode } from "@/lib/supabase/config";
+import { createClient } from "@/lib/supabase/server";
 
 export const metadata = { title: "Event & Webinar" };
 
 export default async function EventPage() {
   const [acc, events] = await Promise.all([getAccount(), getEvents()]);
   const plus = acc.plan === "plus";
+  let myCity: string | null = null;
+  if (!isDemoMode) {
+    const supabase = await createClient();
+    const { data: u } = await supabase.auth.getUser();
+    const { data: p } = await supabase.from("profiles").select("regency").eq("id", u.user?.id ?? "").maybeSingle();
+    myCity = (p?.regency as string | null) ?? null;
+  }
   if (!events) return <div className="card p-6 text-sm text-muted">Fitur event sedang disiapkan.</div>;
   const now = Date.now();
   const upcoming = events.filter((e) => new Date(e.starts_at).getTime() + e.duration_min * 60_000 > now).reverse();
@@ -37,6 +47,10 @@ export default async function EventPage() {
                   </p>
                   <h2 className="mt-2 text-lg leading-snug font-bold">{e.title}</h2>
                   {e.speaker && <p className="mt-1 text-sm text-white/70">Bersama {e.speaker}</p>}
+                  <p className="mt-2 flex flex-wrap items-center gap-2 text-xs text-white/80">
+                    {e.regency ? `📍 ${e.location ? `${e.location}, ` : ""}${regencyName(e.regency)}` : "💻 Online"}
+                    {e.regency && e.regency === myCity && <span className="rounded-full bg-gold px-2 py-0.5 text-[10px] font-bold text-brand-deep">DI KOTA ANDA</span>}
+                  </p>
                 </div>
                 <div className="flex flex-1 flex-col p-5">
                   {e.description && <p className="text-sm whitespace-pre-line text-muted">{e.description}</p>}

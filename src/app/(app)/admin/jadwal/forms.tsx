@@ -5,6 +5,8 @@ import { adminAddSlots, adminSaveEvent } from "@/app/actions/schedule";
 import { SubmitButton } from "@/components/submit-button";
 import { FormMessage } from "@/components/ui";
 import type { FormState } from "@/app/actions/auth";
+import { useState } from "react";
+import { PROVINCES, REGENCIES } from "@/lib/regions";
 
 export function SlotForm() {
   const [state, action] = useActionState<FormState, FormData>(adminAddSlots, {});
@@ -54,6 +56,7 @@ export function SlotForm() {
 
 export function EventForm() {
   const [state, action] = useActionState<FormState, FormData>(adminSaveEvent, {});
+  const [prov, setProv] = useState("");
   return (
     <form action={action} className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
       <div className="sm:col-span-2">
@@ -100,6 +103,35 @@ export function EventForm() {
         <label className="label">Link rekaman (setelah acara)</label>
         <input name="recording_url" className="input" placeholder="https://youtube.com/..." />
       </div>
+      <div>
+        <label className="label">Provinsi (event offline)</label>
+        <select value={prov} onChange={(e) => setProv(e.target.value)} className="input">
+          <option value="">Online / semua kota</option>
+          {PROVINCES.map(([c, n]) => (
+            <option key={c} value={c}>
+              {n}
+            </option>
+          ))}
+        </select>
+      </div>
+      <div>
+        <label className="label">Kota / kabupaten</label>
+        <select name="regency" disabled={!prov} className="input disabled:opacity-50">
+          <option value="">-</option>
+          {REGENCIES.filter((r) => r[1] === prov).map(([c, , n]) => (
+            <option key={c} value={c}>
+              {n}
+            </option>
+          ))}
+        </select>
+      </div>
+      <div className="sm:col-span-2">
+        <label className="label">Lokasi / alamat</label>
+        <input name="location" className="input" placeholder="Misal: Hotel X, Jl. Asia Afrika, Bandung" />
+      </div>
+      <label className="flex items-center gap-2 text-sm sm:col-span-2 lg:col-span-4">
+        <input type="checkbox" name="notify_city" className="h-4 w-4 accent-[#8b2220]" /> Kabari member yang tinggal di kota ini lewat WhatsApp setelah disimpan
+      </label>
       <div className="sm:col-span-2 lg:col-span-4">
         <SubmitButton className="btn-primary">Simpan event</SubmitButton>
         <FormMessage state={state} />

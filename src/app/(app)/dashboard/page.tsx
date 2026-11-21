@@ -9,6 +9,8 @@ import { getDiscResult } from "@/lib/disc/server";
 import { DiscSummary } from "@/components/disc-summary";
 import { ProgressBar, Ring } from "@/components/ui";
 import { getFinance, monthSummary } from "@/lib/finance-server";
+import { isDemoMode } from "@/lib/supabase/config";
+import { createClient } from "@/lib/supabase/server";
 
 export const metadata = { title: "Dashboard" };
 
@@ -23,6 +25,12 @@ export default async function DashboardPage() {
   ]);
   const [ew, placed, disc] = await Promise.all([getAssessmentResults("8-wheel-entrepreneur", 1), getAssessmentResults(PLACEMENT_KEY, 1), getDiscResult()]);
   const fin = await getFinance(today.slice(0, 7));
+  let bioMissing = false;
+  if (!isDemoMode) {
+    const supabase = await createClient();
+    const { data: b } = await supabase.from("profiles").select("whatsapp, birth_date, regency").eq("id", profile.id).maybeSingle();
+    bioMissing = !!b && (!b.whatsapp || !b.birth_date || !b.regency);
+  }
   const finBiz = monthSummary(fin.txs, "business");
   const placement = (placed[0]?.scores as unknown as { placement?: string } | undefined)?.placement;
   const ewDue = ew[0] ? Date.now() - new Date(ew[0].created_at).getTime() > 90 * 86_400_000 : false;
@@ -126,6 +134,22 @@ export default async function DashboardPage() {
           </div>
         </section>
       </div>
+
+      {bioMissing && (
+        <Link href="/profile#data-diri" className="flex items-center justify-between gap-3 rounded-2xl border border-line bg-white px-5 py-4 text-sm font-medium text-heading hover:border-gold">
+          <span>🎁 Lengkapi nomor WhatsApp, tanggal lahir & kota Anda: dapatkan hadiah ulang tahun dan kabar event EClub di kota Anda.</span>
+          <ArrowRight className="h-4 w-4 shrink-0 text-brand" />
+        </Link>
+      )}
+
+      <Link href="/target" className="flex items-center gap-4 rounded-2xl border border-gold/40 bg-gold-soft p-5 transition hover:brightness-95">
+        <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-white text-2xl">🎯</span>
+        <span className="flex-1">
+          <span className="block font-bold text-heading">Peta Target Harian</span>
+          <span className="block text-sm text-muted">Mimpi Anda butuh berapa per hari, dan berapa produk yang harus terjual? Hitung dalam 1 menit.</span>
+        </span>
+        <ArrowRight className="h-5 w-5 shrink-0 text-brand" />
+      </Link>
 
       <Link href="/keuangan" className="card flex flex-wrap items-center gap-4 p-5 transition hover:border-gold lg:flex-nowrap">
         <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-gold-soft text-2xl">💰</span>

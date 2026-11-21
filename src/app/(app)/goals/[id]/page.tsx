@@ -49,9 +49,14 @@ export default async function DreamDetailPage({ params }: { params: Promise<{ id
           )}
           {perMonth != null && (
             <span>
-              Sisihkan <b className="text-white">{rupiah(perMonth)}</b>/bulan
+              Sisihkan <b className="text-white">{rupiah(perMonth)}</b>/bulan (≈ {rupiah(Math.ceil(perMonth / 30))}/hari)
             </span>
           )}
+          {d.target_amount && d.target_date ? (
+            <Link href="/target" className="rounded-full bg-gold px-3 py-1 text-xs font-bold text-brand-deep hover:brightness-105">
+              🎯 Ubah jadi target jualan harian
+            </Link>
+          ) : null}
         </div>
       </section>
 

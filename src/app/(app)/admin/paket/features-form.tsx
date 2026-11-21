@@ -100,6 +100,10 @@ export function FeaturesForm({ features, settings, canEdit }: { features: PlanFe
               </select>
             </div>
           </div>
+          <div className="mt-4">
+            <label className="label">Promo ulang tahun (ditambahkan di ucapan WA)</label>
+            <textarea name="birthday_promo" rows={2} defaultValue={String(settings.birthday_promo ?? "")} className="input resize-y" placeholder="Misal: Diskon 20% EClub Plus tahunan khusus minggu ini. Balas pesan ini untuk klaim." />
+          </div>
         </section>
 
         <section className="card overflow-hidden">

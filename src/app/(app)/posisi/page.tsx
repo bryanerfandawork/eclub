@@ -1,11 +1,9 @@
 import Link from "next/link";
 import { ArrowRight, BookOpen, Flame, MapPin, MessageCircle, RotateCcw } from "lucide-react";
 import { PageHeader } from "@/components/ui";
-import { contactHref } from "@/lib/contact";
 import { getAssessmentResults } from "@/lib/data";
 import { listCourses } from "@/lib/lms";
 import { PLACEMENT_COPY, PLACEMENT_KEY, type Placement } from "@/lib/placement";
-import { getSettings } from "@/lib/plans";
 import { SEF_PHASES, SEF_STEPS, SPARK } from "@/lib/sef";
 import { PlacementWizard } from "./wizard";
 
@@ -13,7 +11,7 @@ export const metadata = { title: "Cek Posisi" };
 
 export default async function PlacementPage({ searchParams }: { searchParams: Promise<{ ulang?: string }> }) {
   const { ulang } = await searchParams;
-  const [results, settings, courses] = await Promise.all([getAssessmentResults(PLACEMENT_KEY, 1), getSettings(), listCourses()]);
+  const [results, courses] = await Promise.all([getAssessmentResults(PLACEMENT_KEY, 1), listCourses()]);
   const latest = results[0]?.scores as unknown as { placement: Placement; spark: number } | undefined;
 
   if (!latest || ulang) {
@@ -29,7 +27,6 @@ export default async function PlacementPage({ searchParams }: { searchParams: Pr
   const copy = PLACEMENT_COPY[p];
   const learnStep = p === "spark" ? "personal_mapping" : p;
   const stepCourses = courses.filter((c) => c.sef_step === learnStep).slice(0, 3);
-  const mentoring = contactHref(String(settings.upgrade_contact ?? ""), `Halo EClub, hasil Cek Posisi saya: ${copy.title}. Saya ingin mentoring.`);
   const activeIdx = p === "spark" ? -1 : SEF_STEPS.findIndex((s) => s.key === p);
 
   return (
@@ -97,14 +94,16 @@ export default async function PlacementPage({ searchParams }: { searchParams: Pr
                 </span>
                 <ArrowRight className="h-4 w-4" />
               </Link>
-              {mentoring && (
-                <a href={mentoring} target="_blank" rel="noopener noreferrer" className="btn-gold w-full justify-between">
-                  <span className="flex items-center gap-2">
-                    <MessageCircle className="h-4 w-4" /> Konsultasi dengan mentor
-                  </span>
-                  <ArrowRight className="h-4 w-4" />
-                </a>
-              )}
+              <Link href="/target" className="btn w-full justify-between bg-heading text-white hover:brightness-110">
+                <span className="flex items-center gap-2">🎯 Hitung target jualan harian</span>
+                <ArrowRight className="h-4 w-4" />
+              </Link>
+              <Link href="/mentoring" className="btn-gold w-full justify-between">
+                <span className="flex items-center gap-2">
+                  <MessageCircle className="h-4 w-4" /> Konsultasi dengan mentor
+                </span>
+                <ArrowRight className="h-4 w-4" />
+              </Link>
             </div>
           </section>
           {stepCourses.length > 0 && (

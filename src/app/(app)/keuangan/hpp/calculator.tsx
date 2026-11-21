@@ -26,7 +26,7 @@ function Money({ value, onChange, placeholder }: { value: number; onChange: (n: 
 
 const EMPTY: HppData = { lines: [{ name: "", cost: 0 }, { name: "", cost: 0 }], yield: 0, perUnit: 0, overhead: 0, margin: 40 };
 
-export function HppCalculator({ initial, canSave }: { initial?: Product; canSave: boolean }) {
+export function HppCalculator({ initial, canSave, freeLeft }: { initial?: Product; canSave: boolean; freeLeft: number | null }) {
   const [d, setD] = useState<HppData>(initial?.data ?? EMPTY);
   const [name, setName] = useState(initial?.name ?? "");
   const [price, setPrice] = useState(initial?.price ?? 0);
@@ -131,11 +131,11 @@ export function HppCalculator({ initial, canSave }: { initial?: Product; canSave
             <SubmitButton className="btn-primary w-full">{initial ? "Simpan perubahan" : "Simpan produk"}</SubmitButton>
           ) : (
             <a href="/beli/plus" className="btn-gold w-full">
-              Simpan produk dengan EClub Plus
+              Simpan lebih dari 3 produk dengan Plus
             </a>
           )}
           <FormMessage state={state} />
-          <p className="text-center text-xs text-muted">Kalkulator gratis dipakai. Menyimpan daftar produk khusus member Plus.</p>
+          <p className="text-center text-xs text-muted">{freeLeft === null ? "Simpan produk sebanyak apa pun." : `Paket gratis: simpan hingga 3 produk (sisa ${freeLeft}). Plus tanpa batas.`}</p>
         </form>
       </aside>
     </div>

@@ -6,7 +6,7 @@ export type Slot = { id: string; mentor: string; topic: string; starts_at: strin
 export type MyBooking = Slot & { status: string; goal: string | null; order_id: string | null; order_status: string | null; meet_link: string | null };
 export type EventItem = {
   id: string; title: string; description: string | null; speaker: string | null; starts_at: string; duration_min: number;
-  price: number; plus_price: number; capacity: number | null; seats: number; registered: boolean; meet_link: string | null; recording_url: string | null;
+  price: number; plus_price: number; capacity: number | null; seats: number; registered: boolean; meet_link: string | null; recording_url: string | null; regency?: string | null; location?: string | null;
 };
 
 const at = (days: number, hour: number) => {

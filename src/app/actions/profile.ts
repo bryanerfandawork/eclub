@@ -46,3 +46,24 @@ export async function updateWhatsApp(_: FormState, formData: FormData): Promise<
   revalidatePath("/profile");
   return { message: optIn ? "Notifikasi WhatsApp aktif." : "Pengaturan WhatsApp tersimpan." };
 }
+
+/** Tanggal lahir & domisili (untuk ucapan ulang tahun dan info event di kota Anda). */
+export async function updateBio(_: FormState, formData: FormData): Promise<FormState> {
+  if (isDemoMode) return { error: "Mode demo: perubahan belum bisa disimpan." };
+  const birth = String(formData.get("birth_date") ?? "");
+  const province = String(formData.get("province") ?? "");
+  const regency = String(formData.get("regency") ?? "");
+  if (birth && (!/^\d{4}-\d{2}-\d{2}$/.test(birth) || birth > new Date().toISOString().slice(0, 10) || birth < "1920-01-01")) return { error: "Tanggal lahir tidak valid." };
+  if (province && !/^\d{2}$/.test(province)) return { error: "Provinsi tidak valid." };
+  if (regency && (!/^\d{2}\.\d{2}$/.test(regency) || !regency.startsWith(province + "."))) return { error: "Pilih kota/kabupaten sesuai provinsinya." };
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "Sesi berakhir. Silakan masuk lagi." };
+  const { error } = await supabase.from("profiles").update({ birth_date: birth || null, province: province || null, regency: regency || null }).eq("id", user.id);
+  if (error) return { error: "Gagal menyimpan. Pastikan SQL tahap 14 sudah dijalankan." };
+  revalidatePath("/profile");
+  revalidatePath("/dashboard");
+  return { message: "Data diri tersimpan." };
+}

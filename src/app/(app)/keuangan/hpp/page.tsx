@@ -14,7 +14,7 @@ export const metadata = { title: "Kalkulator HPP" };
 export default async function HppPage({ searchParams }: { searchParams: Promise<{ id?: string }> }) {
   const { id } = await searchParams;
   const acc = await getAccount();
-  const canSave = acc.plan === "plus" || isAdmin(acc.role);
+  const plus = acc.plan === "plus" || isAdmin(acc.role);
   let products: Product[] = [];
   if (!isDemoMode) {
     const supabase = await createClient();
@@ -22,13 +22,14 @@ export default async function HppPage({ searchParams }: { searchParams: Promise<
     products = (data ?? []) as Product[];
   }
   const editing = products.find((p) => p.id === id);
+  const canSave = plus || !!editing || products.length < 3;
   return (
     <>
       <Link href="/keuangan?w=business" className="mb-3 inline-flex items-center gap-1 text-sm font-semibold text-muted hover:text-heading">
         <ArrowLeft className="h-4 w-4" /> Keuangan
       </Link>
       <PageHeader eyebrow="Keuangan usaha" title="Kalkulator HPP" desc="Hitung modal per produk dan harga jual yang menguntungkan. Isi dari atas ke bawah, hasilnya langsung muncul." />
-      <HppCalculator key={editing?.id ?? "new"} initial={editing} canSave={canSave} />
+      <HppCalculator key={editing?.id ?? "new"} initial={editing} canSave={canSave} freeLeft={plus ? null : Math.max(0, 3 - products.length)} />
       {products.length > 0 && (
         <section className="card mt-6 p-5">
           <div className="flex items-center justify-between">

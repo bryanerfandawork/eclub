@@ -21,8 +21,9 @@ export async function saveProduct(_: FormState, formData: FormData): Promise<For
   const supabase = await createClient();
   const row = { name, data, hpp, price };
   const { error } = id ? await supabase.from("fin_products").update(row).eq("id", id) : await supabase.from("fin_products").insert(row);
-  if (error) return { error: "Gagal menyimpan. Fitur simpan produk khusus member Plus (dan pastikan SQL tahap 13 sudah dijalankan)." };
+  if (error) return { error: "Gagal menyimpan. Paket gratis bisa menyimpan 3 produk; upgrade ke Plus untuk tanpa batas." };
   revalidatePath("/keuangan/hpp");
+  revalidatePath("/target");
   return { message: "Produk tersimpan ✓" };
 }
 

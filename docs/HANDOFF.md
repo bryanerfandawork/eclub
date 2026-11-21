@@ -173,7 +173,10 @@ Without the Supabase env variables, the app runs in **demo mode**: it shows samp
 - **Daily WhatsApp (cron 07:00 WIB)** now also sends: a different motivational line every day (`src/lib/motivation.ts`, 60 lines, toggle `wa_motivation`), Plus renewal reminders at `renewal_days` (default 7,3,1) plus one the day after expiry, mentoring/event reminders within 24h. Cap per run: `wa_daily_max` (max 70).
 - **UX**: mobile "Menu" button opens a grid of every page; thin top progress bar on link clicks (`nav-progress.tsx`) and an instant skeleton (`(app)/loading.tsx`); habit/like buttons react on press (`pending-button.tsx`).
 - **Prices (21 Nov 2026)**: Plus Rp79.000/bulan, Rp690.000/tahun, Laporan DISC Rp49.000, mentoring default Rp399.000 (Plus Rp299.000). Set by migration 013, editable in Admin > Pengaturan. Chosen so that after a 10% coupon and 20% commission the net per yearly sale (~Rp497k) stays about equal to the old price.
-- **Landing page** (`src/app/page.tsx`): spark story, pain-to-gain section, philosophy, features, large SEF map, how it works, annual pricing, classes and mentoring, FAQ.
+- **Customer journey (migration 014)**: Cek Posisi (`/posisi`) -> Target Harian (`/target`: dream amount + years -> savings per day -> units per day per product from HPP/price, compared to 30-day business profit, add to Daily Action, course/mentoring recommendation for the SEF step). Free users can save 3 HPP products. Goal detail shows per-day amount with a link to `/target`.
+- **Profile bio (014)**: WhatsApp, birth date, province + regency selects (`src/lib/regions.ts`, 38 provinces / 514 regencies from idn-area-data). Cron sends a birthday WhatsApp with the `birthday_promo` text (Admin > Pengaturan). Events have `regency` + `location`; ticking "kabari kota" in Admin > Mentoring & Event sends WhatsApp to members in that regency (`notifyEventCity`).
+- **Kolaborasi (014)**: public in-house training / workshop / speaker / partner form on the landing page (`submit_inquiry`, anon, rate-limited) -> Admin > Kolaborasi, admin gets a WhatsApp.
+- **Landing page** (`src/app/page.tsx`): funnel order: hero (CTA Cek Posisi) -> pains -> dream calculator lead magnet (`DreamCalc`, no login) -> philosophy -> 12 features -> SEF map -> 4-step journey -> testimonials (real only) -> pricing + table -> classes/mentoring -> nearest events (`public_events`, anon) -> affiliate -> kolaborasi form -> FAQ -> CTA.
 
 ## 6. Database migrations (run by Ridha in Supabase > SQL Editor)
 
@@ -187,11 +190,12 @@ Without the Supabase env variables, the app runs in **demo mode**: it shows samp
 | `006_payments.sql` | ✅ run |
 | `007_testimonials_sef.sql` (testimonials + `courses.sef_step`) | ✅ run (same content, pasted from the chat) |
 | `008_ai_companion.sql` | ⏳ **not run yet** |
-| `009_whatsapp.sql` (WhatsApp columns on profiles + notification_log) | ⏳ **not run yet** |
+| `009_whatsapp.sql` (WhatsApp columns on profiles + notification_log) | ✅ run 21 Nov 2026 |
 | `010_disc.sql` (report_unlocks, product disc_report, disc_report plan feature, removes wheel_history) | ✅ run |
 | `011_manual_payment.sql` | ✅ run (plus a chat-only seed for bank accounts and admin WhatsApp) |
 | `012_finance.sql` (fin_transactions, fin_balances) | ✅ run 21 Nov 2026 |
-| `013_growth_pack.sql` (fin_products, affiliate + coupons, mentoring, events, habits, gratitude, certificates, community, new plan_features rows, new prices) | ⏳ given to Ridha 21 Nov 2026. Tested end to end on a local Postgres with Supabase stubs. |
+| `013_growth_pack.sql` (fin_products, affiliate + coupons, mentoring, events, habits, gratitude, certificates, community, new plan_features rows, new prices) | ✅ run 21 Nov 2026 |
+| `014_journey_profile.sql` (3 free HPP products, profile birth_date/province/regency, birthday_promo, event regency/location, public_events, collab_inquiries + submit_inquiry) | ⏳ given to Ridha 21 Nov 2026. Tested on local Postgres. |
 
 New migrations go in `supabase/00N_*.sql`. Every migration must include explicit `GRANT` statements, because "Grant API access" was unchecked when the project was created.
 

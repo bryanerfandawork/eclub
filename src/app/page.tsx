@@ -16,37 +16,59 @@ import {
   Users,
   Radar,
   Sparkles,
+  Crosshair,
+  Wallet,
+  MessagesSquare,
+  CalendarDays,
+  MapPin,
+  Award,
+  Repeat,
+  HandCoins,
+  Building2,
+  Gift,
 } from "lucide-react";
+import { DreamCalc } from "@/components/landing/dream-calc";
+import { InquiryForm } from "@/components/landing/inquiry-form";
+import { isDemoMode } from "@/lib/supabase/config";
+import { createClient } from "@/lib/supabase/server";
+import { regencyName } from "@/lib/regions";
 import { Logo } from "@/components/logo";
 import { SEF_PHASES, SEF_STEPS, SPARK } from "@/lib/sef";
 import { getFeatures, getSettings } from "@/lib/plans";
 import { listTestimonials } from "@/lib/testimonials";
-import { contactHref } from "@/lib/contact";
 import { rupiah } from "@/lib/format";
 import { SEGMENTS } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
-const FEATURES: { icon: typeof Heart; title: string; desc: string; soon?: boolean }[] = [
-  { icon: Heart, title: "My Life", desc: "Rumuskan definisi sukses, nilai pribadi, visi 10 tahun, dan prioritas hidup dalam satu dokumen yang bisa dicetak." },
-  { icon: Radar, title: "8 Wheel Entrepreneur", desc: "Tes 40 pernyataan yang memetakan 8 kompetensi entrepreneur Anda dalam diagram jaring laba-laba." },
-  { icon: Gem, title: "Dream Planner", desc: "Ubah mimpi menjadi target dana dan tanggal. Sistem menghitung berapa yang perlu disisihkan setiap bulan." },
-  { icon: CalendarCheck2, title: "Daily Action", desc: "Pecah tujuan besar menjadi aksi harian. Jaga rangkaian konsisten dan lihat grafik 7 hari terakhir." },
-  { icon: BookOpen, title: "Learning Center", desc: "Kelas video berjenjang mengikuti Sustainable Entrepreneur Framework, dari Personal Mapping hingga Investation." },
+const FEATURES: { icon: typeof Heart; title: string; desc: string; tag?: string }[] = [
+  { icon: Radar, title: "Cek Posisi SEF", desc: "Jawab beberapa pertanyaan singkat, lalu lihat Anda sedang di tahap mana dan apa langkah paling tepat berikutnya.", tag: "Mulai di sini" },
+  { icon: Crosshair, title: "Target Jualan Harian", desc: "Mimpi Rp60 juta dalam 5 tahun? Sistem menghitung tabungan per hari dan berapa produk yang harus terjual setiap hari." },
+  { icon: Wallet, title: "Keuangan & HPP", desc: "Hitung HPP dan harga jual tiap produk, catat pemasukan dan pengeluaran, lalu lihat untung per produk dan laba rugi bulanan." },
+  { icon: Gem, title: "Dream Planner", desc: "Ubah mimpi menjadi angka, tanggal, dan tabungan yang jelas. Lihat progresnya bergerak setiap kali Anda menabung." },
+  { icon: CalendarCheck2, title: "Daily Action & Kebiasaan", desc: "Pecah target besar menjadi aksi harian, bangun kebiasaan baik, dan tulis jurnal syukur. Rangkaian konsisten menjaga semangat." },
+  { icon: Heart, title: "My Life & Tes Diri", desc: "Rumuskan definisi sukses dan visi hidup, lalu kenali diri lewat Tes DISC dan 8 Wheel Entrepreneur." },
+  { icon: BookOpen, title: "Kelas Berjenjang", desc: "Kelas video mengikuti tahapan SEF, dari Personal Mapping hingga Investation. Lulus satu tahap, dapat sertifikat." },
+  { icon: Users, title: "Mentoring & Event", desc: "Pesan sesi 1-on-1 dengan mentor dan ikuti workshop atau webinar. Event di kota Anda akan dikabarkan lewat WhatsApp." },
+  { icon: MessagesSquare, title: "Komunitas", desc: "Berbagi progres, bertanya, dan saling menyemangati dengan sesama member yang sedang bertumbuh." },
   { icon: Sparkles, title: "AI Companion", desc: "Teman diskusi 24 jam yang memahami mimpi, posisi SEF, dan hasil tes Anda untuk menyusun rencana dan evaluasi." },
+  { icon: Award, title: "Sertifikat", desc: "Setiap tahap SEF yang Anda selesaikan menghasilkan sertifikat dengan kode verifikasi yang bisa dicek publik." },
+  { icon: HandCoins, title: "Affiliate & Kupon", desc: "Member Plus punya link dan kode kupon sendiri. Teman dapat potongan, Anda dapat bagi hasil dari setiap transaksi." },
 ];
 
 const PAINS = [
   { pain: "Sibuk setiap hari, tapi tidak yakin sedang menuju ke mana.", gain: "My Life membantu Anda merumuskan definisi sukses dan visi 10 tahun, jadi setiap langkah punya arah." },
   { pain: "Punya banyak mimpi, tapi selalu tertunda karena tidak tahu mulai dari mana.", gain: "Dream Planner mengubah mimpi menjadi angka, tanggal, dan tabungan bulanan yang jelas." },
   { pain: "Semangat di awal, lalu hilang setelah seminggu.", gain: "Daily Action dan rangkaian konsisten membuat kemajuan kecil terasa, setiap hari." },
-  { pain: "Ingin berbisnis atau naik level, tapi tidak tahu kekuatan dan kelemahan sendiri.", gain: "Tes 8 Wheel Entrepreneur memetakan 8 kompetensi Anda dan menunjukkan area yang perlu dilatih." },
+  { pain: "Sudah jualan, tapi tidak tahu sebenarnya untung berapa per produk.", gain: "Kalkulator HPP dan Target Harian menunjukkan untung per produk dan berapa yang harus terjual setiap hari." },
 ];
 
 
 const FAQ = [
   { q: "Apakah EClub hanya untuk pengusaha?", a: "Tidak. EClub untuk siapa saja yang ingin bertumbuh: pelajar, karyawan, profesional, freelancer, maupun pemilik bisnis. Setiap orang punya definisi sukses dan kendaraan yang berbeda." },
-  { q: "Apakah versi gratis benar-benar bisa dipakai?", a: "Ya. My Life, Tes Kepribadian DISC beserta hasil dasarnya, Daily Action, satu Dream Planner, dan tes 8 Wheel Entrepreneur bisa dipakai gratis selamanya. EClub Plus membuka laporan lengkap DISC, batas, dan fitur lanjutan." },
+  { q: "Apakah versi gratis benar-benar bisa dipakai?", a: "Ya, gratis selamanya: Cek Posisi, Target Jualan Harian, kalkulator HPP untuk 3 produk, catatan keuangan, Dream Planner, Daily Action, kebiasaan, komunitas, dan tes DISC (hasil dasar). Plus membuka laporan lengkap, batas lebih besar, kelas Plus, dan harga mentoring khusus." },
+  { q: "Bagaimana cara kerja affiliate?", a: "Setiap member Plus otomatis punya link dan kode kupon pribadi. Teman yang memakai kupon mendapat potongan, dan Anda mendapat bagi hasil dari setiap transaksinya. Saldo bisa dicairkan setiap kelipatan Rp100.000." },
+  { q: "Apakah EClub bisa mengisi pelatihan di kantor atau komunitas kami?", a: "Bisa. Kami menerima in-house training, workshop, undangan pembicara, dan kemitraan. Isi formulir di bagian Kolaborasi, tim kami akan menghubungi lewat WhatsApp." },
   { q: "Apakah data saya aman?", a: "Data tersimpan terenkripsi dan setiap akun hanya bisa mengakses datanya sendiri. Tim admin tidak bisa membaca isi mimpi, jawaban tes, atau catatan pribadi Anda." },
   { q: "Bisakah dipakai di HP?", a: "Bisa. EClub dirancang seperti aplikasi di HP dan bisa dipasang ke layar utama tanpa unduh dari Play Store atau App Store." },
   { q: "Apakah tes 8 Wheel Entrepreneur tes psikologi?", a: "Bukan. Ini instrumen refleksi diri yang disusun EClub dari riset kompetensi kewirausahaan. Hasilnya membantu Anda menentukan area yang perlu dikembangkan." },
@@ -113,7 +135,17 @@ export default async function Home() {
   const yearly = Number(settings.plus_price_yearly) || 0;
   const save = monthly && yearly ? Math.round((1 - yearly / (monthly * 12)) * 100) : 0;
   const perMonth = yearly ? Math.round(yearly / 12 / 100) * 100 : 0;
-  const mentoringHref = contactHref(String(settings.upgrade_contact ?? ""), "Halo EClub, saya tertarik dengan program mentoring.");
+  const rate = Number(settings.affiliate_rate) || 20;
+  const couponOff = Number(settings.coupon_discount) || 10;
+  type PubEvent = { id: string; title: string; speaker: string | null; starts_at: string; price: number; plus_price: number; regency: string | null; location: string | null };
+  let events: PubEvent[] = [];
+  if (!isDemoMode) {
+    const supabase = await createClient();
+    const { data } = await supabase.rpc("public_events");
+    events = (data as PubEvent[] | null) ?? [];
+  }
+  const tgl = (iso: string) =>
+    new Date(iso).toLocaleString("id-ID", { weekday: "long", day: "numeric", month: "long", hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jakarta" });
   const cell = (limit: number | null, unit: string | null) =>
     limit === 0 ? <span className="text-line">—</span> : limit == null ? (unit ? "Tanpa batas" : <Check className="mx-auto h-4 w-4 text-success" />) : `${limit} ${unit ?? ""}`;
 
@@ -125,7 +157,10 @@ export default async function Home() {
           <nav className="hidden items-center gap-7 text-sm font-medium text-muted md:flex">
             <a href="#fitur" className="hover:text-brand">Fitur</a>
             <a href="#metode" className="hover:text-brand">Metode</a>
+            <a href="#hitung" className="hover:text-brand">Hitung target</a>
             <a href="#paket" className="hover:text-brand">Paket</a>
+            <a href="#event" className="hover:text-brand">Event</a>
+            <a href="#kolaborasi" className="hover:text-brand">Kolaborasi</a>
             <a href="#faq" className="hover:text-brand">FAQ</a>
           </nav>
           <div className="flex items-center gap-2">
@@ -151,9 +186,9 @@ export default async function Home() {
           </p>
           <div className="mt-8 flex animate-rise flex-col justify-center gap-3 sm:flex-row lg:justify-start">
             <Link href="/daftar" className="btn-primary px-7 py-3.5 text-[15px]">
-              Mulai gratis <ArrowRight className="h-4 w-4" />
+              Cek posisi saya, gratis <ArrowRight className="h-4 w-4" />
             </Link>
-            <a href="#fitur" className="btn-ghost px-7 py-3.5 text-[15px]">Lihat fitur</a>
+            <a href="#hitung" className="btn-ghost px-7 py-3.5 text-[15px]">Hitung target harian</a>
           </div>
           <p className="mt-4 animate-rise text-xs text-muted">Gratis selamanya untuk fitur inti. Tanpa kartu kredit. Cukup 5 menit sehari.</p>
           <dl className="mx-auto mt-12 grid max-w-md grid-cols-3 gap-4 border-t border-line pt-6 lg:mx-0">
@@ -205,6 +240,20 @@ export default async function Home() {
         </div>
       </section>
 
+      {/* Lead magnet: kalkulator mimpi */}
+      <section id="hitung" className="mx-auto max-w-6xl scroll-mt-20 px-5 pt-20 lg:px-10 lg:pt-28">
+        <div className="mx-auto max-w-2xl text-center">
+          <p className="eyebrow">Coba sekarang, tanpa daftar</p>
+          <h2 className="mt-3 text-3xl font-bold tracking-tight text-heading sm:text-4xl">Mimpi Anda, berapa yang harus terjual hari ini?</h2>
+          <p className="mt-4 text-[17px] leading-relaxed text-muted">
+            Mimpi terasa jauh karena belum jadi angka. Masukkan mimpi dan produk Anda, lihat target harian yang bisa langsung Anda kejar mulai besok.
+          </p>
+        </div>
+        <div className="mt-10">
+          <DreamCalc />
+        </div>
+      </section>
+
       {/* Filosofi */}
       <section className="mx-auto max-w-4xl px-5 py-20 text-center lg:py-28">
         <p className="eyebrow">Filosofi kami</p>
@@ -224,13 +273,13 @@ export default async function Home() {
             <h2 className="mt-3 text-3xl font-bold tracking-tight text-heading sm:text-4xl">Semua yang Anda butuhkan untuk bertumbuh, dalam satu aplikasi</h2>
           </div>
           <div className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {FEATURES.map(({ icon: Icon, title, desc, soon }) => (
+            {FEATURES.map(({ icon: Icon, title, desc, tag }) => (
               <div key={title} className="group rounded-2xl border border-line bg-paper p-6 transition hover:-translate-y-1 hover:bg-white hover:shadow-lift">
                 <div className="flex items-center justify-between">
                   <div className="grid h-12 w-12 place-items-center rounded-2xl bg-brand text-white transition group-hover:scale-105">
                     <Icon className="h-5 w-5" />
                   </div>
-                  {soon && <span className="rounded-full bg-gold-soft px-2.5 py-1 text-[11px] font-semibold text-brand">Segera</span>}
+                  {tag && <span className="rounded-full bg-gold-soft px-2.5 py-1 text-[11px] font-semibold text-brand">{tag}</span>}
                 </div>
                 <h3 className="mt-5 text-lg font-bold text-heading">{title}</h3>
                 <p className="mt-2 text-sm leading-relaxed text-muted">{desc}</p>
@@ -288,11 +337,12 @@ export default async function Home() {
           <p className="eyebrow">Cara kerja</p>
           <h2 className="mt-3 text-3xl font-bold tracking-tight text-heading sm:text-4xl">Mulai dalam 5 menit</h2>
         </div>
-        <ol className="mt-12 grid gap-4 md:grid-cols-3">
+        <ol className="mt-12 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           {[
-            ["Daftar gratis", "Cukup nama dan email. Tidak perlu kartu kredit."],
-            ["Nyalakan spark", "Tulis cita-cita dan definisi sukses Anda, lalu ubah mimpi menjadi target yang nyata."],
-            ["Tapaki jenjangnya", "Petakan diri lewat tes 8 Wheel, lalu belajar dan bertindak setahap demi setahap mengikuti SEF."],
+            ["Daftar & Cek Posisi", "Daftar gratis, lalu jawab pertanyaan singkat. Anda langsung tahu sedang di tahap SEF mana."],
+            ["Hitung target harian", "Masukkan produk, HPP, harga jual, dan mimpi Anda. Dapatkan target jualan per hari yang jelas."],
+            ["Belajar & didampingi", "Ikuti kelas yang cocok dengan tahap Anda, atau pesan mentoring untuk melaju lebih cepat."],
+            ["Tumbuh bersama", "Jaga konsistensi lewat Daily Action, kebiasaan, dan komunitas. Puas? Ajak teman dan dapat bagi hasil."],
           ].map(([t, d], i) => (
             <li key={t} className="card p-6">
               <span className="grid h-10 w-10 place-items-center rounded-xl bg-gold-soft text-sm font-bold text-brand">{i + 1}</span>
@@ -347,7 +397,14 @@ export default async function Home() {
               <p className="mt-3 text-4xl font-bold text-heading">Gratis</p>
               <p className="mt-1 text-sm text-muted">Selamanya</p>
               <ul className="mt-5 space-y-2 text-sm text-ink">
-                {["My Life & Tes DISC (hasil dasar)", "Daily Action & rangkaian konsisten", "1 Dream Planner", "Tes 8 Wheel setiap 3 bulan"].map((p) => (
+                {[
+                  "Cek Posisi SEF + rekomendasi langkah",
+                  "Target Jualan Harian dari mimpi Anda",
+                  "Kalkulator HPP (3 produk) & catatan keuangan",
+                  "Dream Planner, Daily Action & kebiasaan",
+                  "Tes DISC (hasil dasar) & 8 Wheel",
+                  "Komunitas member & kelas gratis",
+                ].map((p) => (
                   <li key={p} className="flex items-center gap-2">
                     <Check className="h-4 w-4 text-success" /> {p}
                   </li>
@@ -369,7 +426,14 @@ export default async function Home() {
                 ditagih {rupiah(yearly)} per tahun · atau {rupiah(monthly)} bulanan
               </p>
               <ul className="mt-5 space-y-2 text-sm text-white/85">
-                {["Laporan lengkap DISC + rekomendasi karier", "Dream Planner tanpa batas", "Tes 8 Wheel kapan saja", "Course khusus member Plus"].map((p) => (
+                {[
+                  "Semua fitur Free, dengan batas lebih besar",
+                  "Produk HPP tanpa batas & laporan laba rugi",
+                  "Laporan lengkap DISC + rekomendasi karier",
+                  "Kelas khusus Plus & sertifikat tahap SEF",
+                  "Harga khusus mentoring & event",
+                  `Link affiliate & kupon pribadi: bagi hasil ${rate}%`,
+                ].map((p) => (
                   <li key={p} className="flex items-center gap-2">
                     <Check className="h-4 w-4 text-gold" /> {p}
                   </li>
@@ -411,8 +475,8 @@ export default async function Home() {
             <div className="grid h-12 w-12 place-items-center rounded-2xl bg-gold-soft text-brand">
               <BookOpen className="h-5 w-5" />
             </div>
-            <h3 className="mt-5 text-xl font-bold text-heading">Kelas terstruktur</h3>
-            <p className="mt-2 text-sm leading-relaxed text-muted">Belajar bertahap mengikuti EClub Success Framework. Sebagian gratis, sebagian khusus Plus, dan kelas lanjutan bisa dibeli satuan.</p>
+            <h3 className="mt-5 text-xl font-bold text-heading">Kelas sesuai tahap Anda</h3>
+            <p className="mt-2 text-sm leading-relaxed text-muted">Setelah Cek Posisi, EClub merekomendasikan kelas yang paling Anda butuhkan sekarang. Sebagian gratis, sebagian khusus Plus, dan kelas lanjutan bisa dibeli satuan.</p>
             <Link href="/daftar" className="btn-ghost mt-6">Lihat kelas <ArrowRight className="h-4 w-4" /></Link>
           </div>
           <div className="relative overflow-hidden rounded-2xl bg-heading p-7 text-white">
@@ -420,15 +484,103 @@ export default async function Home() {
             <div className="relative grid h-12 w-12 place-items-center rounded-2xl bg-white/10 text-gold">
               <Users className="h-5 w-5" />
             </div>
-            <h3 className="relative mt-5 text-xl font-bold">Mentoring langsung</h3>
-            <p className="relative mt-2 text-sm leading-relaxed text-white/70">Ingin melaju lebih cepat? Diskusikan hasil tes 8 Wheel dan rencana Anda bersama mentor EClub, lalu susun langkah 90 hari ke depan.</p>
-            {mentoringHref ? (
-              <a href={mentoringHref} target="_blank" rel="noopener noreferrer" className="btn-gold relative mt-6">
-                <MessageCircle className="h-4 w-4" /> Tanya jadwal mentoring
-              </a>
-            ) : (
-              <Link href="/daftar" className="btn-gold relative mt-6">Daftar dulu <ArrowRight className="h-4 w-4" /></Link>
-            )}
+            <h3 className="relative mt-5 text-xl font-bold">Mentoring 1-on-1</h3>
+            <p className="relative mt-2 text-sm leading-relaxed text-white/70">Bawa hasil Cek Posisi dan target harian Anda ke mentor EClub, lalu susun langkah 90 hari ke depan. Pilih jadwal sendiri langsung di aplikasi.</p>
+            <Link href="/daftar" className="btn-gold relative mt-6">
+              <MessageCircle className="h-4 w-4" /> Pilih jadwal mentoring
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* Event terdekat */}
+      <section id="event" className="mx-auto max-w-6xl scroll-mt-20 px-5 pt-20 lg:px-10 lg:pt-28">
+        <div className="flex flex-wrap items-end justify-between gap-4">
+          <div className="max-w-2xl">
+            <p className="eyebrow">Event terdekat</p>
+            <h2 className="mt-3 text-3xl font-bold tracking-tight text-heading sm:text-4xl">Belajar langsung, bertemu sesama pejuang</h2>
+          </div>
+          <Link href="/daftar" className="btn-ghost">Daftar untuk ikut <ArrowRight className="h-4 w-4" /></Link>
+        </div>
+        {events.length > 0 ? (
+          <div className="mt-10 grid gap-4 md:grid-cols-3">
+            {events.map((e) => (
+              <div key={e.id} className="card flex flex-col p-6">
+                <p className="flex items-center gap-1.5 text-xs font-semibold text-brand">
+                  <CalendarDays className="h-3.5 w-3.5" /> {tgl(e.starts_at)} WIB
+                </p>
+                <h3 className="mt-3 text-lg font-bold text-heading">{e.title}</h3>
+                {e.speaker && <p className="mt-1 text-sm text-muted">bersama {e.speaker}</p>}
+                <p className="mt-2 flex items-center gap-1.5 text-sm text-muted">
+                  <MapPin className="h-3.5 w-3.5" /> {e.location || (e.regency ? regencyName(e.regency) : "Online")}
+                </p>
+                <p className="mt-auto pt-5 text-sm font-semibold text-heading">
+                  {e.price ? rupiah(e.price) : "Gratis"}
+                  {e.price > 0 && e.plus_price < e.price && <span className="ml-2 text-xs font-medium text-brand">Plus {e.plus_price ? rupiah(e.plus_price) : "gratis"}</span>}
+                </p>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="card mt-10 flex flex-col items-start gap-3 p-6 sm:flex-row sm:items-center">
+            <span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-gold-soft text-brand">
+              <CalendarDays className="h-5 w-5" />
+            </span>
+            <p className="text-sm leading-relaxed text-muted">
+              Jadwal workshop dan webinar berikutnya segera diumumkan. Daftar dan isi kota domisili Anda, kami kabari lewat WhatsApp saat ada event di kota Anda.
+            </p>
+          </div>
+        )}
+      </section>
+
+      {/* Affiliate */}
+      <section className="mx-auto max-w-6xl px-5 pt-20 lg:px-10 lg:pt-28">
+        <div className="relative overflow-hidden rounded-3xl bg-gold-soft p-7 sm:p-10">
+          <div className="grid items-center gap-8 lg:grid-cols-[1.2fr_0.8fr]">
+            <div>
+              <p className="eyebrow">Affiliate EClub</p>
+              <h2 className="mt-3 text-3xl font-bold tracking-tight text-heading sm:text-4xl">Puas? Ajak teman, dapat bagi hasil {rate}%.</h2>
+              <p className="mt-4 text-[17px] leading-relaxed text-muted">
+                Setiap member Plus otomatis punya link dan kode kupon pribadi. Teman Anda hemat {couponOff}%, Anda mendapat {rate}% dari setiap paket, kelas, atau mentoring yang mereka beli. Saldo bisa dicairkan setiap kelipatan Rp100.000.
+              </p>
+            </div>
+            <ul className="space-y-3">
+              {[
+                [Gift, `Teman dapat potongan ${couponOff}% dengan kupon Anda`],
+                [Repeat, "Komisi juga dari pembelian berikutnya"],
+                [HandCoins, "Cairkan ke rekening setiap kelipatan Rp100.000"],
+              ].map(([I, t]) => {
+                const Icon = I as typeof Gift;
+                return (
+                  <li key={t as string} className="flex items-center gap-3 rounded-2xl bg-white p-4 text-sm font-semibold text-heading shadow-soft">
+                    <Icon className="h-5 w-5 shrink-0 text-brand" /> {t as string}
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      {/* Kolaborasi */}
+      <section id="kolaborasi" className="mx-auto max-w-6xl scroll-mt-20 px-5 pt-20 lg:px-10 lg:pt-28">
+        <div className="grid gap-8 lg:grid-cols-[0.9fr_1.1fr]">
+          <div>
+            <p className="eyebrow">Kolaborasi</p>
+            <h2 className="mt-3 text-3xl font-bold tracking-tight text-heading sm:text-4xl">Bawa EClub ke kantor, komunitas, atau acara Anda</h2>
+            <p className="mt-4 text-[17px] leading-relaxed text-muted">
+              Kami menerima in-house training untuk tim dan UMKM binaan, workshop, undangan pembicara, dan kemitraan. Materi mengikuti Sustainable Entrepreneur Framework dan disesuaikan dengan kebutuhan peserta.
+            </p>
+            <ul className="mt-6 space-y-2 text-sm text-ink">
+              {["In-house training perusahaan & instansi", "Workshop komunitas & UMKM binaan", "Pembicara seminar & webinar", "Kemitraan program"].map((t) => (
+                <li key={t} className="flex items-center gap-2">
+                  <Building2 className="h-4 w-4 text-brand" /> {t}
+                </li>
+              ))}
+            </ul>
+          </div>
+          <div className="card p-6 sm:p-7">
+            <InquiryForm />
           </div>
         </div>
       </section>
@@ -467,9 +619,11 @@ export default async function Home() {
       <footer className="border-t border-line bg-white">
         <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-5 py-8 text-sm text-muted sm:flex-row lg:px-10">
           <Logo />
-          <div className="flex gap-6">
+          <div className="flex flex-wrap justify-center gap-x-6 gap-y-2">
             <a href="#fitur" className="hover:text-brand">Fitur</a>
             <a href="#paket" className="hover:text-brand">Paket</a>
+            <a href="#kolaborasi" className="hover:text-brand">Kolaborasi</a>
+            <Link href="/cek-sertifikat" className="hover:text-brand">Cek sertifikat</Link>
             <Link href="/masuk" className="hover:text-brand">Masuk</Link>
           </div>
           <p>© {new Date().getFullYear()} EClub Indonesia</p>
