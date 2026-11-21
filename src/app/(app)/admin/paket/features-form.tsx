@@ -93,11 +93,8 @@ export function FeaturesForm({ features, settings, canEdit }: { features: PlanFe
               <p className="mt-1 text-xs text-muted">Maksimal 70. Sesuaikan dengan kuota paket Fonnte.</p>
             </div>
             <div>
-              <label className="label">Kalimat penyemangat pagi</label>
-              <select name="wa_motivation" defaultValue={String(settings.wa_motivation ?? "true")} className="input">
-                <option value="true">Aktif (berganti setiap hari)</option>
-                <option value="false">Nonaktif</option>
-              </select>
+              <label className="label">Penyemangat pagi</label>
+              <p className="rounded-xl bg-paper px-3 py-2.5 text-sm text-muted">Sekarang dikirim lewat notifikasi HP. Atur di tab <a href="/admin/notifikasi" className="font-semibold text-brand">Notifikasi</a>.</p>
             </div>
           </div>
           <div className="mt-4">

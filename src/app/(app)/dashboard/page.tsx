@@ -12,6 +12,8 @@ import { getFinance, monthSummary } from "@/lib/finance-server";
 import { isDemoMode } from "@/lib/supabase/config";
 import { createClient } from "@/lib/supabase/server";
 import { motivationOfDay } from "@/lib/motivation";
+import { getVapidPublicKey } from "@/lib/push";
+import { PushToggle } from "@/components/push-toggle";
 
 export const metadata = { title: "Dashboard" };
 
@@ -25,7 +27,7 @@ export default async function DashboardPage() {
     getProgressStats(),
   ]);
   const [ew, placed, disc] = await Promise.all([getAssessmentResults("8-wheel-entrepreneur", 1), getAssessmentResults(PLACEMENT_KEY, 1), getDiscResult()]);
-  const fin = await getFinance(today.slice(0, 7));
+  const [fin, vapid] = await Promise.all([getFinance(today.slice(0, 7)), isDemoMode ? null : getVapidPublicKey()]);
   let bioMissing = false;
   if (!isDemoMode) {
     const supabase = await createClient();
@@ -62,6 +64,8 @@ export default async function DashboardPage() {
         <h1 className="text-[28px] font-bold tracking-tight text-heading lg:text-[34px]">{firstName} 👋</h1>
         <p className="mt-2 max-w-2xl text-[15px] leading-relaxed text-muted italic">✨ {motivationOfDay(today)}</p>
       </section>
+
+      <PushToggle publicKey={vapid} variant="card" />
 
       {!placement && (
         <Link href="/posisi" className="flex animate-rise items-center gap-4 rounded-2xl bg-heading p-5 text-white shadow-lift hover:brightness-110">

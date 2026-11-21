@@ -18,7 +18,7 @@ export function WhatsAppForm({ s }: { s: WaSettings }) {
         </span>
         <div>
           <p className="font-bold text-heading">Notifikasi WhatsApp</p>
-          <p className="text-xs text-muted">Pengingat aksi harian, tes ulang 3 bulan, dan konfirmasi pembayaran. Maksimal 1 pengingat per hari.</p>
+          <p className="text-xs text-muted">Konfirmasi pembayaran, pengingat perpanjangan, jadwal mentoring & event, serta ucapan ulang tahun. Penyemangat pagi dikirim lewat notifikasi HP.</p>
         </div>
       </div>
       <div>
@@ -29,10 +29,7 @@ export function WhatsAppForm({ s }: { s: WaSettings }) {
         <input type="checkbox" name="wa_opt_in" defaultChecked={s.wa_opt_in} className="h-4 w-4 accent-[#8b2220]" />
         Ya, kirimi saya notifikasi lewat WhatsApp
       </label>
-      <label className="flex items-center gap-2 text-sm text-ink">
-        <input type="checkbox" name="wa_daily" defaultChecked={s.wa_daily} className="h-4 w-4 accent-[#8b2220]" />
-        Termasuk pengingat aksi harian setiap pagi
-      </label>
+      {s.wa_daily && <input type="hidden" name="wa_daily" value="on" />}
       <FormMessage state={state} />
       <SubmitButton>Simpan pengaturan WhatsApp</SubmitButton>
     </form>

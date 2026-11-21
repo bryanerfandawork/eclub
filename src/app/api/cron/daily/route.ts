@@ -3,6 +3,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { sendWa, waConfigured } from "@/lib/whatsapp";
 import { todayJakarta } from "@/lib/format";
 import { motivationOfDay } from "@/lib/motivation";
+import { sendPushToSubs, subsFor } from "@/lib/push";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -10,29 +11,41 @@ export const maxDuration = 60;
 let MAX_PER_RUN = 40; // diatur admin lewat app_settings.wa_daily_max (maks 70 agar selesai < 60 detik)
 const SITE = process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.eclub.co.id";
 
-/** Dipanggil Vercel Cron setiap pagi (07.00 WIB). Mengirim maksimal 1 pengingat per orang per hari. */
+/** Dipanggil Vercel Cron setiap pagi (07.00 WIB): notifikasi HP (penyemangat & pengumuman), lalu WA transaksi (pesanan, ulang tahun, perpanjangan, jadwal). */
 export async function GET(request: Request) {
   const secret = process.env.CRON_SECRET;
   if (!secret || request.headers.get("authorization") !== `Bearer ${secret}`) {
     return NextResponse.json({ ok: false }, { status: 401 });
   }
   const admin = createAdminClient();
-  if (!admin || !waConfigured()) return NextResponse.json({ ok: false, error: "not configured" }, { status: 500 });
+  if (!admin) return NextResponse.json({ ok: false, error: "not configured" }, { status: 500 });
 
   const today = todayJakarta();
-  const { data: cfg } = await admin.from("app_settings").select("key, value").in("key", ["wa_daily_max", "renewal_days", "wa_motivation", "birthday_promo"]);
+  const { data: cfg } = await admin.from("app_settings").select("key, value").in("key", ["wa_daily_max", "renewal_days", "birthday_promo", "push_morning", "push_morning_title"]);
   const setting = (k: string) => (cfg ?? []).find((c) => c.key === k)?.value as unknown;
+
+  // Notifikasi HP: pengumuman terjadwal untuk hari ini, lalu penyemangat pagi (kecuali diganti pengumuman).
+  let pushed = 0;
+  try {
+    const { data: due } = await admin.from("push_broadcasts").select("*").eq("status", "scheduled").lte("send_on", today);
+    let replaced = false;
+    for (const b of due ?? []) {
+      const n = await sendPushToSubs(admin, await subsFor(admin, b.audience, b.regency, b.province), { title: b.title, body: b.body, url: b.url, tag: "broadcast" });
+      await admin.from("push_broadcasts").update({ status: "sent", sent_count: n, sent_at: new Date().toISOString() }).eq("id", b.id);
+      pushed += n;
+      if (b.replace_morning && b.audience === "all" && !b.regency && !b.province) replaced = true;
+    }
+    const morningOn = setting("push_morning") !== false && setting("push_morning") !== "false";
+    if (morningOn && !replaced) {
+      const title = String(setting("push_morning_title") ?? "") || "Selamat pagi dari EClub ☀️";
+      pushed += await sendPushToSubs(admin, await subsFor(admin, "all"), { title, body: motivationOfDay(today), url: "/today", tag: "morning" });
+    }
+  } catch (e) {
+    console.error("push cron", e);
+  }
+  if (!waConfigured()) return NextResponse.json({ ok: true, pushed, sent: 0 });
   MAX_PER_RUN = Math.min(70, Math.max(1, Number(setting("wa_daily_max")) || 40));
   const renewalDays = String(setting("renewal_days") ?? "7,3,1").split(/[,\s]+/).map(Number).filter((n) => n > 0 && n <= 30);
-  const motivationOn = setting("wa_motivation") !== false && setting("wa_motivation") !== "false";
-  const quote = motivationOfDay(today);
-  const dayStart = new Date(today + "T00:00:00+07:00").toISOString();
-  const { data: users } = await admin
-    .from("profiles")
-    .select("id, full_name, whatsapp, wa_daily")
-    .eq("wa_opt_in", true)
-    .not("whatsapp", "is", null)
-    .limit(500);
 
   let sent = 0;
 
@@ -144,40 +157,5 @@ export async function GET(request: Request) {
     }
   }
 
-  for (const u of users ?? []) {
-    if (sent >= MAX_PER_RUN) break;
-    const { data: recent } = await admin.from("notification_log").select("kind, created_at").eq("user_id", u.id).gte("created_at", new Date(Date.now() - 30 * 86_400_000).toISOString());
-    if ((recent ?? []).some((r) => r.created_at >= dayStart)) continue; // sudah dapat pesan hari ini
-    const name = (u.full_name || "Sahabat").split(" ")[0];
-
-    // 1) Pengingat tes ulang 8 Wheel setelah 3 bulan (maksimal sebulan sekali)
-    let kind: string | null = null;
-    let message = "";
-    const { data: ew } = await admin
-      .from("assessment_results")
-      .select("created_at")
-      .eq("user_id", u.id)
-      .eq("assessment_key", "8-wheel-entrepreneur")
-      .order("created_at", { ascending: false })
-      .limit(1);
-    const due = ew?.[0] && Date.now() - new Date(ew[0].created_at).getTime() > 90 * 86_400_000;
-    if (due && !(recent ?? []).some((r) => r.kind === "retest")) {
-      kind = "retest";
-      message = `Halo ${name} 👋 Sudah 3 bulan sejak tes 8 Wheel Entrepreneur terakhir Anda. Yuk ukur lagi perkembangan Anda (sekitar 7 menit):\n${SITE}/assessment/8-wheel-entrepreneur?ulang=1`;
-    } else if (u.wa_daily) {
-      // 2) Pengingat aksi harian
-      const { count } = await admin.from("daily_actions").select("id", { count: "exact", head: true }).eq("user_id", u.id).eq("action_date", today).eq("done", false);
-      kind = "daily";
-      const spark = motivationOn ? `✨ _${quote}_\n\n` : "";
-      message = count
-        ? `Selamat pagi, ${name} 🌱\n\n${spark}Hari ini ada ${count} aksi yang menunggu Anda.\n${SITE}/today`
-        : `Selamat pagi, ${name} 🌱\n\n${spark}Apa satu langkah kecil menuju mimpi Anda hari ini?\n${SITE}/today`;
-    }
-    if (!kind) continue;
-    const ok = await sendWa(u.whatsapp as string, message + "\n\nUntuk berhenti, matikan notifikasi di menu Profil EClub.");
-    await admin.from("notification_log").insert({ user_id: u.id, kind, status: ok ? "sent" : "failed" });
-    if (ok) sent++;
-    await new Promise((r) => setTimeout(r, 700)); // jeda agar tidak dianggap spam
-  }
-  return NextResponse.json({ ok: true, sent });
+  return NextResponse.json({ ok: true, pushed, sent });
 }

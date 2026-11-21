@@ -108,7 +108,7 @@ export function OnboardingForm({ init, next }: { init: Init; next: string }) {
             className="mt-0.5 h-4 w-4 accent-[#8b2220]"
           />
           <span>
-            Kirimi saya penyemangat pagi dan pengingat lewat WhatsApp. Bisa
+            Kirimi saya info pembayaran, jadwal, dan kabar event lewat WhatsApp. Bisa
             dimatikan kapan saja di Profil.
           </span>
         </label>

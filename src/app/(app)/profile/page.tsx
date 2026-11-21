@@ -10,11 +10,13 @@ import { BioForm, type Bio } from "./bio-form";
 import { WhatsAppForm, type WaSettings } from "./whatsapp-form";
 import { isDemoMode } from "@/lib/supabase/config";
 import { createClient } from "@/lib/supabase/server";
+import { getVapidPublicKey } from "@/lib/push";
+import { PushToggle } from "@/components/push-toggle";
 
 export const metadata = { title: "Profil" };
 
 export default async function ProfilePage() {
-  const [profile, account] = await Promise.all([getProfile(), getAccount()]);
+  const [profile, account, vapid] = await Promise.all([getProfile(), getAccount(), isDemoMode ? null : getVapidPublicKey()]);
   let wa: WaSettings = { whatsapp: null, wa_opt_in: false, wa_daily: true };
   let bio: Bio = { birth_date: null, province: null, regency: null };
   if (!isDemoMode) {
@@ -64,6 +66,7 @@ export default async function ProfilePage() {
         </aside>
         <div className="lg:col-span-2">
           <ProfileForm profile={profile} />
+          <PushToggle publicKey={vapid} />
           <WhatsAppForm s={wa} />
           <BioForm bio={bio} />
         </div>

@@ -178,7 +178,8 @@ Without the Supabase env variables, the app runs in **demo mode**: it shows samp
 - **Onboarding `/lengkapi`**: right after signup (and after email confirmation) users fill WhatsApp, birth date, province, regency in one step, then go to Cek Posisi. Existing users with missing data are redirected there on any app page: the `(app)` layout redirects every non-admin with missing WA/birth date/regency to `/lengkapi` (mandatory, no skip; page lives outside the `(app)` group).
 - **Kolaborasi (014)**: public in-house training / workshop / speaker / partner form on the landing page (`submit_inquiry`, anon, rate-limited) -> Admin > Kolaborasi, admin gets a WhatsApp.
 - **Artikel (015)**: public `/artikel` + `/artikel/[slug]` (SEO, funnel CTA). Plus articles show a paywall; body only returned by `get_article()` to Plus/staff. Admin > Artikel for CRUD (simple text format: `## ` headings, `- ` bullets, `1. ` numbers).
-- **Motivasi pagi**: `src/lib/motivation.ts` holds 365 lines, one per day of year (29 Feb repeats 28 Feb), looping yearly; sent in the 07:00 WA cron and shown on the dashboard.
+- **Motivasi pagi**: `src/lib/motivation.ts` holds 365 lines, one per day of year (29 Feb repeats 28 Feb), looping yearly; sent as a phone push notification (Web Push) by the 07:00 cron and shown on the dashboard. The morning WA reminder was removed; WA is now transactional only (orders, birthday, renewal, mentoring/event).
+- **Notifikasi HP (016)**: `src/lib/push.ts` (web-push). VAPID keys are generated on first use and stored in `push_secrets` (service role only), so no env var is needed. Members enable it via `PushToggle` (dashboard card + Profile). iPhone needs Add to Home Screen + iOS 16.4+. Admin > Notifikasi: morning on/off + title, send now or schedule for a date's 07:00 run (audience all/Plus/free, province/regency), optional replace-morning. Send time is fixed at 07:00 WIB because Vercel Hobby allows one daily cron.
 - **Landing page** (`src/app/page.tsx`): funnel order: hero (CTA Cek Posisi) -> pains -> dream calculator lead magnet (`DreamCalc`, no login) -> philosophy -> 12 features -> SEF map -> 4-step journey -> testimonials (real only) -> pricing + table -> classes/mentoring -> nearest events (`public_events`, anon) -> affiliate -> kolaborasi form -> FAQ -> CTA.
 
 ## 6. Database migrations (run by Ridha in Supabase > SQL Editor)
@@ -198,7 +199,8 @@ Without the Supabase env variables, the app runs in **demo mode**: it shows samp
 | `011_manual_payment.sql` | ✅ run (plus a chat-only seed for bank accounts and admin WhatsApp) |
 | `012_finance.sql` (fin_transactions, fin_balances) | ✅ run 21 Nov 2026 |
 | `013_growth_pack.sql` (fin_products, affiliate + coupons, mentoring, events, habits, gratitude, certificates, community, new plan_features rows, new prices) | ✅ run 21 Nov 2026 |
-| `015_event_courses_articles.sql` (event Gathering Yogyakarta 1 Des 2026 13:00 WIB, 8 SEF courses / 44 reading lessons with literature references, articles + article_bodies + get_article RPC, 12 seed articles: 8 free, 4 Plus) | ⏳ given to Ridha 21 Nov 2026. Tested on local Postgres, idempotent. |
+| `016_push.sql` (push_subscriptions, push_secrets for auto-generated VAPID keys, push_broadcasts, push_morning settings, push_device_count) | ⏳ given to Ridha 21 Nov 2026. Tested on local Postgres. |
+| `015_event_courses_articles.sql` (event Gathering Yogyakarta 1 Des 2026 13:00 WIB, 8 SEF courses / 44 reading lessons with literature references, articles + article_bodies + get_article RPC, 12 seed articles: 8 free, 4 Plus) | ✅ run 21 Nov 2026 |
 | `014_journey_profile.sql` (3 free HPP products, profile birth_date/province/regency, birthday_promo, event regency/location, public_events, collab_inquiries + submit_inquiry) | ✅ run 21 Nov 2026 |
 
 New migrations go in `supabase/00N_*.sql`. Every migration must include explicit `GRANT` statements, because "Grant API access" was unchecked when the project was created.

@@ -63,7 +63,6 @@ export async function saveFeatures(_: FormState, formData: FormData): Promise<Fo
     ["affiliate_months", Math.min(120, Math.max(1, Number(String(formData.get("affiliate_months") ?? "").replace(/[^\d]/g, "")) || 12))],
     ["renewal_days", String(formData.get("renewal_days") ?? "7,3,1").replace(/[^\d,]/g, "").slice(0, 30) || "7,3,1"],
     ["wa_daily_max", Math.min(70, Math.max(1, Number(String(formData.get("wa_daily_max") ?? "").replace(/[^\d]/g, "")) || 40))],
-    ["wa_motivation", formData.get("wa_motivation") !== "false"],
     ["birthday_promo", String(formData.get("birthday_promo") ?? "").trim().slice(0, 300)],
     ["payment_mode", formData.get("payment_mode") === "auto" ? "auto" : "manual"],
     ["admin_whatsapp", String(formData.get("admin_whatsapp") ?? "").replace(/[^\d+]/g, "").slice(0, 20)],
@@ -107,4 +106,19 @@ export async function testWhatsapp(): Promise<FormState> {
   if (!wa) return { error: "Isi dulu No. WhatsApp admin di bawah, lalu simpan." };
   const ok = await sendWa(wa, "✅ Tes dari EClub: WhatsApp (Fonnte) sudah tersambung dengan benar.");
   return ok ? { message: "Pesan uji terkirim. Cek WhatsApp admin." } : { error: "Gagal mengirim. Periksa token Fonnte dan pastikan perangkat WA di Fonnte berstatus Connected." };
+}
+
+export async function adminSavePushSettings(_: FormState, formData: FormData): Promise<FormState> {
+  if (isDemoMode) return { error: "Mode demo: perubahan belum bisa disimpan." };
+  const supabase = await createClient();
+  const pairs: [string, unknown][] = [
+    ["push_morning", formData.get("push_morning") === "on"],
+    ["push_morning_title", String(formData.get("push_morning_title") ?? "").trim().slice(0, 60) || "Selamat pagi dari EClub ☀️"],
+  ];
+  for (const [skey, svalue] of pairs) {
+    const { error } = await supabase.rpc("admin_set_setting", { skey, svalue });
+    if (error) return { error: "Gagal menyimpan: " + error.message };
+  }
+  revalidatePath("/admin/notifikasi");
+  return { message: "Pengaturan notifikasi pagi tersimpan." };
 }
