@@ -96,18 +96,16 @@ export default async function LearnPage() {
       )}
       <div className="mt-8 grid gap-4 sm:grid-cols-2">
         {[
-          { icon: BookOpen, title: "Artikel EClub Insights", desc: "Bacaan singkat tentang pengembangan diri, karier, dan bisnis." },
-          { icon: Users, title: "Mentoring", desc: "Sesi bersama mentor untuk membahas rencana dan tantangan Anda." },
-        ].map(({ icon: Icon, title, desc }) => (
-          <div key={title} className="flex gap-4 rounded-2xl border border-dashed border-line p-5">
+          { icon: Users, title: "Mentoring 1-on-1", desc: "Bawa satu masalah usaha, pulang dengan langkah konkret.", href: "/mentoring" },
+          { icon: BookOpen, title: "Event & webinar", desc: "Belajar live bersama mentor dan sesama pelaku usaha.", href: "/event" },
+        ].map(({ icon: Icon, title, desc, href }) => (
+          <Link key={title} href={href} className="card flex gap-4 p-5 transition hover:border-gold">
             <Icon className="h-5 w-5 shrink-0 text-gold" />
             <div>
-              <p className="font-semibold text-heading">
-                {title} <span className="ml-1 rounded-full bg-paper px-2 py-0.5 text-[10px] font-semibold text-muted">Segera</span>
-              </p>
+              <p className="font-semibold text-heading">{title}</p>
               <p className="mt-1 text-sm text-muted">{desc}</p>
             </div>
-          </div>
+          </Link>
         ))}
       </div>
     </>

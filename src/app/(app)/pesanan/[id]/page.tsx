@@ -60,8 +60,8 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
           <CheckCircle2 className="mx-auto h-14 w-14 text-success" />
           <h1 className="mt-4 text-2xl font-bold text-heading">Pembayaran diterima</h1>
           <p className="mt-2 text-muted">{o.title} sudah aktif. Terima kasih!</p>
-          <Link href={o.product === "course" ? "/learn" : "/dashboard"} className="btn-primary mt-6">
-            {o.product === "course" ? "Mulai belajar" : "Ke dashboard"}
+          <Link href={o.product === "course" ? "/learn" : o.product === "mentoring" ? "/mentoring" : o.product === "event" ? "/event" : "/dashboard"} className="btn-primary mt-6">
+            {o.product === "course" ? "Mulai belajar" : o.product === "mentoring" ? "Lihat jadwal mentoring" : o.product === "event" ? "Lihat event" : "Ke dashboard"}
           </Link>
         </div>
       ) : status !== "pending" ? (

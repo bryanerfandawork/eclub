@@ -130,3 +130,48 @@ export async function notifyPayout(payoutId: string, event: "requested" | "proce
     console.error("notifyPayout", e);
   }
 }
+
+const wib = (iso: string) => new Date(iso).toLocaleString("id-ID", { weekday: "long", day: "numeric", month: "long", hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jakarta" }) + " WIB";
+
+/** Konfirmasi jadwal mentoring / event (gratis langsung, atau setelah lunas) ke member + admin. */
+export async function notifyScheduleConfirmed(kind: "mentoring" | "event", refId: string, userId?: string) {
+  try {
+    const admin = createAdminClient();
+    if (!admin || !waConfigured()) return;
+    let uid = userId;
+    if (!uid) {
+      const supa = await (await import("./supabase/server")).createClient();
+      uid = (await supa.auth.getUser()).data.user?.id;
+    }
+    if (!uid) return;
+    const { data: p } = await admin.from("profiles").select("full_name, whatsapp").eq("id", uid).maybeSingle();
+    const name = (p?.full_name || "Sahabat").split(" ")[0];
+    const { data: s } = await admin.from("app_settings").select("value").eq("key", "admin_whatsapp").maybeSingle();
+    const adminWa = normalizeWa(String((s?.value as string) ?? ""));
+    if (kind === "mentoring") {
+      const { data: slot } = await admin.from("mentoring_slots").select("mentor, starts_at, meet_link").eq("id", refId).maybeSingle();
+      if (!slot) return;
+      if (p?.whatsapp) await sendWa(p.whatsapp, `Halo ${name}, sesi mentoring Anda dengan *${slot.mentor}* terkonfirmasi ✅\n\n🗓️ ${wib(slot.starts_at)}\n${slot.meet_link ? `🔗 ${slot.meet_link}` : "Link meeting akan dikirim sebelum sesi."}\n\nDetail: ${SITE()}/mentoring`);
+      if (adminWa) await sendWa(adminWa, `📅 Booking mentoring: ${p?.full_name ?? "member"} · ${wib(slot.starts_at)}. Lihat ${SITE()}/admin/jadwal`);
+    } else {
+      const { data: e } = await admin.from("events").select("title, starts_at, meet_link").eq("id", refId).maybeSingle();
+      if (!e) return;
+      if (p?.whatsapp) await sendWa(p.whatsapp, `Halo ${name}, Anda terdaftar di *${e.title}* ✅\n\n🗓️ ${wib(e.starts_at)}\n${e.meet_link ? `🔗 ${e.meet_link}` : "Link akan dikirim sebelum acara."}\n\nDetail: ${SITE()}/event`);
+    }
+  } catch (e) {
+    console.error("notifyScheduleConfirmed", e);
+  }
+}
+
+/** Setelah pesanan mentoring/event lunas. */
+export async function notifyItemPaid(orderId: string) {
+  try {
+    const admin = createAdminClient();
+    if (!admin) return;
+    const { data: o } = await admin.from("orders").select("product, ref_id, user_id, status").eq("id", orderId).maybeSingle();
+    if (!o || o.status !== "paid" || !o.ref_id || (o.product !== "mentoring" && o.product !== "event")) return;
+    await notifyScheduleConfirmed(o.product, o.ref_id, o.user_id);
+  } catch (e) {
+    console.error("notifyItemPaid", e);
+  }
+}

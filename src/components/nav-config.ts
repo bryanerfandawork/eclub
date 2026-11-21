@@ -4,9 +4,9 @@ import {
   Radar,
   Heart,
   CalendarCheck2,
+  CalendarDays,
   Coins,
   PieChart,
-  Compass,
   Gem,
   Gift,
   GraduationCap,
@@ -18,7 +18,6 @@ import {
   User,
   Users,
   Wallet,
-  Wrench,
   type LucideIcon,
 } from "lucide-react";
 
@@ -40,12 +39,10 @@ export const sidebarNav: { section: string; items: NavItem[] }[] = [
       { label: "My Journey", href: "/journey", icon: Route },
       { label: "My Life", href: "/my-life", icon: Heart },
       { label: "Tes DISC", href: "/disc", icon: PieChart },
-      { label: "Personal Mapping", href: "/journey#discover", icon: Compass, soon: true },
       { label: "8 Wheel Entrepreneur", href: "/assessment/8-wheel-entrepreneur", icon: Radar },
       { label: "My Dreams", href: "/goals", icon: Gem },
       { label: "Daily Action", href: "/today", icon: CalendarCheck2 },
       { label: "Keuangan", href: "/keuangan", icon: Coins },
-      { label: "Revenue Streams", href: "/journey#choose", icon: Wallet, soon: true },
     ],
   },
   {
@@ -53,8 +50,8 @@ export const sidebarNav: { section: string; items: NavItem[] }[] = [
     items: [
       { label: "Learning Center", href: "/learn", icon: GraduationCap },
       { label: "Articles", href: "/learn#artikel", icon: Newspaper, soon: true },
-      { label: "My Tools", href: "/journey#tools", icon: Wrench, soon: true },
-      { label: "Mentoring", href: "/learn#mentoring", icon: Users, soon: true },
+      { label: "Mentoring", href: "/mentoring", icon: Users },
+      { label: "Event & Webinar", href: "/event", icon: CalendarDays },
     ],
   },
   {
