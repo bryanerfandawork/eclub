@@ -21,6 +21,7 @@ export type PlanKey = "free" | "plus";
 export const DEFAULT_FEATURES: PlanFeature[] = [
   { key: "dreams", label: "Dream Planner", description: "Jumlah mimpi yang bisa direncanakan", free_limit: 1, plus_limit: null, unit: "mimpi", enforced: true, sort: 10 },
   { key: "daily_action", label: "Daily Action", description: "Aksi harian & rangkaian konsisten", free_limit: null, plus_limit: null, unit: null, enforced: true, sort: 20 },
+  { key: "habits", label: "Habit tracker", description: "Jumlah kebiasaan yang dipantau", free_limit: 3, plus_limit: null, unit: "kebiasaan", enforced: true, sort: 25 },
   { key: "my_life", label: "My Life", description: "Definisi sukses, nilai, visi, dan dokumen hidup", free_limit: null, plus_limit: null, unit: null, enforced: true, sort: 30 },
   { key: "disc_report", label: "Laporan lengkap DISC", description: "Interpretasi mendalam, rekomendasi karier & bisnis", free_limit: 0, plus_limit: null, unit: null, enforced: true, sort: 45 },
   { key: "assessment_attempts", label: "8 Wheel Entrepreneur", description: "Jumlah tes dalam 3 bulan", free_limit: 1, plus_limit: null, unit: "kali / 3 bulan", enforced: true, sort: 50 },

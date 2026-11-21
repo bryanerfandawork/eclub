@@ -449,3 +449,42 @@ end;
 $$;
 drop trigger if exists orders_fulfill_items on public.orders;
 create trigger orders_fulfill_items after update of status on public.orders for each row execute function public.orders_fulfill_items();
+
+-- ============ 6. Habit tracker & jurnal syukur ============
+create table if not exists public.habits (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users (id) on delete cascade default auth.uid(),
+  name text not null check (char_length(name) between 1 and 60),
+  emoji text not null default '✅',
+  archived boolean not null default false,
+  created_at timestamptz not null default now()
+);
+create table if not exists public.habit_logs (
+  habit_id uuid not null references public.habits (id) on delete cascade,
+  user_id uuid not null references auth.users (id) on delete cascade default auth.uid(),
+  log_date date not null,
+  primary key (habit_id, log_date)
+);
+create table if not exists public.gratitude_entries (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users (id) on delete cascade default auth.uid(),
+  entry_date date not null default (now() at time zone 'Asia/Jakarta')::date,
+  items text[] not null default '{}',
+  mood smallint check (mood between 1 and 5),
+  created_at timestamptz not null default now(),
+  unique (user_id, entry_date)
+);
+alter table public.habits enable row level security;
+alter table public.habit_logs enable row level security;
+alter table public.gratitude_entries enable row level security;
+drop policy if exists "habit milik sendiri" on public.habits;
+create policy "habit milik sendiri" on public.habits for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+drop policy if exists "log habit milik sendiri" on public.habit_logs;
+create policy "log habit milik sendiri" on public.habit_logs for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+drop policy if exists "syukur milik sendiri" on public.gratitude_entries;
+create policy "syukur milik sendiri" on public.gratitude_entries for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+grant select, insert, update, delete on public.habits, public.habit_logs, public.gratitude_entries to authenticated;
+
+insert into public.plan_features (key, label, description, free_limit, plus_limit, unit, enforced, sort)
+values ('habits', 'Habit tracker', 'Jumlah kebiasaan yang dipantau', 3, null, 'kebiasaan', true, 25)
+on conflict (key) do nothing;

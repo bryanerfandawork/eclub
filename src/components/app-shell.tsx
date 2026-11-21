@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
-import { Crown, LogOut, ShieldCheck, Sparkles } from "lucide-react";
+import { Crown, LayoutGrid, LogOut, ShieldCheck, Sparkles, X } from "lucide-react";
 import { PlanBadge } from "./plan-badge";
 import { InstallPrompt } from "./install-prompt";
 import { AiChat } from "./ai-chat";
@@ -34,6 +34,7 @@ export function AppShell({
 }) {
   const pathname = usePathname();
   const [aiOpen, setAiOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
   const initials = name
     .split(" ")
     .map((w) => w[0])
@@ -126,14 +127,67 @@ export function AppShell({
         <Link href="/dashboard">
           <Logo />
         </Link>
-        <Link
-          href="/profile"
-          className="grid h-9 w-9 place-items-center rounded-full bg-gold-soft text-xs font-bold text-heading"
-          aria-label="Profil"
-        >
-          {initials || "E"}
-        </Link>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setMenuOpen(true)}
+            className="flex h-9 items-center gap-1.5 rounded-full border border-line bg-white px-3 text-xs font-semibold text-heading"
+            aria-label="Semua menu"
+          >
+            <LayoutGrid className="h-4 w-4 text-brand" /> Menu
+          </button>
+          <Link href="/profile" className="grid h-9 w-9 place-items-center rounded-full bg-gold-soft text-xs font-bold text-heading" aria-label="Profil">
+            {initials || "E"}
+          </Link>
+        </div>
       </header>
+
+      {menuOpen && (
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-paper px-5 pt-4 pb-28 lg:hidden">
+          <div className="flex items-center justify-between">
+            <Logo />
+            <button type="button" onClick={() => setMenuOpen(false)} className="grid h-10 w-10 place-items-center rounded-full bg-white text-heading shadow-soft" aria-label="Tutup menu">
+              <X className="h-5 w-5" />
+            </button>
+          </div>
+          {sidebarNav.map((group) => (
+            <div key={group.section} className="mt-6">
+              <p className="eyebrow mb-2">{group.section}</p>
+              <div className="grid grid-cols-3 gap-2.5">
+                {group.items
+                  .filter((i) => !i.soon)
+                  .map((item) => {
+                    const Icon = item.icon;
+                    const active = isActive(pathname, item.href);
+                    return (
+                      <Link
+                        key={item.label}
+                        href={item.href}
+                        onClick={() => setMenuOpen(false)}
+                        className={`flex flex-col items-center gap-2 rounded-2xl border p-3 text-center transition active:scale-95 ${active ? "border-brand bg-brand text-white" : "border-line bg-white"}`}
+                      >
+                        <Icon className={`h-6 w-6 ${active ? "text-gold" : "text-brand"}`} strokeWidth={1.8} />
+                        <span className={`text-[11px] leading-tight font-semibold ${active ? "text-white" : "text-heading"}`}>{item.label}</span>
+                      </Link>
+                    );
+                  })}
+              </div>
+            </div>
+          ))}
+          <div className="mt-6 grid grid-cols-2 gap-2.5">
+            {plan === "free" && (
+              <Link href="/paket" onClick={() => setMenuOpen(false)} className="btn-gold">
+                <Crown className="h-4 w-4" /> Upgrade ke Plus
+              </Link>
+            )}
+            {admin && (
+              <Link href="/admin" onClick={() => setMenuOpen(false)} className="btn-ghost">
+                <ShieldCheck className="h-4 w-4" /> Panel Admin
+              </Link>
+            )}
+          </div>
+        </div>
+      )}
 
       {demo && (
         <div className="print:hidden border-b border-gold/30 bg-gold-soft px-5 py-2 text-center text-xs font-medium text-heading">
