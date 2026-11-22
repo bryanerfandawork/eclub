@@ -10,6 +10,7 @@ export function PublicShell({ children }: { children: React.ReactNode }) {
             <Logo />
           </Link>
           <nav className="flex items-center gap-2">
+            <Link href="/kelas" className="btn hidden text-heading hover:bg-white md:inline-flex">Kelas</Link>
             <Link href="/artikel" className="btn hidden text-heading hover:bg-white sm:inline-flex">Artikel</Link>
             <Link href="/masuk" className="btn text-heading hover:bg-white">Masuk</Link>
             <Link href="/daftar" className="btn-primary">Daftar gratis</Link>
@@ -20,6 +21,9 @@ export function PublicShell({ children }: { children: React.ReactNode }) {
       <footer className="border-t border-line bg-white py-8 text-center text-sm text-muted">
         <div className="flex flex-wrap justify-center gap-x-5 gap-y-2">
           <Link href="/artikel" className="hover:text-brand">Artikel</Link>
+          <Link href="/kelas" className="hover:text-brand">Kelas</Link>
+          <Link href="/acara" className="hover:text-brand">Event</Link>
+          <Link href="/syarat-affiliate" className="hover:text-brand">Program Affiliate</Link>
           <Link href="/kebijakan-privasi" className="hover:text-brand">Kebijakan Privasi</Link>
           <Link href="/syarat-ketentuan" className="hover:text-brand">Syarat & Ketentuan</Link>
         </div>

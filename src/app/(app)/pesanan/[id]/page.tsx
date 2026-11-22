@@ -70,6 +70,11 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
           <Link href={o.product === "course" ? "/learn" : o.product === "mentoring" ? "/mentoring" : o.product === "event" ? "/event" : "/dashboard"} className="btn-primary mt-6">
             {o.product === "course" ? "Mulai belajar" : o.product === "mentoring" ? "Lihat jadwal mentoring" : o.product === "event" ? "Lihat event" : "Ke dashboard"}
           </Link>
+          {o.product.startsWith("plus") && (
+            <Link href="/affiliate" className="mt-5 block rounded-xl bg-gold-soft p-4 text-left text-sm text-heading hover:brightness-95">
+              🎁 <b>Bonus untuk member Plus:</b> sekarang Anda punya link & kode kupon pribadi. Ajak teman dan dapatkan komisi dari setiap pembelian mereka. <span className="font-semibold text-brand">Lihat kode saya ›</span>
+            </Link>
+          )}
         </div>
       ) : status !== "pending" ? (
         <div className="card p-8 text-center">

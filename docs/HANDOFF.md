@@ -197,11 +197,12 @@ After changing env variables, **Redeploy** in Vercel.
 - **Admin > Pengguna (22 Nov)**: search (name/email/WA), sort (newest, oldest, recently active, longest inactive, name, email, Plus first), pages of 50, "last active" (greatest of `last_seen_at` and last sign-in) with a green/gold/grey dot, Excel export (`/api/admin/users-export`, exceljs, follows search + sort), and **delete account** (super admin only, type the email to confirm, cannot delete self or another super admin; uses `auth.admin.deleteUser`, which cascades all the member's data including orders). Falls back to the old list until SQL 018 is run.
 - **Evening pushes (22 Nov)**: `/api/cron/evening` at 19:00 WIB. Active 0-2 days and no daily action done today: rotating line from `EVENING` in `src/lib/nudges.ts` (50 lines). Inactive exactly 3, 5, 7, 14, 21, 30 days (then every 30 days up to 180): `WINBACK` lines. Max one evening push per person. Toggles `push_evening`, `push_winback` in Admin > Notifikasi.
 - **Learn + Home (22 Nov)**: `/learn` opens with jump chips and swipeable rails (`src/components/rail.tsx`): Kelas SEF (sorted by step, locked ones greyed), Artikel, Event & webinar, Mentoring slots, then the full SEF course map below (`#peta`). Dashboard shows the nearest upcoming event card right under the greeting.
+- **Affiliate journey (22 Nov)**: public preview pages `/kelas`, `/kelas/[slug]`, `/acara`, `/mentoring-1on1` (PublicShell, `JoinCta` with sticky mobile bar; events/slots read via service role with safe columns only). Middleware: guests on `/learn*`, `/event`, `/mentoring` are redirected to the preview twin, members on a preview URL go to the app twin; other protected pages go to `/masuk?next=`; `?next=` on `/masuk` or `/daftar` is stored in cookie `eclub_next` (1 day) and used after sign-in and at the end of onboarding (`/lengkapi`, `/aktifkan-notifikasi`); `?ref=` cookie is now also kept on redirects. Sharing: `ShareEarn` box (Plus: copy/WA link with `?ref=`, free: CTA) on course, event, article pages; "Link siap bagikan" picker on `/affiliate`; dashboard affiliate card; Plus purchase success CTA; nav label "Ajak Teman · Komisi". Terms at `/syarat-affiliate` (numbers from settings).
 - **Auth extras**: forgot password (`/lupa-sandi`) and set new password (`/atur-sandi`).
 
 ## 6. Database migrations (run by Ridha in Supabase > SQL Editor)
 
-All files are in `supabase/`. **Everything is run except `008_ai_companion.sql` and `018_blasting_users.sql`.**
+All files are in `supabase/`. **Everything is run except `008_ai_companion.sql` and `018_blasting_users.sql` and `019_lesson_content_lock.sql`.**
 
 | File | Content | Status |
 |---|---|---|
@@ -222,6 +223,7 @@ All files are in `supabase/`. **Everything is run except `008_ai_companion.sql` 
 | `015_event_courses_articles.sql` | Gathering event, 8 courses/44 lessons, articles | ✅ |
 | `016_push.sql` | push subscriptions/secrets/broadcasts | ✅ |
 | `017_service_role_grants.sql` | grants for service_role + default privileges | ✅ |
+| `019_lesson_content_lock.sql` | locks `lessons.content` (paid reading material was readable via the public API); content now only via `lesson_content(lid)` RPC (staff or `can_watch`). App falls back to the old direct read until it is run. | ⏳ **not run yet** (added 22 Nov) |
 | `018_blasting_users.sql` | `blasts` history, `profiles.email_opt_out`, RPCs `admin_blast_features/feature_users/tests/courses`; `profiles.last_seen_at` + `touch_last_seen()` (called by the app layout), `admin_users(search, sort, dir, lim, off)` | ⏳ **not run yet** (added 22 Nov) |
 
 New migrations go in `supabase/018_*.sql` and onward. Every migration must include explicit `GRANT` statements (to `authenticated`, `anon` where needed, and `service_role`), because "Grant API access" was unchecked when the project was created. Seed inserts should be idempotent (`on conflict do nothing`).

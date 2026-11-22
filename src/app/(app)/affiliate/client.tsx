@@ -64,3 +64,48 @@ export function PayoutForm({ available }: { available: number }) {
     </form>
   );
 }
+
+export type ShareOption = { group: string; label: string; url: string; text: string };
+
+/** Pilih apa yang mau dibagikan (beranda, kelas tertentu, event, artikel), lalu salin/kirim link-nya. */
+export function LinkPicker({ options }: { options: ShareOption[] }) {
+  const [i, setI] = useState(0);
+  const [copied, setCopied] = useState(false);
+  const o = options[i];
+  if (!o) return null;
+  const groups = [...new Set(options.map((x) => x.group))];
+  return (
+    <div>
+      <select value={i} onChange={(e) => setI(Number(e.target.value))} className="input w-full min-w-0 truncate">
+        {groups.map((g) => (
+          <optgroup key={g} label={g}>
+            {options.map((x, k) =>
+              x.group === g ? (
+                <option key={k} value={k}>
+                  {x.label}
+                </option>
+              ) : null,
+            )}
+          </optgroup>
+        ))}
+      </select>
+      <p className="mt-2 truncate rounded-lg bg-paper px-3 py-2 font-mono text-xs text-muted">{o.url.replace(/^https?:\/\//, "")}</p>
+      <div className="mt-3 flex flex-wrap gap-2">
+        <button
+          type="button"
+          onClick={async () => {
+            await navigator.clipboard.writeText(o.url).catch(() => {});
+            setCopied(true);
+            setTimeout(() => setCopied(false), 1800);
+          }}
+          className="btn-primary"
+        >
+          {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />} {copied ? "Link tersalin" : "Salin link"}
+        </button>
+        <a href={`https://wa.me/?text=${encodeURIComponent(`${o.text}\n${o.url}`)}`} target="_blank" rel="noopener noreferrer" className="btn bg-[#25D366] text-white hover:brightness-95">
+          Kirim ke WhatsApp
+        </a>
+      </div>
+    </div>
+  );
+}

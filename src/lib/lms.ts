@@ -79,6 +79,18 @@ export async function listCourses(includeDrafts = false): Promise<Course[]> {
   return (data ?? []) as Course[];
 }
 
+export const LESSON_COLS = "id, course_id, title, summary, duration_min, access, sort, created_at";
+
+/** Isi materi bacaan, hanya untuk yang berhak (SQL 019). Sebelum SQL 019 dijalankan, membaca langsung. */
+export async function getLessonContent(lessonId: string): Promise<string | null> {
+  if (isDemoMode) return null;
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("lesson_content", { lid: lessonId });
+  if (!error) return (data as string | null) ?? null;
+  const { data: row } = await supabase.from("lessons").select("content").eq("id", lessonId).maybeSingle();
+  return (row?.content as string | null) ?? null;
+}
+
 export async function getCourseBySlug(slug: string) {
   if (isDemoMode) {
     if (slug !== demoCourse.slug) return null;
@@ -87,7 +99,8 @@ export async function getCourseBySlug(slug: string) {
   const supabase = await createClient();
   const { data: course } = await supabase.from("courses").select("*").eq("slug", slug).maybeSingle();
   if (!course) return null;
-  const { data: lessons } = await supabase.from("lessons").select("*").eq("course_id", course.id).order("sort").order("created_at");
+  // Isi materi (content) tidak diambil di sini: hanya lewat getLessonContent() untuk yang berhak.
+  const { data: lessons } = await supabase.from("lessons").select(LESSON_COLS).eq("course_id", course.id).order("sort").order("created_at");
   const ids = (lessons ?? []).map((l) => l.id);
   const [{ data: vids }, { data: prog }] = await Promise.all([
     ids.length ? supabase.from("lesson_videos").select("lesson_id").in("lesson_id", ids) : Promise.resolve({ data: [] as { lesson_id: string }[] }),
@@ -102,7 +115,7 @@ export async function getCourseBySlug(slug: string) {
   }
   return {
     course: course as Course,
-    lessons: (lessons ?? []) as Lesson[],
+    lessons: (lessons ?? []).map((l) => ({ ...l, content: null })) as Lesson[],
     watchable,
     done: new Set((prog ?? []).map((p) => p.lesson_id)),
   };

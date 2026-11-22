@@ -543,6 +543,10 @@ export default async function Home() {
               <p className="mt-4 text-[17px] leading-relaxed text-muted">
                 Setiap member Plus otomatis punya link dan kode kupon pribadi. Teman Anda hemat {couponOff}%, Anda mendapat {rate}% dari setiap paket, kelas, atau mentoring yang mereka beli. Saldo bisa dicairkan setiap kelipatan Rp100.000.
               </p>
+              <div className="mt-6 flex flex-wrap items-center gap-4">
+                <Link href="/daftar" className="btn-primary">Daftar & mulai</Link>
+                <Link href="/syarat-affiliate" className="text-sm font-semibold text-brand hover:underline">Baca syarat program affiliate ›</Link>
+              </div>
             </div>
             <ul className="space-y-3">
               {[
@@ -624,6 +628,9 @@ export default async function Home() {
             <a href="#paket" className="hover:text-brand">Paket</a>
             <a href="#kolaborasi" className="hover:text-brand">Kolaborasi</a>
             <Link href="/artikel" className="hover:text-brand">Artikel</Link>
+            <Link href="/kelas" className="hover:text-brand">Kelas</Link>
+            <Link href="/acara" className="hover:text-brand">Event</Link>
+            <Link href="/syarat-affiliate" className="hover:text-brand">Program Affiliate</Link>
             <Link href="/cek-sertifikat" className="hover:text-brand">Cek sertifikat</Link>
             <Link href="/kebijakan-privasi" className="hover:text-brand">Privasi</Link>
             <Link href="/syarat-ketentuan" className="hover:text-brand">Syarat & Ketentuan</Link>

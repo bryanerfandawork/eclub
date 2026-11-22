@@ -6,6 +6,7 @@ import { ProgressBar } from "@/components/ui";
 import { ACCESS_LABEL, getCourseBySlug, sefLockedStep } from "@/lib/lms";
 import { getAccount } from "@/lib/plans";
 import { rupiah } from "@/lib/format";
+import { ShareEarn } from "@/components/share-earn";
 
 export default async function CoursePage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
@@ -42,6 +43,7 @@ export default async function CoursePage({ params }: { params: Promise<{ slug: s
           </div>
         </div>
         <aside className="space-y-5 lg:col-span-2">
+          <ShareEarn path={`/kelas/${c.slug}`} text={`Kelas ini bagus banget: *${c.title}*. Lihat dulu isinya di EClub:`} what="kelas ini" />
           <section className="card p-5">
             <div className="flex items-center justify-between text-sm">
               <span className="font-bold text-heading">{lessons.length} lesson</span>

@@ -22,7 +22,10 @@ export async function signIn(_: FormState, formData: FormData): Promise<FormStat
       return { error: "Email belum dikonfirmasi. Cek kotak masuk email Anda." };
     return { error: "Email atau kata sandi salah." };
   }
-  redirect("/dashboard");
+  const jar = await cookies();
+  const next = jar.get("eclub_next")?.value;
+  if (next) jar.delete("eclub_next");
+  redirect(next && next.startsWith("/") && !next.startsWith("//") ? next : "/dashboard");
 }
 
 export async function signUp(_: FormState, formData: FormData): Promise<FormState> {

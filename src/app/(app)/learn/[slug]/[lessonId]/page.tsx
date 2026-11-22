@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { ArrowLeft, ArrowRight, CheckCircle2, ChevronLeft, Lock, PlayCircle } from "lucide-react";
 import { toggleLessonDone } from "@/app/actions/lms";
 import { SubmitButton } from "@/components/submit-button";
-import { getCourseBySlug, getLessonVideo, sefLockedStep } from "@/lib/lms";
+import { getCourseBySlug, getLessonContent, getLessonVideo, sefLockedStep } from "@/lib/lms";
 import { getAccount } from "@/lib/plans";
 
 export default async function LessonPage({ params }: { params: Promise<{ slug: string; lessonId: string }> }) {
@@ -17,7 +17,7 @@ export default async function LessonPage({ params }: { params: Promise<{ slug: s
   const account = await getAccount();
   const sefBlock = await sefLockedStep(c, account.role === "admin" || account.role === "super_admin");
   const canWatch = !sefBlock && watchable.has(lesson.id);
-  const vid = canWatch ? await getLessonVideo(lesson.id) : null;
+  const [vid, content] = canWatch ? await Promise.all([getLessonVideo(lesson.id), getLessonContent(lesson.id)]) : [null, null];
   const prev = lessons[idx - 1];
   const next = lessons[idx + 1];
   const isDone = done.has(lesson.id);
@@ -85,7 +85,7 @@ export default async function LessonPage({ params }: { params: Promise<{ slug: s
         )}
       </div>
 
-      {canWatch && lesson.content && <article className="card mt-6 p-6 leading-relaxed whitespace-pre-line text-ink">{lesson.content}</article>}
+      {canWatch && (content ?? lesson.content) && <article className="card mt-6 p-6 leading-relaxed whitespace-pre-line text-ink">{content ?? lesson.content}</article>}
 
       <nav className="mt-8 flex justify-between gap-3">
         {prev ? (

@@ -1,3 +1,4 @@
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { getAssessmentResults, getProfile } from "@/lib/data";
 import { PLACEMENT_KEY } from "@/lib/placement";
@@ -15,7 +16,8 @@ export default async function OnboardingPage() {
     getProfile(),
     getAssessmentResults(PLACEMENT_KEY, 1),
   ]);
-  const next = placed.length ? "/dashboard" : "/posisi";
+  const saved = (await cookies()).get("eclub_next")?.value;
+  const next = saved && saved.startsWith("/") && !saved.startsWith("//") ? saved : placed.length ? "/dashboard" : "/posisi";
   let init = { whatsapp: "", birth_date: "", province: "", regency: "" };
   if (!isDemoMode) {
     const supabase = await createClient();

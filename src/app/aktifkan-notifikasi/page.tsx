@@ -1,3 +1,4 @@
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { getAssessmentResults, getProfile } from "@/lib/data";
 import { PLACEMENT_KEY } from "@/lib/placement";
@@ -13,7 +14,8 @@ export const metadata = { title: "Aktifkan penyemangat pagi" };
 
 export default async function EnablePushPage() {
   const [profile, placed, vapid] = await Promise.all([getProfile(), getAssessmentResults(PLACEMENT_KEY, 1), isDemoMode ? null : getVapidPublicKey()]);
-  const next = placed.length ? "/dashboard" : "/posisi";
+  const saved = (await cookies()).get("eclub_next")?.value;
+  const next = saved && saved.startsWith("/") && !saved.startsWith("//") ? saved : placed.length ? "/dashboard" : "/posisi";
   if (!isDemoMode) {
     const supabase = await createClient();
     const { count } = await supabase.from("push_subscriptions").select("id", { count: "exact", head: true }).eq("user_id", profile.id);

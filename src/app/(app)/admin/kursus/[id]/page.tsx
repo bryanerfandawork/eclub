@@ -5,6 +5,7 @@ import { deleteCourse } from "@/app/actions/lms";
 import { getCourseVideos, listCourses } from "@/lib/lms";
 import { isDemoMode } from "@/lib/supabase/config";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import type { Lesson } from "@/lib/lms";
 import { CourseForm } from "../course-form";
 import { GrantForm, LessonForm } from "./lesson-form";
@@ -15,8 +16,9 @@ export default async function AdminCourseEdit({ params }: { params: Promise<{ id
   if (!course) notFound();
   let lessons: Lesson[] = [];
   if (!isDemoMode) {
-    const supabase = await createClient();
-    const { data } = await supabase.from("lessons").select("*").eq("course_id", id).order("sort").order("created_at");
+    // Service role: admin perlu isi materi lengkap (kolom content dikunci untuk pengguna biasa sejak SQL 019).
+    const db = createAdminClient() ?? (await createClient());
+    const { data } = await db.from("lessons").select("*").eq("course_id", id).order("sort").order("created_at");
     lessons = (data ?? []) as Lesson[];
   }
   const videos = await getCourseVideos(lessons.map((l) => l.id));

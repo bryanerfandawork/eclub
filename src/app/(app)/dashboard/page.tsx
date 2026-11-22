@@ -15,6 +15,9 @@ import { motivationOfDay } from "@/lib/motivation";
 import { getVapidPublicKey } from "@/lib/push";
 import { PushToggle } from "@/components/push-toggle";
 import { getEvents } from "@/lib/schedule";
+import { myShare, refUrl } from "@/lib/share";
+import { ShareRef } from "@/components/share-ref";
+import { Gift } from "lucide-react";
 import { getAccount } from "@/lib/plans";
 import { regencyName } from "@/lib/regions";
 
@@ -30,7 +33,7 @@ export default async function DashboardPage() {
     getProgressStats(),
   ]);
   const [ew, placed, disc] = await Promise.all([getAssessmentResults("8-wheel-entrepreneur", 1), getAssessmentResults(PLACEMENT_KEY, 1), getDiscResult()]);
-  const [fin, vapid, events, account] = await Promise.all([getFinance(today.slice(0, 7)), isDemoMode ? null : getVapidPublicKey(), getEvents(), getAccount()]);
+  const [fin, vapid, events, account, share] = await Promise.all([getFinance(today.slice(0, 7)), isDemoMode ? null : getVapidPublicKey(), getEvents(), getAccount(), myShare()]);
   const nowMs = Date.now();
   const nextEvent = (events ?? []).filter((e) => new Date(e.starts_at).getTime() + e.duration_min * 60_000 > nowMs).sort((a, b) => a.starts_at.localeCompare(b.starts_at))[0];
   const eventDays = nextEvent ? Math.round((new Date(new Date(nextEvent.starts_at).toLocaleDateString("en-CA", { timeZone: "Asia/Jakarta" })).getTime() - new Date(today).getTime()) / 86_400_000) : 0;
@@ -336,6 +339,32 @@ export default async function DashboardPage() {
           </Link>
         )}
       </div>
+
+      {share.eligible && share.code ? (
+        <section className="relative overflow-hidden rounded-2xl border border-gold/50 bg-gold-soft/50 p-5 lg:p-6">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-center">
+            <div className="flex-1">
+              <p className="flex items-center gap-2 font-bold text-heading">
+                <Gift className="h-5 w-5 text-brand" /> Ajak teman, dapat komisi {share.rate}%
+              </p>
+              <p className="mt-1 text-sm text-ink">
+                Kode Anda <b className="tracking-wider">{share.code}</b>. Teman hemat {share.discount}%, Anda dapat {share.rate}% dari setiap pembelian mereka.{" "}
+                <Link href="/affiliate" className="font-semibold text-brand">Link kelas & event ›</Link>
+              </p>
+            </div>
+            <ShareRef url={refUrl("/", share.code)} text={`Aku pakai EClub buat menata mimpi, keuangan, dan belajar bisnis step by step. Coba gratis ya. Pakai kode *${share.code}* biar hemat ${share.discount}% kalau upgrade:`} compact />
+          </div>
+        </section>
+      ) : (
+        <Link href="/affiliate" className="flex items-center gap-4 rounded-2xl border border-dashed border-gold/60 p-5 transition hover:bg-gold-soft/40">
+          <Gift className="h-6 w-6 shrink-0 text-brand" />
+          <span className="flex-1 text-sm">
+            <b className="block text-heading">Dapat penghasilan dari EClub</b>
+            <span className="text-muted">Member Plus mendapat komisi {share.rate}% setiap teman yang bergabung lewat link mereka.</span>
+          </span>
+          <ArrowRight className="h-5 w-5 shrink-0 text-brand" />
+        </Link>
+      )}
     </div>
   );
 }

@@ -5,7 +5,9 @@ import { PageHeader } from "@/components/ui";
 import { getAffiliate, PRODUCT_LABEL } from "@/lib/affiliate";
 import { rupiah, tanggal } from "@/lib/format";
 import { getAccount, getSettings, isAdmin } from "@/lib/plans";
-import { PayoutForm, ShareLink } from "./client";
+import { LinkPicker, PayoutForm, ShareLink, type ShareOption } from "./client";
+import { listCourses } from "@/lib/lms";
+import { listArticles } from "@/lib/articles";
 
 export const metadata = { title: "Affiliate" };
 
@@ -24,8 +26,20 @@ export default async function AffiliatePage() {
   const eligible = acc.plan === "plus" || isAdmin(acc.role);
   const yearly = Number(s.plus_price_yearly) || 0;
   const aff = await getAffiliate();
+  const [courses, articles] = eligible ? await Promise.all([listCourses(), listArticles().catch(() => [])]) : [[], []];
   const h = await headers();
   const origin = process.env.NEXT_PUBLIC_SITE_URL ?? `${h.get("x-forwarded-proto") ?? "https"}://${h.get("host")}`;
+
+  const shareOptions: ShareOption[] = aff
+    ? [
+        { group: "Umum", label: "Beranda EClub (ajak coba gratis)", url: `${origin}/?ref=${aff.code}`, text: `Aku pakai EClub buat menata mimpi, keuangan, dan belajar bisnis step by step. Coba gratis ya. Pakai kode *${aff.code}* biar hemat ${disc}% kalau upgrade:` },
+        { group: "Umum", label: "Semua kelas", url: `${origin}/kelas?ref=${aff.code}`, text: `Kelas bisnis berjenjang dari EClub, bisa dilihat dulu isinya. Kode hemat ${disc}%: *${aff.code}*` },
+        { group: "Umum", label: "Event & webinar", url: `${origin}/acara?ref=${aff.code}`, text: `Ada event EClub nih, yuk ikut bareng. Kode hemat ${disc}%: *${aff.code}*` },
+        { group: "Umum", label: "Mentoring 1-on-1", url: `${origin}/mentoring-1on1?ref=${aff.code}`, text: `Lagi buntu soal usaha? Coba mentoring 1-on-1 di EClub. Kode hemat ${disc}%: *${aff.code}*` },
+        ...courses.map((c) => ({ group: "Kelas", label: c.title, url: `${origin}/kelas/${c.slug}?ref=${aff.code}`, text: `Kelas ini bagus banget: *${c.title}*. Lihat dulu isinya, pakai kode *${aff.code}* biar hemat ${disc}%:` })),
+        ...articles.slice(0, 15).map((a) => ({ group: "Artikel", label: a.title, url: `${origin}/artikel/${a.slug}?ref=${aff.code}`, text: `Baca deh artikel ini: *${a.title}*` })),
+      ]
+    : [];
 
   const how = [
     { icon: Gift, t: "Bagikan link Anda", d: "Ke teman, grup WhatsApp, atau media sosial." },
@@ -45,9 +59,14 @@ export default async function AffiliatePage() {
             <p className="mt-1 max-w-lg text-sm text-white/75">
               Member Plus mendapat link affiliate pribadi. Contoh: 1 teman ambil Plus tahunan {rupiah(yearly)}, Anda dapat {rupiah(Math.floor((yearly * rate) / 100))}. Ajak 5 teman, langganan Anda sudah terbayar kembali.
             </p>
-            <Link href="/beli/plus" className="btn-gold mt-5">
-              Upgrade ke Plus
-            </Link>
+            <div className="mt-5 flex flex-wrap items-center gap-3">
+              <Link href="/beli/plus" className="btn-gold">
+                Upgrade ke Plus & mulai dapat komisi
+              </Link>
+              <Link href="/syarat-affiliate" className="text-sm font-semibold text-white/80 underline-offset-2 hover:underline">
+                Baca syarat program
+              </Link>
+            </div>
           </div>
           <div className="grid gap-4 p-6 sm:grid-cols-3">
             {how.map((x) => (
@@ -63,7 +82,7 @@ export default async function AffiliatePage() {
         <div className="card p-6 text-sm text-muted">Fitur affiliate sedang disiapkan. Coba lagi sebentar lagi.</div>
       ) : (
         <div className="grid gap-5 lg:grid-cols-5 lg:gap-6">
-          <div className="space-y-5 lg:col-span-2">
+          <div className="min-w-0 space-y-5 lg:col-span-2">
             <section className="relative overflow-hidden rounded-2xl bg-brand p-6 text-white shadow-lift">
               <div className="pointer-events-none absolute -top-16 -right-12 h-48 w-48 rounded-full bg-gold/25 blur-3xl" />
               <p className="text-xs font-semibold text-gold">Link affiliate Anda</p>
@@ -80,6 +99,11 @@ export default async function AffiliatePage() {
               </p>
             </section>
             <section className="card p-5">
+              <h3 className="font-bold text-heading">🔗 Link siap bagikan</h3>
+              <p className="mt-0.5 mb-3 text-sm text-muted">Mau promosikan kelas, event, atau artikel tertentu? Pilih di sini. Semua link sudah berisi kode Anda, dan teman bisa melihat isinya dulu tanpa harus login.</p>
+              <LinkPicker options={shareOptions} />
+            </section>
+            <section className="card p-5">
               <h3 className="font-bold text-heading">Cara kerjanya</h3>
               <ol className="mt-3 space-y-3">
                 {how.map((x, i) => (
@@ -92,11 +116,14 @@ export default async function AffiliatePage() {
                   </li>
                 ))}
               </ol>
-              <p className="mt-4 text-xs text-muted">Komisi dihitung dari harga produk (tanpa kode unik). Komisi baru tercatat selama status Plus Anda aktif. Mengajak diri sendiri tidak dihitung.</p>
+              <p className="mt-4 text-xs text-muted">
+                Komisi dihitung dari harga yang dibayar teman (tanpa kode unik), selama status Plus Anda aktif. Mengajak diri sendiri tidak dihitung.{" "}
+                <Link href="/syarat-affiliate" className="font-semibold text-brand">Baca syarat lengkap ›</Link>
+              </p>
             </section>
           </div>
 
-          <div className="space-y-5 lg:col-span-3">
+          <div className="min-w-0 space-y-5 lg:col-span-3">
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
               {[
                 { l: "Teman bergabung", v: String(aff.referrals) },

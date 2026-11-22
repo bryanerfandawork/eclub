@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { ArrowRight, ChevronLeft, Crown, Lock } from "lucide-react";
 import { getArticle, listArticles } from "@/lib/articles";
 import { ArticleBody } from "@/components/article-body";
+import { ShareEarn } from "@/components/share-earn";
 
 export const dynamic = "force-dynamic";
 
@@ -51,12 +52,15 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
           <ArticleBody text={a.body} />
         )}
       </div>
+      <div className="mt-8">
+        <ShareEarn path={`/artikel/${a.slug}`} text={`Baca deh artikel ini: *${a.title}*`} what="artikel ini" />
+      </div>
       <div className="card mt-10 flex flex-col items-start gap-3 p-6 sm:flex-row sm:items-center">
         <div className="flex-1">
           <p className="font-bold text-heading">Ubah bacaan jadi langkah nyata</p>
           <p className="mt-1 text-sm text-muted">Cek posisi Anda di peta SEF dan hitung target jualan harian, gratis.</p>
         </div>
-        <Link href="/daftar" className="btn-primary">
+        <Link href={`/daftar?next=${encodeURIComponent("/dashboard")}`} className="btn-primary">
           Mulai gratis <ArrowRight className="h-4 w-4" />
         </Link>
       </div>

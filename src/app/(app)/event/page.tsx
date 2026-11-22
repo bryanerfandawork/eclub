@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { CalendarDays, PlayCircle, Users, Video } from "lucide-react";
 import { PageHeader } from "@/components/ui";
+import { ShareEarn } from "@/components/share-earn";
 import { rupiah } from "@/lib/format";
 import { getAccount } from "@/lib/plans";
 import { getEvents, jam } from "@/lib/schedule";
@@ -29,6 +30,11 @@ export default async function EventPage() {
   return (
     <>
       <PageHeader eyebrow="Event & webinar" title="Belajar bareng, live" desc="Sesi langsung bersama mentor dan sesama pelaku usaha. Daftar sekali klik, pengingat dikirim lewat WhatsApp." />
+      {upcoming.length > 0 && (
+        <div className="mb-5">
+          <ShareEarn path="/acara" text={`Ada event EClub: *${upcoming[0].title}*. Yuk ikut bareng!`} what="event ini" />
+        </div>
+      )}
       {upcoming.length === 0 ? (
         <div className="card p-8 text-center text-sm text-muted">Belum ada event terjadwal. Event berikutnya akan diumumkan di sini dan lewat WhatsApp.</div>
       ) : (
