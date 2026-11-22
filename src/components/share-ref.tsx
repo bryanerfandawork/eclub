@@ -46,3 +46,28 @@ export function ShareRef({ url, text, compact = false }: { url: string; text: st
     </div>
   );
 }
+
+/** Tombol bagikan kecil: di HP membuka menu bagikan bawaan, di komputer menyalin link. */
+export function ShareButton({ url, text }: { url: string; text: string }) {
+  const [ok, setOk] = useState(false);
+  return (
+    <button
+      type="button"
+      title="Bagikan (link berisi kode affiliate Anda)"
+      onClick={async () => {
+        if (navigator.share) {
+          try {
+            await navigator.share({ text: `${text}\n${url}` });
+          } catch {}
+          return;
+        }
+        await navigator.clipboard?.writeText(url).catch(() => {});
+        setOk(true);
+        setTimeout(() => setOk(false), 1800);
+      }}
+      className="inline-flex items-center gap-1.5 rounded-full border border-line bg-white px-3 py-1.5 text-xs font-semibold text-heading hover:bg-paper"
+    >
+      {ok ? <Check className="h-3.5 w-3.5 text-success" /> : <Share2 className="h-3.5 w-3.5" />} {ok ? "Link tersalin" : "Bagikan & dapat keuntungan"}
+    </button>
+  );
+}

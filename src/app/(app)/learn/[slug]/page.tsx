@@ -38,12 +38,14 @@ export default async function CoursePage({ params }: { params: Promise<{ slug: s
               </div>
               <h1 className="mt-3 text-2xl font-bold tracking-tight text-heading lg:text-3xl">{c.title}</h1>
               {c.instructor && <p className="mt-1 text-sm text-muted">Bersama {c.instructor}</p>}
+              <div className="mt-3">
+                <ShareEarn path={`/kelas/${c.slug}`} text={`Kelas ini bagus banget: *${c.title}*. Lihat dulu isinya di EClub:`} />
+              </div>
               {c.description && <p className="mt-4 leading-relaxed whitespace-pre-line text-ink">{c.description}</p>}
             </div>
           </div>
         </div>
         <aside className="space-y-5 lg:col-span-2">
-          <ShareEarn path={`/kelas/${c.slug}`} text={`Kelas ini bagus banget: *${c.title}*. Lihat dulu isinya di EClub:`} what="kelas ini" />
           <section className="card p-5">
             <div className="flex items-center justify-between text-sm">
               <span className="font-bold text-heading">{lessons.length} lesson</span>

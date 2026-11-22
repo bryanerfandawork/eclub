@@ -31,8 +31,8 @@ export default async function EventPage() {
     <>
       <PageHeader eyebrow="Event & webinar" title="Belajar bareng, live" desc="Sesi langsung bersama mentor dan sesama pelaku usaha. Daftar sekali klik, pengingat dikirim lewat WhatsApp." />
       {upcoming.length > 0 && (
-        <div className="mb-5">
-          <ShareEarn path="/acara" text={`Ada event EClub: *${upcoming[0].title}*. Yuk ikut bareng!`} what="event ini" />
+        <div className="mb-4 flex justify-end">
+          <ShareEarn path="/acara" text={`Ada event EClub: *${upcoming[0].title}*. Yuk ikut bareng!`} />
         </div>
       )}
       {upcoming.length === 0 ? (
