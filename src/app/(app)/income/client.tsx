@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useMemo, useState, useTransition } from "react";
 import { ArrowRight, BookOpen, Check, Crown, HelpCircle, Lightbulb, Lock, Plus, Sparkles, Target, Trash2, Users, X } from "lucide-react";
 import { saveIncome } from "@/app/actions/income";
-import { CHIPS, HELP, KIND_DESC, KIND_LABEL, KIND_SEF, recommend, summarize, type DreamLite, type IncomeKind, type IncomeProfile } from "@/lib/income";
+import { HELP, ROLES, KIND_DESC, KIND_LABEL, KIND_SEF, recommend, summarize, type DreamLite, type IncomeKind, type IncomeProfile } from "@/lib/income";
 import type { Factor } from "@/lib/disc/score";
 
 type Course = { slug: string; title: string } | null;
@@ -66,17 +66,17 @@ function Section({ id, n, title, desc, help, children }: { id: string; n: number
 }
 
 export function IncomeMap({ initial, isNew, dreams, disc, hint, canReco, courses }: Props) {
-  const [chips, setChips] = useState({ interests: initial.interests, hobbies: initial.hobbies, talents: initial.talents, passions: initial.passions });
+  const chips = { interests: initial.interests, hobbies: initial.hobbies, talents: initial.talents, passions: initial.passions };
+  const [situation, setSituation] = useState(initial.situation);
   const [sources, setSources] = useState(() => withIds(initial.sources));
   const [expenses, setExpenses] = useState(() => withIds(initial.expenses));
   const [plans, setPlans] = useState(() => withIds(initial.plans));
-  const [custom, setCustom] = useState<Record<string, string>>({});
   const [saving, startSave] = useTransition();
   const [status, setStatus] = useState<{ ok?: boolean; error?: string } | null>(null);
 
   const profile: IncomeProfile = useMemo(
-    () => ({ ...chips, sources: sources.map(({ _k, ...s }) => s), expenses: expenses.map(({ _k, ...e }) => e), plans: plans.map(({ _k, ...p }) => p) }),
-    [chips, sources, expenses, plans],
+    () => ({ ...initial, situation, sources: sources.map(({ _k, ...s }) => s), expenses: expenses.map(({ _k, ...e }) => e), plans: plans.map(({ _k, ...p }) => p) }),
+    [initial, situation, sources, expenses, plans],
   );
   const json = JSON.stringify(profile);
   const [savedJson, setSavedJson] = useState(isNew ? "" : json);
@@ -85,18 +85,9 @@ export function IncomeMap({ initial, isNew, dreams, disc, hint, canReco, courses
   const reco = useMemo(() => (canReco ? recommend(profile, disc) : null), [canReco, profile, disc]);
   const chosen = chips.interests.length + chips.hobbies.length + chips.talents.length + chips.passions.length;
 
-  const toggle = (g: keyof typeof chips, label: string) => {
-    setChips((c) => ({ ...c, [g]: c[g].includes(label) ? c[g].filter((x) => x !== label) : [...c[g], label].slice(0, 20) }));
-    setStatus(null);
-  };
-  const addCustom = (g: keyof typeof chips) => {
-    const v = (custom[g] ?? "").trim().slice(0, 40);
-    if (v && !chips[g].includes(v)) toggle(g, v);
-    setCustom((c) => ({ ...c, [g]: "" }));
-  };
   const save = () =>
     startSave(async () => {
-      const r = await saveIncome(profile);
+      const r = await saveIncome(profile, "income");
       setStatus(r);
       if (r.ok) setSavedJson(json);
     });
@@ -120,52 +111,26 @@ export function IncomeMap({ initial, isNew, dreams, disc, hint, canReco, courses
             </div>
           )}
 
-          <Section id="diri" n={1} title="Kenali diri Anda" desc="Pilih yang paling terasa. Boleh lebih dari satu, boleh tambah sendiri." help="self">
-            <div className="space-y-5">
-              {(Object.keys(CHIPS) as (keyof typeof CHIPS)[]).map((g) => {
-                const list = [...CHIPS[g].items.map(([l]) => l), ...chips[g].filter((x) => !CHIPS[g].items.some(([l]) => l === x))];
-                return (
-                  <div key={g}>
-                    <p className="text-sm font-semibold text-heading">
-                      {CHIPS[g].title} <span className="font-normal text-muted">· {CHIPS[g].q}</span>
-                    </p>
-                    <div className="mt-2 flex flex-wrap gap-1.5">
-                      {list.map((l) => {
-                        const on = chips[g].includes(l);
-                        return (
-                          <button
-                            key={l}
-                            type="button"
-                            onClick={() => toggle(g, l)}
-                            className={`inline-flex items-center gap-1 rounded-full border px-3 py-1.5 text-xs font-medium transition ${on ? "border-brand bg-brand text-white" : "border-line bg-white text-ink hover:border-brand/40"}`}
-                          >
-                            {on && <Check className="h-3 w-3" />} {l}
-                          </button>
-                        );
-                      })}
-                      <span className="inline-flex items-center rounded-full border border-dashed border-line bg-white pr-1 pl-3">
-                        <input
-                          value={custom[g] ?? ""}
-                          onChange={(e) => setCustom((c) => ({ ...c, [g]: e.target.value }))}
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter") {
-                              e.preventDefault();
-                              addCustom(g);
-                            }
-                          }}
-                          maxLength={40}
-                          placeholder="Tambah sendiri…"
-                          className="w-28 bg-transparent py-1.5 text-xs outline-none"
-                        />
-                        <button type="button" onClick={() => addCustom(g)} aria-label="Tambah" className="grid h-6 w-6 place-items-center rounded-full text-brand hover:bg-paper">
-                          <Plus className="h-3.5 w-3.5" />
-                        </button>
-                      </span>
-                    </div>
-                  </div>
-                );
-              })}
+          <Section id="kondisi" n={1} title="Kesibukan Anda sekarang" desc="Kerja di mana, usaha apa, atau sedang sibuk apa? Ini titik awal peta Anda." help="sources">
+            <div className="flex flex-wrap gap-1.5">
+              {ROLES.map((r) => (
+                <button
+                  key={r}
+                  type="button"
+                  onClick={() => setSituation((x) => ({ ...x, role: x.role === r ? "" : r }))}
+                  className={`inline-flex items-center gap-1 rounded-full border px-3 py-1.5 text-xs font-medium transition ${situation.role === r ? "border-brand bg-brand text-white" : "border-line bg-white text-ink hover:border-brand/40"}`}
+                >
+                  {situation.role === r && <Check className="h-3 w-3" />} {r}
+                </button>
+              ))}
             </div>
+            <input
+              value={situation.detail}
+              onChange={(e) => setSituation((x) => ({ ...x, detail: e.target.value }))}
+              maxLength={160}
+              placeholder="Ceritakan singkat. Misal: staf admin di toko bangunan, jualan kue di akhir pekan"
+              className="input mt-3"
+            />
           </Section>
 
           <Section id="penghasilan" n={2} title="Penghasilan Anda sekarang" desc="Rata-rata per bulan. Pilih jenisnya: active, massive, atau passive." help="sources">
@@ -259,7 +224,7 @@ export function IncomeMap({ initial, isNew, dreams, disc, hint, canReco, courses
             </button>
           </Section>
 
-          <Section id="rencana" n={4} title="Rencana massive income" desc="Sumber penghasilan tambahan yang ingin Anda bangun, dan targetnya per bulan." help="plans">
+          <Section id="rencana" n={4} title="Rencana massive income (Action Plan)" desc="Sumber penghasilan tambahan yang ingin Anda bangun, dan targetnya per bulan. Ini masuk langkah 4 perjalanan Anda." help="plans">
             <div className="space-y-2">
               {plans.map((x, i) => (
                 <div key={x._k} className="grid grid-cols-[minmax(0,1fr)_140px_auto] items-center gap-2 sm:grid-cols-[minmax(0,1fr)_180px_auto]">
@@ -426,10 +391,10 @@ export function IncomeMap({ initial, isNew, dreams, disc, hint, canReco, courses
               <p className="mt-3 rounded-xl bg-paper p-3 text-sm text-muted">
                 {!disc ? (
                   <>
-                    Agar lebih tajam, <Link href="/disc" className="font-semibold text-brand">isi Tes DISC</Link> (gratis, 10 menit).{" "}
+                    Agar lebih tajam, <Link href="/gaya-diri" className="font-semibold text-brand">isi Tes Gaya Diri</Link> (gratis, 10 menit).{" "}
                   </>
                 ) : null}
-                {chosen < 3 ? "Pilih lebih banyak minat, hobi, bakat, dan passion di langkah 1." : ""}
+                {chosen < 3 ? <>Pilih minat, hobi, bakat, dan passion di <Link href="/potensi#minat" className="font-semibold text-brand">Potensi Diri</Link>.</> : null}
               </p>
             )}
             <div className="mt-4 grid gap-4 lg:grid-cols-3">
@@ -469,7 +434,7 @@ export function IncomeMap({ initial, isNew, dreams, disc, hint, canReco, courses
                 </div>
               ))}
             </div>
-            <p className="mt-3 text-xs text-muted">Rekomendasi ini disusun dari aturan EClub (gaya DISC + pilihan Anda), bukan nasihat keuangan. Pelajari risiko sebelum berinvestasi.</p>
+            <p className="mt-3 text-xs text-muted">Rekomendasi ini disusun dari aturan EClub (Gaya Diri + pilihan Anda), bukan nasihat keuangan. Pelajari risiko sebelum berinvestasi.</p>
           </>
         ) : (
           <div className="relative mt-4 overflow-hidden rounded-3xl border border-line">
@@ -493,7 +458,7 @@ export function IncomeMap({ initial, isNew, dreams, disc, hint, canReco, courses
                 <Lock className="mx-auto h-7 w-7 text-gold" />
                 <p className="mt-2 text-lg font-bold">9 ide income khusus untuk Anda</p>
                 <p className="mt-1.5 text-sm leading-relaxed text-white/75">
-                  Member Plus mendapat rekomendasi active, massive, dan passive income yang dicocokkan dengan gaya DISC, minat, bakat, dan mimpi, lengkap dengan kelas yang perlu dipelajari.
+                  Member Plus mendapat rekomendasi active, massive, dan passive income yang dicocokkan dengan Gaya Diri, minat, bakat, dan mimpi, lengkap dengan kelas yang perlu dipelajari.
                 </p>
                 <Link href="/paket" className="btn-gold mt-4">
                   <Crown className="h-4 w-4" /> Buka dengan Plus

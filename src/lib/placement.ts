@@ -83,7 +83,7 @@ export const PLACEMENT_COPY: Record<Placement, { title: string; why: string; nex
   personal_mapping: {
     title: "Fase Survive · Personal Mapping (membangun active income)",
     why: "Spark Anda sudah menyala. Langkah berikutnya adalah mengenali potensi, kekuatan, dan kendaraan yang paling cocok untuk Anda.",
-    next: "Isi Peta Income (minat, bakat, passion), ikuti Tes DISC, lalu kelas Personal Mapping.",
+    next: "Isi Potensi Diri (minat, bakat, passion, SWOT), ikuti Tes Gaya Diri, lalu kelas Personal Mapping.",
   },
   acquisition: {
     title: "Fase Survive · Acquisition (menguatkan active income)",

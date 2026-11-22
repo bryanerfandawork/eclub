@@ -6,6 +6,9 @@ import { todayJakarta } from "./format";
 import { EMPTY_PROFILE, cleanProfile, type IncomeProfile } from "./income";
 
 const DEMO: IncomeProfile = {
+  ...EMPTY_PROFILE,
+  situation: { role: "Karyawan", detail: "Staf admin di toko bangunan" },
+  swot: { s: ["Teliti", "Jujur & dipercaya"], w: ["Suka menunda"], o: ["Media sosial & marketplace"], t: ["Utang / cicilan"] },
   interests: ["Kuliner", "Bisnis & jualan"],
   hobbies: ["Memasak"],
   talents: ["Teliti & rapi"],

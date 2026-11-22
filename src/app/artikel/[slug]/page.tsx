@@ -5,7 +5,7 @@ import { getArticle, listArticles } from "@/lib/articles";
 import { ArticleBody } from "@/components/article-body";
 import { HELP } from "@/lib/income";
 
-const FILL: Record<string, string> = { self: "diri", sources: "penghasilan", expenses: "pengeluaran", plans: "rencana", dreams: "mimpi" };
+const FILL: Record<string, string> = { self: "/potensi#minat", sources: "/income#penghasilan", expenses: "/income#pengeluaran", plans: "/income#rencana", dreams: "/income#mimpi" };
 
 export const dynamic = "force-dynamic";
 
@@ -43,7 +43,7 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
             <Lock className="mx-auto h-8 w-8 text-gold" />
             <p className="mt-3 text-xl font-bold">Artikel khusus member Plus</p>
             <p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-white/75">
-              Buka artikel ini dan semua artikel premium, kelas Plus, laporan lengkap DISC, serta harga khusus mentoring dan event.
+              Buka artikel ini dan semua artikel premium, kelas Plus, laporan lengkap Gaya Diri, serta harga khusus mentoring dan event.
             </p>
             <div className="mt-5 flex flex-col justify-center gap-2 sm:flex-row">
               <Link href="/paket" className="btn-gold">
@@ -59,10 +59,10 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
       {fill ? (
         <div className="mt-10 flex flex-col items-start gap-3 rounded-3xl bg-brand p-6 text-white shadow-lift sm:flex-row sm:items-center">
           <div className="flex-1">
-            <p className="font-bold">Sudah lebih jelas? Isi Peta Income sekarang</p>
-            <p className="mt-1 text-sm text-white/75">Langsung lihat posisi income Anda dan seberapa cepat mimpi tercapai. Gratis, 5 menit.</p>
+            <p className="font-bold">Sudah lebih jelas? Isi sekarang</p>
+            <p className="mt-1 text-sm text-white/75">Langsung kembali ke bagian yang tadi membingungkan dan lihat hasilnya. Gratis.</p>
           </div>
-          <Link href={`/income#${fill}`} className="btn-gold">
+          <Link href={fill} className="btn-gold">
             Isi sekarang <ArrowRight className="h-4 w-4" />
           </Link>
         </div>

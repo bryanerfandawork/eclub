@@ -23,7 +23,7 @@ export default async function IncomePage() {
   return (
     <>
       <PageHeader
-        eyebrow="Peta Income"
+        eyebrow="Langkah 2 & 4 · Peta Income"
         title="Dari active, ke massive, ke passive income"
         desc="Kenali diri, catat uang masuk dan keluar, lalu lihat posisi Anda dan seberapa cepat mimpi bisa tercapai. Cukup 5 menit."
       />

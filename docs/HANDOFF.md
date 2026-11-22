@@ -311,3 +311,10 @@ Setelah membaca HANDOFF, ringkas dalam 5 poin apa yang kamu pahami, lalu tanya s
 ## Peta Income & promo harga (22 Nov)
 - `/income` (src/lib/income.ts, income-server.ts, app/(app)/income): minat/hobi/bakat/passion chips, sumber income (active/massive/passive), pengeluaran (default + petunjuk dari Keuangan 30 hari), rencana massive income, ringkasan langsung (posisi SEF: active=Survive·Sustain, massive=Sustain·Scale Up, passive=Spread Up), sinkron mimpi (kebutuhan/bln, selisih, berapa bulan lebih cepat). Rekomendasi rule-based (DISC + tag) khusus Plus (`income_reco`), free melihat teaser blur. Artikel "Bingung?" -> CTA "Isi sekarang" ke `/income#bagian`.
 - Promo harga Plus: Admin > Paket > "Promo harga Plus". Mode none (kalimat harga spesial), date (hitung mundur sampai 23.59 WIB), quota (X pembeli pertama, dihitung dari order Plus lunas sejak tanggal mulai). Komponen `PromoBadge` di /paket, /beli/plus, landing, halaman pesanan Plus. Hilang otomatis saat habis.
+
+## Perjalanan 5 Langkah (22 Nov)
+- Urutan: 1 Mimpi → 2 Kondisi Saat Ini → 3 Potensi Diri → 4 Action Plan → 5 Evaluasi Berkala (berulang). Definisi di `src/lib/steps.ts`, status dihitung di `src/lib/steps-server.ts` (`getJourney`).
+- Home: `JourneyCard` (5 langkah + progres + tombol "langkah berikutnya") menggantikan kartu "Mulai di sini" dan kartu SEF lama. Kartu "Uang & rencana" menyatukan Peta Income, Keuangan, Target Harian.
+- `/journey` = hub 5 langkah. `StepBar` (di app-shell) menampilkan "Langkah X dari 5" + pintasan di setiap fitur. Menu samping & menu HP dikelompokkan per langkah.
+- `/potensi` baru: minat-bakat-passion-hobi (dipindah dari Peta Income), Personal SWOT (pilihan cepat + strategi otomatis), Peta Aset (finansial, sosial, diri, fisik). Disimpan di `income_profiles` (kolom swot, assets, situation di SQL 020). Peta Income kini punya "Kesibukan Anda sekarang".
+- Tes DISC tampil sebagai "Tes Gaya Diri" (route `/gaya-diri`, `/disc` redirect). Faktor tampil sebagai Daya Dorong/Pikat/Tahan/Cermat (`FACTOR_LABEL`). Kunci internal & tabel tetap `disc`.

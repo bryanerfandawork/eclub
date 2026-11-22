@@ -41,7 +41,7 @@ export function DiscQuiz({ questions }: { questions: string[][] }) {
     start(async () => {
       const res = await submitDisc({ most: m, least: l });
       if ("error" in res && res.error) setError(res.error);
-      else router.push("/disc?hasil=1");
+      else router.push("/gaya-diri?hasil=1");
     });
 
   const pick = (kind: "m" | "l", idx: number) => {
@@ -105,7 +105,7 @@ export function DiscQuiz({ questions }: { questions: string[][] }) {
         </div>
         {pending && (
           <p className="mt-5 flex items-center justify-center gap-2 text-sm text-muted">
-            <Loader2 className="h-4 w-4 animate-spin" /> Menghitung profil DISC Anda…
+            <Loader2 className="h-4 w-4 animate-spin" /> Menghitung Gaya Diri Anda…
           </p>
         )}
         {error && <p className="mt-4 text-sm text-danger">{error}</p>}

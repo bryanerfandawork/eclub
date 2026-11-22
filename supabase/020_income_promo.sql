@@ -13,6 +13,10 @@ create table if not exists public.income_profiles (
   plans jsonb not null default '[]',
   updated_at timestamptz not null default now()
 );
+-- Langkah 2 (kesibukan saat ini) & langkah 3 (Personal SWOT, Peta Aset).
+alter table public.income_profiles add column if not exists situation jsonb not null default '{}';
+alter table public.income_profiles add column if not exists swot jsonb not null default '{}';
+alter table public.income_profiles add column if not exists assets jsonb not null default '{}';
 alter table public.income_profiles enable row level security;
 drop policy if exists income_own on public.income_profiles;
 create policy income_own on public.income_profiles for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
@@ -22,6 +26,10 @@ grant all on public.income_profiles to service_role;
 insert into public.plan_features (key, label, description, free_limit, plus_limit, unit, enforced, sort)
 values ('income_reco', 'Rekomendasi Peta Income', 'Ide active, massive, dan passive income yang dipersonalisasi dari DISC, minat, dan mimpi', 0, null, null, true, 37)
 on conflict (key) do nothing;
+
+-- Nama tes kepribadian di tampilan: "Tes Gaya Diri" (kunci internal tetap disc).
+update public.plan_features set label = 'Laporan lengkap Gaya Diri', description = 'Interpretasi mendalam, rekomendasi karier & bisnis' where key = 'disc_report' and label ilike '%DISC%';
+update public.plan_features set description = 'Ide active, massive, dan passive income yang dipersonalisasi dari Gaya Diri, minat, dan mimpi' where key = 'income_reco';
 
 -- 2. Hitungan pembeli Plus asli sejak tanggal promo dimulai (untuk "sisa kuota" yang jujur).
 create or replace function public.promo_paid_count(since timestamptz)

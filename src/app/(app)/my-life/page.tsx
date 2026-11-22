@@ -121,7 +121,7 @@ export default async function MyLifePage({ searchParams }: { searchParams: Promi
               <p className="text-sm text-muted">Belum dipilih.</p>
             )}
           </Block>
-          <Block title="Gaya kepribadian (DISC)">
+          <Block title="Gaya Diri">
             <DiscSummary result={disc?.result ?? null} className="print:shadow-none" />
           </Block>
         </div>

@@ -1,4 +1,5 @@
 import type { Factor } from "@/lib/disc/score";
+import { FACTOR_LABEL } from "@/lib/disc/insights";
 
 const F: Factor[] = ["D", "I", "S", "C"];
 const COLORS: Record<Factor, string> = { D: "#b42318", I: "#c6a15b", S: "#2f7d5b", C: "#1f4f8b" };
@@ -26,7 +27,7 @@ export function DiscChart({ values, title, subtitle }: { values: Record<Factor, 
           <g key={F[i]}>
             <circle cx={x} cy={py} r="7" fill={COLORS[F[i]]} stroke="#fff" strokeWidth="2" />
             <text x={x} y={py - 12} textAnchor="middle" fontSize="10" fontWeight="700" fill="#2a1d1c">{values[F[i]]}</text>
-            <text x={x} y={H + 6} textAnchor="middle" fontSize="13" fontWeight="800" fill={COLORS[F[i]]}>{F[i]}</text>
+            <text x={x} y={H + 6} textAnchor="middle" fontSize="11" fontWeight="800" fill={COLORS[F[i]]}>{FACTOR_LABEL[F[i]]}</text>
           </g>
         ))}
       </svg>

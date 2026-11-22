@@ -75,7 +75,7 @@ export function GratitudeForm({ items, mood }: { items: string[]; mood: number |
   const [state, action] = useActionState<FormState, FormData>(saveGratitude, {});
   const [m, setM] = useState(mood ?? 0);
   return (
-    <form action={action} className="space-y-3">
+    <form id="syukur" action={action} className="scroll-mt-24 space-y-3">
       <div>
         <p className="mb-2 text-sm font-medium text-ink">Bagaimana perasaan Anda hari ini?</p>
         <input type="hidden" name="mood" value={m || ""} />

@@ -48,7 +48,7 @@ const FEATURES: { icon: typeof Heart; title: string; desc: string; tag?: string 
   { icon: Wallet, title: "Keuangan & HPP", desc: "Hitung HPP dan harga jual tiap produk, catat pemasukan dan pengeluaran, lalu lihat untung per produk dan laba rugi bulanan." },
   { icon: Gem, title: "Dream Planner", desc: "Ubah mimpi menjadi angka, tanggal, dan tabungan yang jelas. Lihat progresnya bergerak setiap kali Anda menabung." },
   { icon: CalendarCheck2, title: "Daily Action & Kebiasaan", desc: "Pecah target besar menjadi aksi harian, bangun kebiasaan baik, dan tulis jurnal syukur. Rangkaian konsisten menjaga semangat." },
-  { icon: Heart, title: "My Life & Tes Diri", desc: "Rumuskan definisi sukses dan visi hidup, lalu kenali diri lewat Tes DISC dan 8 Wheel Entrepreneur." },
+  { icon: Heart, title: "My Life & Tes Diri", desc: "Rumuskan definisi sukses dan visi hidup, lalu kenali diri lewat Tes Gaya Diri dan 8 Wheel Entrepreneur." },
   { icon: BookOpen, title: "Kelas Berjenjang", desc: "Kelas video mengikuti tahapan SEF, dari Personal Mapping hingga Investation. Lulus satu tahap, dapat sertifikat." },
   { icon: Users, title: "Mentoring & Event", desc: "Pesan sesi 1-on-1 dengan mentor dan ikuti workshop atau webinar. Event di kota Anda akan dikabarkan lewat WhatsApp." },
   { icon: MessagesSquare, title: "Komunitas", desc: "Berbagi progres, bertanya, dan saling menyemangati dengan sesama member yang sedang bertumbuh." },
@@ -67,7 +67,7 @@ const PAINS = [
 
 const FAQ = [
   { q: "Apakah EClub hanya untuk pengusaha?", a: "Tidak. EClub untuk siapa saja yang ingin bertumbuh: pelajar, karyawan, profesional, freelancer, maupun pemilik bisnis. Setiap orang punya definisi sukses dan kendaraan yang berbeda." },
-  { q: "Apakah versi gratis benar-benar bisa dipakai?", a: "Ya, gratis selamanya: Cek Posisi, Target Jualan Harian, kalkulator HPP untuk 3 produk, catatan keuangan, Dream Planner, Daily Action, kebiasaan, komunitas, dan tes DISC (hasil dasar). Plus membuka laporan lengkap, batas lebih besar, kelas Plus, dan harga mentoring khusus." },
+  { q: "Apakah versi gratis benar-benar bisa dipakai?", a: "Ya, gratis selamanya: Cek Posisi, Target Jualan Harian, kalkulator HPP untuk 3 produk, catatan keuangan, Dream Planner, Daily Action, kebiasaan, komunitas, dan Tes Gaya Diri (hasil dasar). Plus membuka laporan lengkap, batas lebih besar, kelas Plus, dan harga mentoring khusus." },
   { q: "Bagaimana cara kerja affiliate?", a: "Setiap member Plus otomatis punya link dan kode kupon pribadi. Teman yang memakai kupon mendapat potongan, dan Anda mendapat bagi hasil dari setiap transaksinya. Saldo bisa dicairkan setiap kelipatan Rp100.000." },
   { q: "Apakah EClub bisa mengisi pelatihan di kantor atau komunitas kami?", a: "Bisa. Kami menerima in-house training, workshop, undangan pembicara, dan kemitraan. Isi formulir di bagian Kolaborasi, tim kami akan menghubungi lewat WhatsApp." },
   { q: "Apakah data saya aman?", a: "Data tersimpan terenkripsi dan setiap akun hanya bisa mengakses datanya sendiri. Tim admin tidak bisa membaca isi mimpi, jawaban tes, atau catatan pribadi Anda." },
@@ -120,8 +120,8 @@ function PhoneMockup() {
               ))}
             </div>
             <div>
-              <p className="text-[9px] font-semibold tracking-widest text-gold uppercase">Profil DISC</p>
-              <p className="text-sm font-bold text-heading">I · Si Penyemangat</p>
+              <p className="text-[9px] font-semibold tracking-widest text-gold uppercase">Gaya Diri</p>
+              <p className="text-sm font-bold text-heading">Si Penyemangat</p>
             </div>
           </div>
         </div>
@@ -405,7 +405,7 @@ export default async function Home() {
                   "Target Jualan Harian dari mimpi Anda",
                   "Kalkulator HPP (3 produk) & catatan keuangan",
                   "Dream Planner, Daily Action & kebiasaan",
-                  "Tes DISC (hasil dasar) & 8 Wheel",
+                  "Tes Gaya Diri (hasil dasar) & 8 Wheel",
                   "Komunitas member & kelas gratis",
                 ].map((p) => (
                   <li key={p} className="flex items-center gap-2">
@@ -433,7 +433,7 @@ export default async function Home() {
                 {[
                   "Semua fitur Free, dengan batas lebih besar",
                   "Produk HPP tanpa batas & laporan laba rugi",
-                  "Laporan lengkap DISC + rekomendasi karier",
+                  "Laporan lengkap Gaya Diri + rekomendasi karier",
                   "Rekomendasi ide income personal",
                   "Kelas khusus Plus & sertifikat tahap SEF",
                   "Harga khusus mentoring & event",

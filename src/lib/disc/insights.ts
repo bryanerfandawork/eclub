@@ -22,7 +22,7 @@ export type Insight = {
 
 export const INSIGHTS: Record<Factor, Insight> = {
   D: {
-    name: "Dominance",
+    name: "Daya Dorong",
     tagline: "Si Penggerak Hasil",
     color: "#b42318",
     summary: "Anda berorientasi pada hasil, cepat mengambil keputusan, dan nyaman memegang kendali. Tantangan justru membuat Anda bersemangat.",
@@ -37,7 +37,7 @@ export const INSIGHTS: Record<Factor, Insight> = {
     sef: "Kekuatan Anda paling terasa di langkah Acquisition dan Transformation. Perhatikan Systemation agar pertumbuhan tidak berantakan.",
   },
   I: {
-    name: "Influence",
+    name: "Daya Pikat",
     tagline: "Si Penyemangat",
     color: "#c6a15b",
     summary: "Anda hangat, ekspresif, dan pandai memengaruhi orang. Energi Anda menular dan mudah membangun jaringan.",
@@ -52,7 +52,7 @@ export const INSIGHTS: Record<Factor, Insight> = {
     sef: "Kekuatan Anda paling terasa di langkah Acquisition (pemasaran dan relasi). Jangan lewatkan Systemation agar penjualan berubah menjadi bisnis yang stabil.",
   },
   S: {
-    name: "Steadiness",
+    name: "Daya Tahan",
     tagline: "Si Penjaga Harmoni",
     color: "#2f7d5b",
     summary: "Anda sabar, setia, dan dapat diandalkan. Anda menjaga stabilitas dan membuat orang di sekitar merasa aman.",
@@ -67,7 +67,7 @@ export const INSIGHTS: Record<Factor, Insight> = {
     sef: "Kekuatan Anda paling terasa di langkah Systemation (konsistensi dan tim). Dorong diri di langkah Acquisition dan Transformation.",
   },
   C: {
-    name: "Compliance",
+    name: "Daya Cermat",
     tagline: "Si Pemikir Teliti",
     color: "#1f4f8b",
     summary: "Anda analitis, teliti, dan menjunjung kualitas. Anda mengambil keputusan berdasarkan data dan standar yang jelas.",
@@ -89,3 +89,6 @@ export const FACTOR_SHORT: Record<Factor, string> = {
   S: "Sabar, stabil, suportif",
   C: "Teliti, analitis, berkualitas",
 };
+
+/** Label tampilan pengganti huruf D/I/S/C (nama tes disamarkan sebagai "Tes Gaya Diri"). */
+export const FACTOR_LABEL: Record<Factor, string> = { D: "Dorong", I: "Pikat", S: "Tahan", C: "Cermat" };

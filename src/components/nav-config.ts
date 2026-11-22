@@ -11,6 +11,9 @@ import {
   PieChart,
   Gem,
   Gift,
+  Compass,
+  Sparkles,
+  HandHeart,
   TrendingUp,
   GraduationCap,
   Home,
@@ -26,7 +29,12 @@ import {
   type LucideIcon,
 } from "lucide-react";
 
-export type NavItem = { label: string; href: string; icon: LucideIcon; soon?: boolean };
+export type NavItem = {
+  label: string;
+  href: string;
+  icon: LucideIcon;
+  soon?: boolean;
+};
 
 export const mobileNav: NavItem[] = [
   { label: "Home", href: "/dashboard", icon: Home },
@@ -41,16 +49,49 @@ export const sidebarNav: { section: string; items: NavItem[] }[] = [
     section: "Utama",
     items: [
       { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-      { label: "My Journey", href: "/journey", icon: Route },
-      { label: "My Life", href: "/my-life", icon: Heart },
-      { label: "Tes DISC", href: "/disc", icon: PieChart },
-      { label: "8 Wheel Entrepreneur", href: "/assessment/8-wheel-entrepreneur", icon: Radar },
+      { label: "Perjalanan 5 Langkah", href: "/journey", icon: Route },
+    ],
+  },
+  {
+    section: "1 · Mimpi",
+    items: [
       { label: "My Dreams", href: "/goals", icon: Gem },
+      { label: "My Life", href: "/my-life", icon: Heart },
+    ],
+  },
+  {
+    section: "2 · Kondisi Saat Ini",
+    items: [
+      { label: "Cek Posisi", href: "/posisi", icon: Compass },
       { label: "Peta Income", href: "/income", icon: TrendingUp },
+      { label: "Keuangan", href: "/keuangan", icon: Coins },
+    ],
+  },
+  {
+    section: "3 · Potensi Diri",
+    items: [
+      { label: "Potensi Diri", href: "/potensi", icon: Sparkles },
+      { label: "Tes Gaya Diri", href: "/gaya-diri", icon: PieChart },
+      {
+        label: "8 Wheel Entrepreneur",
+        href: "/assessment/8-wheel-entrepreneur",
+        icon: Radar,
+      },
+    ],
+  },
+  {
+    section: "4 · Action Plan",
+    items: [
       { label: "Target Harian", href: "/target", icon: Crosshair },
       { label: "Daily Action", href: "/today", icon: CalendarCheck2 },
-      { label: "Kebiasaan & Syukur", href: "/kebiasaan", icon: Sprout },
-      { label: "Keuangan", href: "/keuangan", icon: Coins },
+      { label: "Kebiasaan", href: "/kebiasaan", icon: Sprout },
+    ],
+  },
+  {
+    section: "5 · Evaluasi",
+    items: [
+      { label: "Bersyukur", href: "/kebiasaan#syukur", icon: HandHeart },
+      { label: "My Progress", href: "/progress", icon: BarChart3 },
     ],
   },
   {
@@ -67,7 +108,6 @@ export const sidebarNav: { section: string; items: NavItem[] }[] = [
   {
     section: "Akun",
     items: [
-      { label: "My Progress", href: "/progress", icon: BarChart3 },
       { label: "Ajak Teman · Komisi", href: "/affiliate", icon: Gift },
       { label: "Profile & Settings", href: "/profile", icon: User },
     ],

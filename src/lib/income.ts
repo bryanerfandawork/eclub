@@ -1,7 +1,7 @@
 /**
  * Peta Income: active income -> massive income -> passive income, dipetakan ke SEF.
  * Survive & Sustain = active income, Sustain & Scale Up = massive income, Spread Up = passive income.
- * Rekomendasi masih berbasis aturan (DISC + minat/bakat + posisi). Draf EClub, bisa disempurnakan / diganti AI nanti.
+ * Rekomendasi masih berbasis aturan (Gaya Diri/DISC + minat/bakat + posisi). Draf EClub, bisa disempurnakan / diganti AI nanti.
  */
 import type { Factor } from "./disc/score";
 
@@ -9,9 +9,54 @@ export type IncomeKind = "active" | "massive" | "passive";
 export type Source = { kind: IncomeKind; name: string; amount: number };
 export type Expense = { name: string; amount: number };
 export type Plan = { name: string; target: number };
-export type IncomeProfile = { interests: string[]; hobbies: string[]; talents: string[]; passions: string[]; sources: Source[]; expenses: Expense[]; plans: Plan[]; updated_at?: string | null };
+export type Situation = { role: string; detail: string };
+export type Swot = { s: string[]; w: string[]; o: string[]; t: string[] };
+export type Assets = { capital: string[]; social: string[]; human: string[]; physical: string[] };
+export type IncomeProfile = {
+  interests: string[];
+  hobbies: string[];
+  talents: string[];
+  passions: string[];
+  sources: Source[];
+  expenses: Expense[];
+  plans: Plan[];
+  situation: Situation;
+  swot: Swot;
+  assets: Assets;
+  updated_at?: string | null;
+};
 
-export const EMPTY_PROFILE: IncomeProfile = { interests: [], hobbies: [], talents: [], passions: [], sources: [], expenses: [], plans: [] };
+export const EMPTY_PROFILE: IncomeProfile = {
+  interests: [],
+  hobbies: [],
+  talents: [],
+  passions: [],
+  sources: [],
+  expenses: [],
+  plans: [],
+  situation: { role: "", detail: "" },
+  swot: { s: [], w: [], o: [], t: [] },
+  assets: { capital: [], social: [], human: [], physical: [] },
+};
+
+/** Kesibukan utama saat ini (langkah 2: Kondisi Saat Ini). */
+export const ROLES = ["Pelajar / mahasiswa", "Karyawan", "Freelancer", "Pemilik usaha", "Karyawan + usaha sampingan", "Ibu / bapak rumah tangga", "Sedang mencari kerja", "Lainnya"];
+
+/** Personal SWOT versi pilihan cepat (langkah 3: Potensi Diri). */
+export const SWOT: Record<keyof Swot, { title: string; q: string; tone: string; items: string[] }> = {
+  s: { title: "Kekuatan", q: "Apa yang sudah menjadi modal Anda?", tone: "success", items: ["Pekerja keras", "Mudah bergaul", "Teliti", "Kreatif", "Jujur & dipercaya", "Cepat belajar", "Pandai berjualan", "Sabar", "Disiplin waktu", "Punya keahlian teknis", "Pandai mengatur uang", "Berani mengambil risiko"] },
+  w: { title: "Kelemahan", q: "Apa yang masih menghambat Anda?", tone: "danger", items: ["Suka menunda", "Kurang percaya diri", "Mudah terdistraksi", "Belum bisa mengatur uang", "Takut gagal", "Kurang jaringan", "Sulit bilang tidak", "Kurang konsisten", "Belum paham digital", "Waktu terbatas", "Mudah menyerah", "Perfeksionis"] },
+  o: { title: "Peluang", q: "Apa yang bisa Anda manfaatkan di sekitar?", tone: "gold", items: ["Media sosial & marketplace", "Komunitas / organisasi", "Kebutuhan di lingkungan sekitar", "Keluarga yang mendukung", "Kelas & pelatihan murah/gratis", "Tren usaha baru", "Program pemerintah / KUR", "Kenalan yang punya usaha", "Kantor membuka posisi baru", "Waktu luang di akhir pekan"] },
+  t: { title: "Ancaman", q: "Apa yang perlu Anda waspadai?", tone: "muted", items: ["Persaingan ketat", "Kondisi ekonomi", "Utang / cicilan", "Kesehatan", "PHK / kontrak habis", "Harga bahan naik", "Lingkungan kurang mendukung", "Perubahan teknologi", "Gaya hidup boros", "Penipuan investasi"] },
+};
+
+/** Peta Aset: 4 modal yang dimiliki setiap orang. */
+export const ASSETS: Record<keyof Assets, { title: string; q: string; emoji: string; items: string[] }> = {
+  capital: { title: "Modal finansial", q: "Uang & aset keuangan yang bisa dipakai", emoji: "💰", items: ["Tabungan", "Dana darurat", "Emas", "Reksa dana / saham", "Piutang", "Akses pinjaman usaha", "Penghasilan rutin", "Belum punya"] },
+  social: { title: "Modal sosial", q: "Orang & jaringan yang bisa membantu", emoji: "🤝", items: ["Keluarga besar", "Teman sekolah / kampus", "Rekan kerja", "Komunitas / organisasi", "Tokoh / mentor", "Pelanggan setia", "Pengikut media sosial", "Jaringan pemasok"] },
+  human: { title: "Modal diri", q: "Ilmu, keahlian, dan pengalaman Anda", emoji: "🧠", items: ["Pendidikan formal", "Sertifikat keahlian", "Pengalaman kerja", "Pengalaman berjualan", "Bahasa asing", "Keahlian digital", "Keahlian memasak", "Keahlian teknik / servis", "Keahlian mengajar"] },
+  physical: { title: "Modal fisik", q: "Barang & tempat yang bisa menghasilkan", emoji: "🏠", items: ["Rumah / ruang usaha", "Lahan", "Kendaraan", "Laptop / komputer", "HP yang memadai", "Peralatan dapur", "Peralatan kerja / mesin", "Kamera", "Gudang / etalase"] },
+};
 
 export const KIND_LABEL: Record<IncomeKind, string> = { active: "Active income", massive: "Massive income", passive: "Passive income" };
 export const KIND_DESC: Record<IncomeKind, string> = {
@@ -119,7 +164,7 @@ export function tagsOf(p: IncomeProfile): Map<string, string[]> {
 }
 
 export type Reco = Idea & { score: number; reasons: string[] };
-const DISC_NAME: Record<Factor, string> = { D: "Dominance (D)", I: "Influence (I)", S: "Steadiness (S)", C: "Compliance (C)" };
+const DISC_NAME: Record<Factor, string> = { D: "Daya Dorong", I: "Daya Pikat", S: "Daya Tahan", C: "Daya Cermat" };
 
 /** Rekomendasi per jenis income, 3 teratas. */
 export function recommend(p: IncomeProfile, disc: { primary: Factor; secondary?: Factor | null } | null): Record<IncomeKind, Reco[]> {
@@ -195,7 +240,13 @@ export function cleanProfile(raw: unknown): IncomeProfile {
   const strs = (xs: unknown) => (Array.isArray(xs) ? xs.map((x) => String(x).trim().slice(0, 40)).filter(Boolean).slice(0, 20) : []);
   const num = (n: unknown) => Math.max(0, Math.min(10_000_000_000, Math.round(Number(n) || 0)));
   const kinds: IncomeKind[] = ["active", "massive", "passive"];
+  const sw = (r.swot ?? {}) as Partial<Swot>;
+  const as = (r.assets ?? {}) as Partial<Assets>;
+  const si = (r.situation ?? {}) as Partial<Situation>;
   return {
+    situation: { role: String(si.role ?? "").trim().slice(0, 40), detail: String(si.detail ?? "").trim().slice(0, 160) },
+    swot: { s: strs(sw.s), w: strs(sw.w), o: strs(sw.o), t: strs(sw.t) },
+    assets: { capital: strs(as.capital), social: strs(as.social), human: strs(as.human), physical: strs(as.physical) },
     interests: strs(r.interests),
     hobbies: strs(r.hobbies),
     talents: strs(r.talents),

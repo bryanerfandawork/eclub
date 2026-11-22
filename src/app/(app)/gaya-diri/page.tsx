@@ -5,12 +5,12 @@ import { OrderButton } from "@/components/order-button";
 import { PageHeader } from "@/components/ui";
 import { rupiah } from "@/lib/format";
 import { DISC_QUESTIONS, DISC_TYPES } from "@/lib/disc/data";
-import { FACTOR_SHORT, INSIGHTS } from "@/lib/disc/insights";
+import { FACTOR_LABEL, FACTOR_SHORT, INSIGHTS } from "@/lib/disc/insights";
 import type { Factor } from "@/lib/disc/score";
 import { discPrice, getDiscResult, hasDiscReport } from "@/lib/disc/server";
 import { DiscQuiz } from "./quiz";
 
-export const metadata = { title: "Tes DISC" };
+export const metadata = { title: "Tes Gaya Diri" };
 
 function List({ items }: { items: string[] }) {
   return (
@@ -33,7 +33,7 @@ export default async function DiscPage({ searchParams }: { searchParams: Promise
       <>
         <PageHeader
           eyebrow="Spark · Kenali diri"
-          title="Tes Kepribadian DISC"
+          title="Tes Gaya Diri"
           desc="Pahami gaya perilaku alami Anda: cara Anda mengambil keputusan, bergaul, bekerja, dan menghadapi tekanan. Tes dan hasil dasar gratis."
         />
         <DiscQuiz questions={DISC_QUESTIONS.map((q) => q.options)} />
@@ -52,16 +52,16 @@ export default async function DiscPage({ searchParams }: { searchParams: Promise
 
   return (
     <>
-      <PageHeader eyebrow="Hasil Tes DISC" title="Profil kepribadian Anda" desc={`Diambil ${new Date(latest.created_at).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}.`} />
+      <PageHeader eyebrow="Hasil Tes Gaya Diri" title="Profil kepribadian Anda" desc={`Diambil ${new Date(latest.created_at).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}.`} />
 
       <section className="relative overflow-hidden rounded-3xl p-6 text-white shadow-lift lg:p-8" style={{ background: `linear-gradient(135deg, #8b2220, ${ins.color})` }}>
         <p className="eyebrow">Gaya dominan Anda</p>
         <h2 className="mt-2 text-3xl font-bold lg:text-4xl">
-          {p} · {ins.tagline}
+          {ins.tagline}
         </h2>
         <p className="mt-1 text-sm font-semibold text-white/80">
           {ins.name}
-          {secondary && ` dengan sisi ${INSIGHTS[secondary].name} (${secondary})`}
+          {secondary && ` dengan sisi ${INSIGHTS[secondary].name}`}
           {typeN && ` · Pola ${typeN.name}`}
         </p>
         <p className="mt-4 max-w-2xl leading-relaxed text-white/90">{ins.summary}</p>
@@ -77,12 +77,12 @@ export default async function DiscPage({ searchParams }: { searchParams: Promise
       </div>
 
       <section className="card mt-5 p-5 lg:p-6">
-        <h3 className="font-bold text-heading">Arti tiap huruf</h3>
+        <h3 className="font-bold text-heading">Arti tiap daya</h3>
         <div className="mt-3 grid gap-3 sm:grid-cols-2">
           {(["D", "I", "S", "C"] as Factor[]).map((f) => (
             <div key={f} className="flex items-center gap-3 rounded-xl bg-paper p-3">
-              <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl text-lg font-bold text-white" style={{ background: INSIGHTS[f].color }}>
-                {f}
+              <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl text-[10px] font-bold text-white" style={{ background: INSIGHTS[f].color }}>
+                {FACTOR_LABEL[f]}
               </span>
               <div className="flex-1">
                 <p className="text-sm font-bold text-heading">
@@ -160,7 +160,7 @@ export default async function DiscPage({ searchParams }: { searchParams: Promise
               <p className="mt-2 text-sm leading-relaxed text-ink">{ins.sef}</p>
               {typeA && adapted.type !== natural.type && (
                 <>
-                  <h3 className="mt-5 font-bold text-heading">Saat menyesuaikan diri ({adapted.primary})</h3>
+                  <h3 className="mt-5 font-bold text-heading">Saat menyesuaikan diri ({INSIGHTS[adapted.primary as Factor].name})</h3>
                   <p className="mt-1 text-sm text-muted">Di lingkungan kerja Anda cenderung tampil sebagai pola {typeA.name}, dengan kelebihan:</p>
                   <List items={typeA.strengths.slice(0, 2)} />
                   <p className="mt-3 text-xs text-muted">Jika diri alami dan diri di lingkungan sangat berbeda, Anda mungkin sedang banyak menyesuaikan diri. Ini bisa menguras energi bila berlangsung lama.</p>
@@ -176,7 +176,7 @@ export default async function DiscPage({ searchParams }: { searchParams: Promise
         <section className="relative mt-5 overflow-hidden rounded-3xl bg-heading p-6 text-white lg:p-8">
           <div className="pointer-events-none absolute -top-16 -right-10 h-56 w-56 rounded-full bg-brand/50 blur-3xl" />
           <p className="eyebrow flex items-center gap-1.5">
-            <Lock className="h-3.5 w-3.5" /> Laporan Lengkap DISC
+            <Lock className="h-3.5 w-3.5" /> Laporan Lengkap Gaya Diri
           </p>
           <h3 className="mt-2 text-2xl font-bold">Pahami diri Anda lebih dalam</h3>
           <ul className="mt-4 grid gap-2 text-sm text-white/85 sm:grid-cols-2">
@@ -199,10 +199,10 @@ export default async function DiscPage({ searchParams }: { searchParams: Promise
       )}
 
       <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
-        <Link href="/disc?ulang=1" className="inline-flex items-center gap-2 text-sm font-medium text-muted hover:text-brand">
+        <Link href="/gaya-diri?ulang=1" className="inline-flex items-center gap-2 text-sm font-medium text-muted hover:text-brand">
           <RotateCcw className="h-4 w-4" /> Ulangi tes
         </Link>
-        <p className="text-xs text-muted">DISC adalah alat refleksi perilaku, bukan diagnosis psikologis.</p>
+        <p className="text-xs text-muted">Tes Gaya Diri adalah alat refleksi perilaku, bukan diagnosis psikologis.</p>
       </div>
     </>
   );

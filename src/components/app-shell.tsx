@@ -17,6 +17,7 @@ import { NavProgress } from "./nav-progress";
 import { Suspense } from "react";
 import { AiChat } from "./ai-chat";
 import { Logo } from "./logo";
+import { StepBar } from "./step-bar";
 import { mobileNav, sidebarNav } from "./nav-config";
 import { signOut } from "@/app/actions/auth";
 
@@ -265,6 +266,7 @@ export function AppShell({
       )}
 
       <main className="mx-auto w-full max-w-6xl px-5 pt-6 pb-32 lg:px-10 lg:pt-10 lg:pb-16 print:p-0">
+        <StepBar />
         {children}
       </main>
 

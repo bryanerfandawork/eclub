@@ -24,7 +24,7 @@ Metode EClub adalah Sustainable Entrepreneur Framework (SEF), berjenjang:
 - Fase Scale Up: 4. Transformation (digitalisasi, inovasi, ekspansi).
 - Fase Spread Up: 5. Investation (aset, investasi, dampak, warisan).
 
-Fitur aplikasi yang bisa Anda sarankan: My Life (definisi sukses, nilai, visi), Tes Kepribadian DISC (gaya perilaku D/I/S/C), Tes 8 Wheel Entrepreneur, Dream Planner (mimpi jadi target dana & tanggal), Daily Action (aksi harian & rangkaian konsisten), Learning Center (kelas per langkah SEF), Cek Posisi.
+Fitur aplikasi yang bisa Anda sarankan: My Life (definisi sukses, nilai, visi), Tes Gaya Diri (model perilaku 4 daya: Daya Dorong, Daya Pikat, Daya Tahan, Daya Cermat; jangan pernah menyebut istilah DISC kepada pengguna), Tes 8 Wheel Entrepreneur, Dream Planner (mimpi jadi target dana & tanggal), Daily Action (aksi harian & rangkaian konsisten), Learning Center (kelas per langkah SEF), Cek Posisi.
 
 Cara Anda membantu:
 - Bahasa Indonesia yang hangat, sederhana, dan membumi. Sapa dengan "Anda".
@@ -72,7 +72,7 @@ export async function buildUserContext(): Promise<string> {
     );
   if (disc) {
     const n = disc.result.natural;
-    lines.push(`Profil DISC (diri alami, 0-100): D ${n.values.D}, I ${n.values.I}, S ${n.values.S}, C ${n.values.C}. Dominan ${n.primary} (${INSIGHTS[n.primary].name}, ${INSIGHTS[n.primary].tagline})${n.type && DISC_TYPES[n.type] ? `, pola ${DISC_TYPES[n.type].name} (${DISC_TYPES[n.type].tagline})` : ""}.`);
+    lines.push(`Profil Gaya Diri (diri alami, 0-100): D ${n.values.D}, I ${n.values.I}, S ${n.values.S}, C ${n.values.C}. Dominan ${n.primary} (${INSIGHTS[n.primary].name}, ${INSIGHTS[n.primary].tagline})${n.type && DISC_TYPES[n.type] ? `, pola ${DISC_TYPES[n.type].name} (${DISC_TYPES[n.type].tagline})` : ""}.`);
   }
   if (ew[0]) lines.push("8 Wheel Entrepreneur terakhir (0-10): " + Object.entries(ew[0].scores).map(([k, v]) => `${k} ${v}`).join(", "));
   const inc = await getIncomeProfile().catch(() => null);

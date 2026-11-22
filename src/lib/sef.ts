@@ -9,7 +9,7 @@ export const SPARK = {
   desc: "Banyak orang stuck bukan karena modal atau pemasaran, tetapi karena kehilangan spark. Semuanya dimulai dari menemukan kembali cita-cita dan alasan Anda bangun setiap pagi.",
   tools: [
     { label: "Definisi Sukses & Visi", href: "/my-life" },
-    { label: "Tes Kepribadian DISC", href: "/disc" },
+    { label: "Tes Gaya Diri", href: "/gaya-diri" },
     { label: "Dream Planner", href: "/goals" },
   ] as Tool[],
 };

@@ -12,7 +12,7 @@ export default async function BuyPlus() {
   const monthly = Number(s.plus_price_monthly) || 0;
   const yearly = Number(s.plus_price_yearly) || 0;
   const save = monthly && yearly ? Math.round((1 - yearly / (monthly * 12)) * 100) : 0;
-  const perks = ["Laporan lengkap DISC & rekomendasi karier", "Laporan laba rugi otomatis & simpan produk HPP", "Link affiliate: bagi hasil 20% tiap teman membeli", "Harga khusus mentoring 1-on-1 & event", "Dream Planner & habit tracker tanpa batas", "Course khusus member Plus"];
+  const perks = ["Laporan lengkap Gaya Diri & rekomendasi karier", "Laporan laba rugi otomatis & simpan produk HPP", "Link affiliate: bagi hasil 20% tiap teman membeli", "Harga khusus mentoring 1-on-1 & event", "Dream Planner & habit tracker tanpa batas", "Course khusus member Plus"];
   return (
     <>
       <PageHeader eyebrow="EClub Plus" title="Pilih periode langganan" desc="Bayar lewat transfer bank. Paket aktif otomatis setelah pembayaran terdeteksi." />

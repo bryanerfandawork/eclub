@@ -36,7 +36,7 @@ export default async function AffiliateTerms() {
           p: [
             [
               `${rate}% dari harga yang dibayar teman (setelah diskon kupon, tanpa 3 angka kode unik).`,
-              "Berlaku untuk semua produk: EClub Plus, kelas berbayar, Laporan DISC, mentoring, dan event berbayar.",
+              "Berlaku untuk semua produk: EClub Plus, kelas berbayar, Laporan Gaya Diri, mentoring, dan event berbayar.",
               `Lewat link, Anda mendapat komisi dari pembelian teman selama ${months} bulan sejak ia mendaftar.`,
               `Contoh: teman membeli Plus tahunan Rp690.000 dengan kode Anda. Ia membayar Rp621.000, Anda mendapat Rp${Math.floor(621000 * rate / 100).toLocaleString("id-ID")}.`,
             ],

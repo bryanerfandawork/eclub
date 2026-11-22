@@ -18,7 +18,7 @@ export const PRODUCT_LABEL: Record<string, string> = {
   plus_monthly: "EClub Plus 1 bulan",
   plus_yearly: "EClub Plus 1 tahun",
   course: "Course",
-  disc_report: "Laporan DISC",
+  disc_report: "Laporan Gaya Diri",
 };
 
 export async function getAffiliate(): Promise<Affiliate | null> {

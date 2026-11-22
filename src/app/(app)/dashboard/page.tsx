@@ -1,13 +1,14 @@
 import Link from "next/link";
-import { ArrowRight, CalendarCheck2, CalendarDays, MapPin, CheckCircle2, Circle, Compass, Flame, Gem, Plus, Quote } from "lucide-react";
+import { ArrowRight, CalendarCheck2, CalendarDays, MapPin, Circle, Flame, Gem, Plus, Quote } from "lucide-react";
 import { getAssessmentResults, getDailyRange, getDreams, getOpenActions, getProfile, getProgressStats } from "@/lib/data";
 import { compactRupiah, dreamProgress, greeting, rupiah, todayJakarta } from "@/lib/format";
 import { DailyList } from "@/components/daily-list";
-import { STAGES } from "@/lib/journey";
+import { getJourney } from "@/lib/steps-server";
+import { JourneyCard } from "@/components/journey-card";
 import { PLACEMENT_KEY } from "@/lib/placement";
 import { getDiscResult } from "@/lib/disc/server";
 import { DiscSummary } from "@/components/disc-summary";
-import { ProgressBar, Ring } from "@/components/ui";
+import { ProgressBar } from "@/components/ui";
 import { getFinance, monthSummary } from "@/lib/finance-server";
 import { isDemoMode } from "@/lib/supabase/config";
 import { createClient } from "@/lib/supabase/server";
@@ -35,7 +36,7 @@ export default async function DashboardPage() {
     getDailyRange(today, today),
     getProgressStats(),
   ]);
-  const [ew, placed, disc] = await Promise.all([getAssessmentResults("8-wheel-entrepreneur", 1), getAssessmentResults(PLACEMENT_KEY, 1), getDiscResult()]);
+  const [ew, , disc] = await Promise.all([getAssessmentResults("8-wheel-entrepreneur", 1), getAssessmentResults(PLACEMENT_KEY, 1), getDiscResult()]);
   const [fin, vapid, events, account, share, income] = await Promise.all([getFinance(today.slice(0, 7)), isDemoMode ? null : getVapidPublicKey(), getEvents(), getAccount(), myShare(), getIncomeProfile().catch(() => null)]);
   const incomeSum = income ? summarize(income, dreams) : null;
   const nowMs = Date.now();
@@ -49,28 +50,11 @@ export default async function DashboardPage() {
     bioMissing = !!b && (!b.whatsapp || !b.birth_date || !b.regency);
   }
   const finBiz = monthSummary(fin.txs, "business");
-  const placement = (placed[0]?.scores as unknown as { placement?: string } | undefined)?.placement;
   const ewDue = ew[0] ? Date.now() - new Date(ew[0].created_at).getTime() > 90 * 86_400_000 : false;
   const firstName = (profile.full_name || "Sahabat").split(" ")[0];
   const active = dreams.filter((d) => d.status === "active");
-  const totalTarget = active.reduce((s, d) => s + (d.target_amount ?? 0), 0);
-  const totalSaved = active.reduce((s, d) => s + d.saved_amount, 0);
-  const overall = totalTarget ? Math.round((totalSaved / totalTarget) * 100) : 0;
 
-  // Perkiraan posisi di Success Framework berdasarkan data yang sudah diisi.
-  const steps = [
-    { done: !!placement, label: "Cek posisi Anda di peta SEF (3 menit)", href: "/posisi" },
-    { done: !!profile.success_definition, label: "Tuliskan definisi sukses Anda", href: "/my-life" },
-    { done: !!disc, label: "Kenali kepribadian Anda (Tes DISC)", href: "/disc" },
-    { done: ew.length > 0, label: "Ikuti tes 8 Wheel Entrepreneur", href: "/assessment/8-wheel-entrepreneur" },
-    { done: dreams.length > 0, label: "Buat mimpi pertama Anda", href: "/goals/baru" },
-    { done: !!income, label: "Isi Peta Income: lihat posisi uang Anda", href: "/income" },
-    { done: stats.dailyTotal30 > 0, label: "Rencanakan aksi harian pertama", href: "/today" },
-  ];
-  const onboarding = steps.some((s) => !s.done);
-  // 0 = Spark (definisi sukses + mimpi), 1 = Personal Mapping (tes 8 Wheel), 2 = Acquisition, dst.
-  const placedIdx = STAGES.findIndex((st) => st.id === placement);
-  const stageIndex = placedIdx >= 0 ? placedIdx : !profile.success_definition || dreams.length === 0 ? 0 : ew.length === 0 ? 1 : 2;
+  const journey = await getJourney();
 
   return (
     <div className="space-y-6 lg:space-y-8">
@@ -79,6 +63,17 @@ export default async function DashboardPage() {
         <h1 className="text-[28px] font-bold tracking-tight text-heading lg:text-[34px]">{firstName} 👋</h1>
         <p className="mt-2 max-w-2xl text-[15px] leading-relaxed text-muted italic">✨ {motivationOfDay(today)}</p>
       </section>
+
+      <JourneyCard j={journey} />
+
+      <PushToggle publicKey={vapid} variant="card" />
+
+      {ewDue && (
+        <Link href="/assessment/8-wheel-entrepreneur?ulang=1" className="flex items-center justify-between gap-3 rounded-2xl border border-gold/40 bg-gold-soft px-5 py-4 text-sm font-medium text-heading hover:brightness-95">
+          <span>Sudah 3 bulan sejak tes 8 Wheel Entrepreneur terakhir. Yuk ukur perkembangan Anda.</span>
+          <ArrowRight className="h-4 w-4 shrink-0 text-brand" />
+        </Link>
+      )}
 
       {nextEvent && (
         <Link href="/event" className="flex animate-rise items-center gap-4 overflow-hidden rounded-2xl border border-gold/40 bg-card p-4 shadow-soft transition hover:shadow-lift lg:p-5">
@@ -102,122 +97,12 @@ export default async function DashboardPage() {
         </Link>
       )}
 
-      <PushToggle publicKey={vapid} variant="card" />
-
-      {!placement && (
-        <Link href="/posisi" className="flex animate-rise items-center gap-4 rounded-2xl bg-heading p-5 text-white shadow-lift hover:brightness-110">
-          <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-gold text-brand-deep">
-            <Compass className="h-6 w-6" />
-          </span>
-          <span className="flex-1">
-            <span className="block font-bold">Mulai dari sini: Cek Posisi Anda</span>
-            <span className="block text-sm text-white/70">10 pertanyaan singkat untuk mengetahui titik awal dan langkah yang paling tepat.</span>
-          </span>
-          <ArrowRight className="h-5 w-5 shrink-0 text-gold" />
-        </Link>
-      )}
-
-      {ewDue && (
-        <Link href="/assessment/8-wheel-entrepreneur?ulang=1" className="flex items-center justify-between gap-3 rounded-2xl border border-gold/40 bg-gold-soft px-5 py-4 text-sm font-medium text-heading hover:brightness-95">
-          <span>Sudah 3 bulan sejak tes 8 Wheel Entrepreneur terakhir. Yuk ukur perkembangan Anda.</span>
-          <ArrowRight className="h-4 w-4 shrink-0 text-brand" />
-        </Link>
-      )}
-
-      <div className="grid gap-5 lg:grid-cols-3 lg:gap-6">
-        {/* Kartu utama */}
-        <section className="relative overflow-hidden rounded-3xl bg-brand p-6 text-white shadow-lift lg:col-span-2 lg:p-8">
-          <div className="pointer-events-none absolute -top-24 -right-16 h-64 w-64 rounded-full bg-gold/20 blur-3xl" />
-          <p className="eyebrow">Perjalanan Anda</p>
-          <div className="mt-3 flex items-center justify-between gap-6">
-            <div>
-              <h2 className="text-2xl font-bold">
-                {STAGES[stageIndex].phase} · {STAGES[stageIndex].name}
-              </h2>
-              <p className="mt-1.5 max-w-sm text-sm leading-relaxed text-white/70">{STAGES[stageIndex].desc}</p>
-            </div>
-            <div className="relative hidden shrink-0 sm:block">
-              <Ring value={overall} size={84} />
-              <span className="absolute inset-0 grid place-items-center text-sm font-bold">{overall}%</span>
-            </div>
-          </div>
-          <div className="mt-6 flex gap-1.5">
-            {STAGES.map((s, i) => (
-              <div key={s.id} className={`h-1.5 flex-1 rounded-full ${i <= stageIndex ? "bg-gold" : "bg-white/15"}`} />
-            ))}
-          </div>
-          <div className="mt-6 flex flex-wrap gap-3">
-            <Link href={placement ? "/posisi" : "/journey"} className="btn-gold">
-              {placement ? "Lihat langkah berikutnya" : "Lanjutkan perjalanan"} <ArrowRight className="h-4 w-4" />
-            </Link>
-          </div>
-        </section>
-
-        {/* Ringkasan */}
-        <section className="card p-6">
-          <p className="eyebrow">Ringkasan mimpi</p>
-          <div className="mt-4 grid grid-cols-2 gap-4">
-            <div>
-              <p className="text-3xl font-bold text-heading">{active.length}</p>
-              <p className="text-xs text-muted">Mimpi aktif</p>
-            </div>
-            <div>
-              <p className="text-3xl font-bold text-heading">{actions.length}</p>
-              <p className="text-xs text-muted">Aksi menunggu</p>
-            </div>
-          </div>
-          <div className="mt-5">
-            <div className="mb-1.5 flex justify-between text-xs">
-              <span className="text-muted">Dana terkumpul</span>
-              <span className="font-semibold text-heading">
-                {compactRupiah(totalSaved)} / {compactRupiah(totalTarget)}
-              </span>
-            </div>
-            <ProgressBar value={overall} />
-          </div>
-        </section>
-      </div>
-
       {bioMissing && (
         <Link href="/profile#data-diri" className="flex items-center justify-between gap-3 rounded-2xl border border-line bg-white px-5 py-4 text-sm font-medium text-heading hover:border-gold">
           <span>🎁 Lengkapi nomor WhatsApp, tanggal lahir & kota Anda: dapatkan hadiah ulang tahun dan kabar event EClub di kota Anda.</span>
           <ArrowRight className="h-4 w-4 shrink-0 text-brand" />
         </Link>
       )}
-
-      <Link href="/target" className="flex items-center gap-4 rounded-2xl border border-gold/40 bg-gold-soft p-5 transition hover:brightness-95">
-        <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-white text-2xl">🎯</span>
-        <span className="flex-1">
-          <span className="block font-bold text-heading">Peta Target Harian</span>
-          <span className="block text-sm text-muted">Mimpi Anda butuh berapa per hari, dan berapa produk yang harus terjual? Hitung dalam 1 menit.</span>
-        </span>
-        <ArrowRight className="h-5 w-5 shrink-0 text-brand" />
-      </Link>
-
-      <Link href="/keuangan" className="card flex flex-wrap items-center gap-4 p-5 transition hover:border-gold lg:flex-nowrap">
-        <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-gold-soft text-2xl">💰</span>
-        {fin.hasAny ? (
-          <>
-            <span className="min-w-[40%] flex-1">
-              <span className="block text-xs text-muted">Dompet Pribadi</span>
-              <span className="block font-bold text-heading">{compactRupiah(Math.max(0, fin.balances.personal))}</span>
-            </span>
-            <span className="min-w-[40%] flex-1">
-              <span className="block text-xs text-muted">Dompet Usaha</span>
-              <span className="block font-bold text-heading">{compactRupiah(Math.max(0, fin.balances.business))}</span>
-            </span>
-            <span className="flex-1 text-xs text-muted">
-              Usaha bulan ini: <b className="text-success">+{compactRupiah(finBiz.income)}</b> / <b className="text-brand">−{compactRupiah(finBiz.expense)}</b>
-            </span>
-          </>
-        ) : (
-          <span className="flex-1">
-            <span className="block font-bold text-heading">Rapikan uang pribadi & usaha</span>
-            <span className="block text-sm text-muted">Catat masuk-keluar dalam 5 detik, tidak tercampur lagi.</span>
-          </span>
-        )}
-        <ArrowRight className="h-5 w-5 shrink-0 text-brand" />
-      </Link>
 
       <div className="grid gap-5 lg:grid-cols-3 lg:gap-6">
         {/* Aksi hari ini */}
@@ -286,25 +171,6 @@ export default async function DashboardPage() {
       </div>
 
       <div className="grid gap-5 lg:grid-cols-3 lg:gap-6">
-        {onboarding ? (
-          <section className="card p-6">
-            <h3 className="font-bold text-heading">Mulai di sini</h3>
-            <ul className="mt-3 space-y-1">
-              {steps.map((st) => (
-                <li key={st.label}>
-                  <Link href={st.href} className="-mx-2 flex items-center gap-3 rounded-xl p-2 hover:bg-paper">
-                    {st.done ? (
-                      <CheckCircle2 className="h-[18px] w-[18px] shrink-0 text-success" />
-                    ) : (
-                      <Circle className="h-[18px] w-[18px] shrink-0 text-line" strokeWidth={2.2} />
-                    )}
-                    <span className={`text-sm font-medium ${st.done ? "text-muted line-through" : "text-ink"}`}>{st.label}</span>
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </section>
-        ) : (
           <section className="card p-6">
             <h3 className="font-bold text-heading">Langkah mimpi berikutnya</h3>
             <ul className="mt-3 space-y-1">
@@ -322,7 +188,6 @@ export default async function DashboardPage() {
               ))}
             </ul>
           </section>
-        )}
 
         <DiscSummary result={disc?.result ?? null} />
 
@@ -345,29 +210,73 @@ export default async function DashboardPage() {
         )}
       </div>
 
-      <Link href="/income" className="group flex items-center gap-4 rounded-2xl border border-line bg-white p-5 shadow-soft transition hover:border-gold lg:p-6">
-        <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-brand text-white">
-          <TrendingUp className="h-6 w-6" />
-        </span>
-        <span className="min-w-0 flex-1">
-          <span className="eyebrow block">Peta Income</span>
-          {incomeSum ? (
-            <>
-              <b className="mt-0.5 block text-heading">{incomeSum.stage.label}</b>
-              <span className="block text-sm text-muted">
-                Sisa uang {rupiah(incomeSum.surplus)}/bulan
-                {incomeSum.gap > 0 ? ` · kurang ${rupiah(incomeSum.gap)}/bulan untuk mimpi` : incomeSum.need > 0 ? " · cukup untuk mimpi ✓" : ""}
-              </span>
-            </>
-          ) : (
-            <>
-              <b className="mt-0.5 block text-heading">Active, massive, atau passive income: Anda di mana?</b>
-              <span className="block text-sm text-muted">Isi 5 menit, langsung tahu sisa uang, posisi SEF, dan kapan mimpi tercapai.</span>
-            </>
-          )}
-        </span>
-        <ArrowRight className="h-5 w-5 shrink-0 text-brand transition group-hover:translate-x-0.5" />
-      </Link>
+      <section>
+        <div className="mb-3 flex items-end justify-between gap-2">
+          <div>
+            <h2 className="font-bold text-heading">Uang & rencana</h2>
+            <p className="text-xs text-muted">Kondisi sekarang → rencana income → target harian. Ketiganya saling terhubung.</p>
+          </div>
+        </div>
+        <div className="grid gap-3 md:grid-cols-3">
+          <Link href="/income" className="card group flex flex-col p-5 transition hover:border-gold">
+            <span className="flex items-center gap-2 text-[11px] font-semibold tracking-wide text-gold uppercase">
+              <TrendingUp className="h-3.5 w-3.5" /> Langkah 2 · Peta Income
+            </span>
+            {incomeSum ? (
+              <>
+                <b className="mt-1.5 block leading-snug text-heading">{incomeSum.stage.label}</b>
+                <span className="mt-1 block text-sm text-muted">
+                  Sisa {rupiah(incomeSum.surplus)}/bulan{incomeSum.gap > 0 ? ` · kurang ${rupiah(incomeSum.gap)} untuk mimpi` : incomeSum.need > 0 ? " · cukup untuk mimpi ✓" : ""}
+                </span>
+              </>
+            ) : (
+              <>
+                <b className="mt-1.5 block leading-snug text-heading">Active, massive, atau passive income?</b>
+                <span className="mt-1 block text-sm text-muted">Isi 5 menit: sisa uang, posisi SEF, dan kapan mimpi tercapai.</span>
+              </>
+            )}
+            <span className="mt-auto inline-flex items-center gap-1 pt-3 text-sm font-semibold text-brand">
+              {incomeSum ? "Perbarui" : "Isi sekarang"} <ArrowRight className="h-4 w-4 transition group-hover:translate-x-0.5" />
+            </span>
+          </Link>
+          <Link href="/keuangan" className="card group flex flex-col p-5 transition hover:border-gold">
+            <span className="text-[11px] font-semibold tracking-wide text-gold uppercase">💰 Langkah 2 · Uang pribadi & usaha</span>
+            {fin.hasAny ? (
+              <>
+                <span className="mt-1.5 grid grid-cols-2 gap-2">
+                  <span>
+                    <span className="block text-xs text-muted">Pribadi</span>
+                    <b className="block text-heading">{compactRupiah(Math.max(0, fin.balances.personal))}</b>
+                  </span>
+                  <span>
+                    <span className="block text-xs text-muted">Usaha</span>
+                    <b className="block text-heading">{compactRupiah(Math.max(0, fin.balances.business))}</b>
+                  </span>
+                </span>
+                <span className="mt-1.5 block text-xs text-muted">
+                  Usaha bulan ini: <b className="text-success">+{compactRupiah(finBiz.income)}</b> / <b className="text-brand">−{compactRupiah(finBiz.expense)}</b>
+                </span>
+              </>
+            ) : (
+              <>
+                <b className="mt-1.5 block leading-snug text-heading">Rapikan uang pribadi & usaha</b>
+                <span className="mt-1 block text-sm text-muted">Catat masuk-keluar 5 detik. Angkanya otomatis membantu Peta Income.</span>
+              </>
+            )}
+            <span className="mt-auto inline-flex items-center gap-1 pt-3 text-sm font-semibold text-brand">
+              Catat <ArrowRight className="h-4 w-4 transition group-hover:translate-x-0.5" />
+            </span>
+          </Link>
+          <Link href="/target" className="group flex flex-col rounded-2xl border border-gold/40 bg-gold-soft p-5 transition hover:brightness-95">
+            <span className="text-[11px] font-semibold tracking-wide text-brand uppercase">🎯 Langkah 4 · Target harian</span>
+            <b className="mt-1.5 block leading-snug text-heading">Mimpi Anda butuh berapa per hari?</b>
+            <span className="mt-1 block text-sm text-muted">Pecah mimpi jadi tabungan dan jualan harian, dalam 1 menit.</span>
+            <span className="mt-auto inline-flex items-center gap-1 pt-3 text-sm font-semibold text-brand">
+              Hitung <ArrowRight className="h-4 w-4 transition group-hover:translate-x-0.5" />
+            </span>
+          </Link>
+        </div>
+      </section>
 
       {share.eligible && share.code ? (
         <section className="relative overflow-hidden rounded-2xl border border-gold/50 bg-gold-soft/50 p-5 lg:p-6">
