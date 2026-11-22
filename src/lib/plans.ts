@@ -28,6 +28,7 @@ export const DEFAULT_FEATURES: PlanFeature[] = [
   { key: "ai_messages", label: "AI Companion", description: "Kuota pesan AI per hari", free_limit: 5, plus_limit: 50, unit: "pesan/hari", enforced: true, sort: 60 },
   { key: "finance", label: "Keuangan pribadi & usaha", description: "Dua dompet, catat cepat, ringkasan bulanan, kalkulator HPP", free_limit: null, plus_limit: null, unit: null, enforced: true, sort: 35 },
   { key: "finance_reports", label: "Laporan laba rugi & simpan produk", description: "Laba rugi otomatis, cetak PDF, daftar produk & HPP", free_limit: 0, plus_limit: null, unit: null, enforced: true, sort: 36 },
+  { key: "income_reco", label: "Rekomendasi Peta Income", description: "Ide active, massive, dan passive income yang dipersonalisasi dari DISC, minat, dan mimpi", free_limit: 0, plus_limit: null, unit: null, enforced: true, sort: 37 },
   { key: "community", label: "Komunitas & event gratis", description: "Circle per fase SEF, event terbuka", free_limit: null, plus_limit: null, unit: null, enforced: true, sort: 85 },
   { key: "mentoring_price", label: "Harga khusus mentoring & event", description: "Potongan harga sesi 1-on-1 dan webinar berbayar", free_limit: 0, plus_limit: null, unit: null, enforced: true, sort: 86 },
   { key: "affiliate", label: "Program affiliate", description: "Bagi hasil dari setiap teman yang membeli lewat link Anda", free_limit: 0, plus_limit: null, unit: null, enforced: true, sort: 90 },

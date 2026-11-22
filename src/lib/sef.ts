@@ -15,10 +15,10 @@ export const SPARK = {
 };
 
 export const SEF_PHASES = [
-  { key: "survive", name: "Survive", desc: "Mengenali diri dan pasar, lalu menghasilkan pendapatan pertama." },
-  { key: "sustain", name: "Sustain", desc: "Membangun sistem, keuangan, dan tim agar usaha berjalan konsisten." },
-  { key: "scale", name: "Scale Up", desc: "Digitalisasi, inovasi, dan memperbesar kapasitas." },
-  { key: "spread", name: "Spread Up", desc: "Aset, investasi, dampak sosial, dan warisan." },
+  { key: "survive", name: "Survive", income: "Active income", desc: "Mengenali diri dan peluang, lalu membangun penghasilan aktif pertama: dari kerja, uang saku, klien, atau jualan." },
+  { key: "sustain", name: "Sustain", income: "Active → Massive income", desc: "Merapikan keuangan dan sistem, menabung untuk mimpi, lalu mulai menambah sumber penghasilan." },
+  { key: "scale", name: "Scale Up", income: "Massive income", desc: "Melipatgandakan penghasilan lewat side hustle atau usaha, digitalisasi, dan inovasi." },
+  { key: "spread", name: "Spread Up", income: "Passive income", desc: "Uang dingin bekerja untuk Anda: aset, investasi, dampak sosial, dan warisan." },
 ] as const;
 
 export const SEF_STEPS: { key: SefStepKey; phase: (typeof SEF_PHASES)[number]["key"]; no: number; name: string; desc: string; tools: Tool[] }[] = [

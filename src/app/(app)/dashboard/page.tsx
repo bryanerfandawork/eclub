@@ -20,6 +20,9 @@ import { ShareRef } from "@/components/share-ref";
 import { Gift } from "lucide-react";
 import { getAccount } from "@/lib/plans";
 import { regencyName } from "@/lib/regions";
+import { getIncomeProfile } from "@/lib/income-server";
+import { summarize } from "@/lib/income";
+import { TrendingUp } from "lucide-react";
 
 export const metadata = { title: "Dashboard" };
 
@@ -33,7 +36,8 @@ export default async function DashboardPage() {
     getProgressStats(),
   ]);
   const [ew, placed, disc] = await Promise.all([getAssessmentResults("8-wheel-entrepreneur", 1), getAssessmentResults(PLACEMENT_KEY, 1), getDiscResult()]);
-  const [fin, vapid, events, account, share] = await Promise.all([getFinance(today.slice(0, 7)), isDemoMode ? null : getVapidPublicKey(), getEvents(), getAccount(), myShare()]);
+  const [fin, vapid, events, account, share, income] = await Promise.all([getFinance(today.slice(0, 7)), isDemoMode ? null : getVapidPublicKey(), getEvents(), getAccount(), myShare(), getIncomeProfile().catch(() => null)]);
+  const incomeSum = income ? summarize(income, dreams) : null;
   const nowMs = Date.now();
   const nextEvent = (events ?? []).filter((e) => new Date(e.starts_at).getTime() + e.duration_min * 60_000 > nowMs).sort((a, b) => a.starts_at.localeCompare(b.starts_at))[0];
   const eventDays = nextEvent ? Math.round((new Date(new Date(nextEvent.starts_at).toLocaleDateString("en-CA", { timeZone: "Asia/Jakarta" })).getTime() - new Date(today).getTime()) / 86_400_000) : 0;
@@ -60,6 +64,7 @@ export default async function DashboardPage() {
     { done: !!disc, label: "Kenali kepribadian Anda (Tes DISC)", href: "/disc" },
     { done: ew.length > 0, label: "Ikuti tes 8 Wheel Entrepreneur", href: "/assessment/8-wheel-entrepreneur" },
     { done: dreams.length > 0, label: "Buat mimpi pertama Anda", href: "/goals/baru" },
+    { done: !!income, label: "Isi Peta Income: lihat posisi uang Anda", href: "/income" },
     { done: stats.dailyTotal30 > 0, label: "Rencanakan aksi harian pertama", href: "/today" },
   ];
   const onboarding = steps.some((s) => !s.done);
@@ -339,6 +344,30 @@ export default async function DashboardPage() {
           </Link>
         )}
       </div>
+
+      <Link href="/income" className="group flex items-center gap-4 rounded-2xl border border-line bg-white p-5 shadow-soft transition hover:border-gold lg:p-6">
+        <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-brand text-white">
+          <TrendingUp className="h-6 w-6" />
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="eyebrow block">Peta Income</span>
+          {incomeSum ? (
+            <>
+              <b className="mt-0.5 block text-heading">{incomeSum.stage.label}</b>
+              <span className="block text-sm text-muted">
+                Sisa uang {rupiah(incomeSum.surplus)}/bulan
+                {incomeSum.gap > 0 ? ` · kurang ${rupiah(incomeSum.gap)}/bulan untuk mimpi` : incomeSum.need > 0 ? " · cukup untuk mimpi ✓" : ""}
+              </span>
+            </>
+          ) : (
+            <>
+              <b className="mt-0.5 block text-heading">Active, massive, atau passive income: Anda di mana?</b>
+              <span className="block text-sm text-muted">Isi 5 menit, langsung tahu sisa uang, posisi SEF, dan kapan mimpi tercapai.</span>
+            </>
+          )}
+        </span>
+        <ArrowRight className="h-5 w-5 shrink-0 text-brand transition group-hover:translate-x-0.5" />
+      </Link>
 
       {share.eligible && share.code ? (
         <section className="relative overflow-hidden rounded-2xl border border-gold/50 bg-gold-soft/50 p-5 lg:p-6">

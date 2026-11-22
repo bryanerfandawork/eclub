@@ -4,6 +4,8 @@ import { getAssessmentResults, getDreams, getLifePlan, getProfile } from "./data
 import { getDiscResult } from "./disc/server";
 import { INSIGHTS } from "./disc/insights";
 import { DISC_TYPES } from "./disc/data";
+import { getIncomeProfile } from "./income-server";
+import { summarize } from "./income";
 import { getLimit } from "./plans";
 import { PLACEMENT_COPY, PLACEMENT_KEY, type Placement } from "./placement";
 import { rupiah } from "./format";
@@ -73,5 +75,13 @@ export async function buildUserContext(): Promise<string> {
     lines.push(`Profil DISC (diri alami, 0-100): D ${n.values.D}, I ${n.values.I}, S ${n.values.S}, C ${n.values.C}. Dominan ${n.primary} (${INSIGHTS[n.primary].name}, ${INSIGHTS[n.primary].tagline})${n.type && DISC_TYPES[n.type] ? `, pola ${DISC_TYPES[n.type].name} (${DISC_TYPES[n.type].tagline})` : ""}.`);
   }
   if (ew[0]) lines.push("8 Wheel Entrepreneur terakhir (0-10): " + Object.entries(ew[0].scores).map(([k, v]) => `${k} ${v}`).join(", "));
+  const inc = await getIncomeProfile().catch(() => null);
+  if (inc) {
+    const s = summarize(inc, dreams);
+    const self = [...inc.interests, ...inc.hobbies, ...inc.talents, ...inc.passions].slice(0, 12).join(", ");
+    lines.push(`Peta Income (per bulan): active Rp${s.active}, massive Rp${s.massive}, passive Rp${s.passive}, pengeluaran Rp${s.expense}, sisa Rp${s.surplus}. Posisi: ${s.stage.label}.${s.need ? ` Kebutuhan tabungan mimpi Rp${s.need}/bln, selisih Rp${s.gap}.` : ""}`);
+    if (self) lines.push(`Minat/hobi/bakat/passion: ${self}`);
+    if (inc.plans.length) lines.push(`Rencana massive income: ${inc.plans.map((x) => `${x.name} (target Rp${x.target}/bln)`).join("; ")}`);
+  }
   return lines.length ? lines.join("\n") : "";
 }

@@ -1,3 +1,4 @@
+import { PromoBadge } from "@/components/promo-badge";
 import Link from "next/link";
 import {
   ArrowRight,
@@ -182,7 +183,7 @@ export default async function Home() {
             <span className="text-brand">Build Your Success.</span>
           </h1>
           <p className="mx-auto mt-6 max-w-xl animate-rise text-[17px] leading-relaxed text-muted lg:mx-0">
-            Banyak orang stuck bukan karena kurang modal atau susah pemasaran, tetapi karena kehilangan <b className="text-heading">spark</b>. EClub membantu Anda menyalakannya kembali lewat cita-cita, lalu menapaki jalan bertumbuh yang jelas dan berjenjang.
+            Banyak orang stuck bukan karena kurang modal atau susah pemasaran, tetapi karena kehilangan <b className="text-heading">spark</b>. EClub membantu Anda menyalakannya kembali lewat cita-cita, lalu menapaki jalan yang jelas: active income, massive income, sampai passive income. Untuk pelajar, karyawan, freelancer, maupun pemilik usaha.
           </p>
           <div className="mt-8 flex animate-rise flex-col justify-center gap-3 sm:flex-row lg:justify-start">
             <Link href="/daftar" className="btn-primary px-7 py-3.5 text-[15px]">
@@ -315,6 +316,7 @@ export default async function Home() {
               <li key={phase.key} className="rounded-3xl border border-white/10 bg-white/5 p-6 backdrop-blur">
                 <p className="text-xs font-semibold text-white/50">Fase {i + 1}</p>
                 <p className="mt-1 text-2xl font-bold text-gold">{phase.name}</p>
+                <p className="mt-1 inline-block rounded-full bg-white/10 px-2.5 py-0.5 text-[11px] font-semibold text-white/80">{phase.income}</p>
                 <p className="mt-2 text-sm leading-relaxed text-white/70">{phase.desc}</p>
                 <ul className="mt-5 space-y-2">
                   {SEF_STEPS.filter((st) => st.phase === phase.key).map((st) => (
@@ -327,7 +329,7 @@ export default async function Home() {
               </li>
             ))}
           </ol>
-          <p className="mt-6 text-sm text-white/60">Personal Mapping → Acquisition → Systemation → Transformation → Investation. Jenjang berikutnya terbuka setelah jenjang sebelumnya selesai.</p>
+          <p className="mt-6 text-sm text-white/60">Untuk siapa saja: pelajar, karyawan, freelancer, maupun pemilik usaha. Bangun active income dulu, tambah massive income, lalu biarkan passive income bekerja untuk mimpi Anda. Jenjang berikutnya terbuka setelah jenjang sebelumnya selesai.</p>
         </div>
       </section>
 
@@ -399,6 +401,7 @@ export default async function Home() {
               <ul className="mt-5 space-y-2 text-sm text-ink">
                 {[
                   "Cek Posisi SEF + rekomendasi langkah",
+                  "Peta Income: posisi active, massive, passive",
                   "Target Jualan Harian dari mimpi Anda",
                   "Kalkulator HPP (3 produk) & catatan keuangan",
                   "Dream Planner, Daily Action & kebiasaan",
@@ -425,11 +428,13 @@ export default async function Home() {
               <p className="mt-1 text-sm text-white/70">
                 ditagih {rupiah(yearly)} per tahun · atau {rupiah(monthly)} bulanan
               </p>
+              <PromoBadge tone="dark" className="mt-4" />
               <ul className="mt-5 space-y-2 text-sm text-white/85">
                 {[
                   "Semua fitur Free, dengan batas lebih besar",
                   "Produk HPP tanpa batas & laporan laba rugi",
                   "Laporan lengkap DISC + rekomendasi karier",
+                  "Rekomendasi ide income personal",
                   "Kelas khusus Plus & sertifikat tahap SEF",
                   "Harga khusus mentoring & event",
                   `Link affiliate & kupon pribadi: bagi hasil ${rate}%`,

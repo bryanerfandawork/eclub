@@ -3,6 +3,9 @@ import { notFound } from "next/navigation";
 import { ArrowRight, ChevronLeft, Crown, Lock } from "lucide-react";
 import { getArticle, listArticles } from "@/lib/articles";
 import { ArticleBody } from "@/components/article-body";
+import { HELP } from "@/lib/income";
+
+const FILL: Record<string, string> = { self: "diri", sources: "penghasilan", expenses: "pengeluaran", plans: "rencana", dreams: "mimpi" };
 
 export const dynamic = "force-dynamic";
 
@@ -15,6 +18,8 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
   const { slug } = await params;
   const [a, all] = await Promise.all([getArticle(slug), listArticles()]);
   if (!a) notFound();
+  const helpKey = (Object.keys(HELP) as (keyof typeof HELP)[]).find((k) => HELP[k].slug === slug);
+  const fill = helpKey ? FILL[helpKey] : null;
   const more = all.filter((x) => x.slug !== slug && (x.category === a.category || x.access === "free")).slice(0, 3);
   return (
     <article className="mx-auto max-w-2xl">
@@ -51,15 +56,27 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
           <ArticleBody text={a.body} />
         )}
       </div>
-      <div className="card mt-10 flex flex-col items-start gap-3 p-6 sm:flex-row sm:items-center">
-        <div className="flex-1">
-          <p className="font-bold text-heading">Ubah bacaan jadi langkah nyata</p>
-          <p className="mt-1 text-sm text-muted">Cek posisi Anda di peta SEF dan hitung target jualan harian, gratis.</p>
+      {fill ? (
+        <div className="mt-10 flex flex-col items-start gap-3 rounded-3xl bg-brand p-6 text-white shadow-lift sm:flex-row sm:items-center">
+          <div className="flex-1">
+            <p className="font-bold">Sudah lebih jelas? Isi Peta Income sekarang</p>
+            <p className="mt-1 text-sm text-white/75">Langsung lihat posisi income Anda dan seberapa cepat mimpi tercapai. Gratis, 5 menit.</p>
+          </div>
+          <Link href={`/income#${fill}`} className="btn-gold">
+            Isi sekarang <ArrowRight className="h-4 w-4" />
+          </Link>
         </div>
-        <Link href={`/daftar?next=${encodeURIComponent("/dashboard")}`} className="btn-primary">
-          Mulai gratis <ArrowRight className="h-4 w-4" />
-        </Link>
-      </div>
+      ) : (
+        <div className="card mt-10 flex flex-col items-start gap-3 p-6 sm:flex-row sm:items-center">
+          <div className="flex-1">
+            <p className="font-bold text-heading">Ubah bacaan jadi langkah nyata</p>
+            <p className="mt-1 text-sm text-muted">Cek posisi Anda di peta SEF dan hitung target jualan harian, gratis.</p>
+          </div>
+          <Link href={`/daftar?next=${encodeURIComponent("/dashboard")}`} className="btn-primary">
+            Mulai gratis <ArrowRight className="h-4 w-4" />
+          </Link>
+        </div>
+      )}
       {more.length > 0 && (
         <div className="mt-10">
           <p className="text-sm font-bold text-heading">Baca juga</p>

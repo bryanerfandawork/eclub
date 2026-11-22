@@ -1,3 +1,4 @@
+import { PromoBadge } from "@/components/promo-badge";
 import { Check, Crown } from "lucide-react";
 import { OrderButton } from "@/components/order-button";
 import { PageHeader } from "@/components/ui";
@@ -15,6 +16,7 @@ export default async function BuyPlus() {
   return (
     <>
       <PageHeader eyebrow="EClub Plus" title="Pilih periode langganan" desc="Bayar lewat transfer bank. Paket aktif otomatis setelah pembayaran terdeteksi." />
+      <PromoBadge className="mb-5 max-w-3xl" />
       <div className="grid max-w-3xl gap-5 md:grid-cols-2">
         <section className="card flex flex-col p-6">
           <p className="font-bold text-heading">Bulanan</p>

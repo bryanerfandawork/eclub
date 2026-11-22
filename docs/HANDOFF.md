@@ -202,7 +202,7 @@ After changing env variables, **Redeploy** in Vercel.
 
 ## 6. Database migrations (run by Ridha in Supabase > SQL Editor)
 
-All files are in `supabase/`. **Everything is run except `008_ai_companion.sql` and `018_blasting_users.sql` and `019_lesson_content_lock.sql`.**
+All files are in `supabase/`. **Everything is run except `008_ai_companion.sql` and `018_blasting_users.sql`, `019_lesson_content_lock.sql`, `020_income_promo.sql`.**
 
 | File | Content | Status |
 |---|---|---|
@@ -224,6 +224,7 @@ All files are in `supabase/`. **Everything is run except `008_ai_companion.sql` 
 | `016_push.sql` | push subscriptions/secrets/broadcasts | ✅ |
 | `017_service_role_grants.sql` | grants for service_role + default privileges | ✅ |
 | `019_lesson_content_lock.sql` | locks `lessons.content` (paid reading material was readable via the public API); content now only via `lesson_content(lid)` RPC (staff or `can_watch`). App falls back to the old direct read until it is run. | ⏳ **not run yet** (added 22 Nov) |
+| `020_income_promo.sql` | Peta Income table `income_profiles`, plan feature `income_reco` (Plus), 5 free "Bingung?" articles, RPC `promo_paid_count(since)` for honest promo quota. Without it: /income can't save, promo quota falls back to the "harga spesial" line. | ⏳ **not run yet** (added 22 Nov) |
 | `018_blasting_users.sql` | `blasts` history, `profiles.email_opt_out`, RPCs `admin_blast_features/feature_users/tests/courses`; `profiles.last_seen_at` + `touch_last_seen()` (called by the app layout), `admin_users(search, sort, dir, lim, off)` | ⏳ **not run yet** (added 22 Nov) |
 
 New migrations go in `supabase/018_*.sql` and onward. Every migration must include explicit `GRANT` statements (to `authenticated`, `anon` where needed, and `service_role`), because "Grant API access" was unchecked when the project was created. Seed inserts should be idempotent (`on conflict do nothing`).
@@ -305,3 +306,8 @@ Setelah membaca HANDOFF, ringkas dalam 5 poin apa yang kamu pahami, lalu tanya s
 - Never ask for secrets in chat; env var values only in Vercel.
 - Pending: AI Companion (008 + ANTHROPIC_API_KEY), Vercel Pro, payment gateway (Moota paused).
 - Brand: white "EClub" wordmark on maroon #8B2220; tagline "Personal Growth Companion"; method SEF (Spark, Survive, Sustain, Scale Up, Spread Up).
+
+
+## Peta Income & promo harga (22 Nov)
+- `/income` (src/lib/income.ts, income-server.ts, app/(app)/income): minat/hobi/bakat/passion chips, sumber income (active/massive/passive), pengeluaran (default + petunjuk dari Keuangan 30 hari), rencana massive income, ringkasan langsung (posisi SEF: active=Survive·Sustain, massive=Sustain·Scale Up, passive=Spread Up), sinkron mimpi (kebutuhan/bln, selisih, berapa bulan lebih cepat). Rekomendasi rule-based (DISC + tag) khusus Plus (`income_reco`), free melihat teaser blur. Artikel "Bingung?" -> CTA "Isi sekarang" ke `/income#bagian`.
+- Promo harga Plus: Admin > Paket > "Promo harga Plus". Mode none (kalimat harga spesial), date (hitung mundur sampai 23.59 WIB), quota (X pembeli pertama, dihitung dari order Plus lunas sejak tanggal mulai). Komponen `PromoBadge` di /paket, /beli/plus, landing, halaman pesanan Plus. Hilang otomatis saat habis.

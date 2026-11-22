@@ -1,3 +1,4 @@
+import { PromoBadge } from "@/components/promo-badge";
 import Link from "next/link";
 import { Check, Crown, Minus } from "lucide-react";
 import { PageHeader } from "@/components/ui";
@@ -47,6 +48,7 @@ export default async function PlansPage() {
             <span className="text-base font-medium text-white/60"> /bulan</span>
           </p>
           <p className="mt-1 text-sm text-white/70">atau {rupiah(yearly)} per tahun</p>
+          {account.plan !== "plus" && <PromoBadge tone="dark" className="mt-4" />}
           {account.plan === "plus" ? (
             <p className="mt-4 text-sm font-semibold text-gold">
               Paket Anda saat ini{account.expiresAt ? ` · aktif sampai ${new Date(account.expiresAt).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}` : ""}

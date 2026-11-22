@@ -94,6 +94,7 @@ export async function saveFeatures(_: FormState, formData: FormData): Promise<Fo
     ["admin_whatsapp", String(formData.get("admin_whatsapp") ?? "").replace(/[^\d+]/g, "").slice(0, 20)],
     ["qris_image_url", (() => { const v = String(formData.get("qris_image_url") ?? "").trim(); return /^(https:\/\/|\/)/.test(v) ? v.slice(0, 500) : ""; })()],
     ["bank_accounts", String(formData.get("bank_accounts") ?? "").trim().slice(0, 1000)],
+    ...promoSettings(formData),
   ];
   for (const [skey, svalue] of settings) {
     const { error } = await supabase.rpc("admin_set_setting", { skey, svalue });
@@ -101,6 +102,23 @@ export async function saveFeatures(_: FormState, formData: FormData): Promise<Fo
   }
   revalidatePath("/", "layout");
   return { message: "Pengaturan tersimpan." };
+}
+
+function promoSettings(fd: FormData): [string, unknown][] {
+  const mode = ["date", "quota"].includes(String(fd.get("promo_mode"))) ? String(fd.get("promo_mode")) : "none";
+  const day = (v: FormDataEntryValue | null) => (/^\d{4}-\d{2}-\d{2}$/.test(String(v ?? "")) ? String(v) : "");
+  const today = new Date(Date.now() + 7 * 3_600_000).toISOString().slice(0, 10);
+  const out: [string, unknown][] = [
+    ["promo_mode", mode],
+    ["promo_note", String(fd.get("promo_note") ?? "").trim().slice(0, 200)],
+  ];
+  if (mode !== "none") out.push(["promo_label", String(fd.get("promo_label") ?? "").trim().slice(0, 40)]);
+  if (mode === "date") out.push(["promo_end", day(fd.get("promo_end"))]);
+  if (mode === "quota") {
+    out.push(["promo_quota", Math.min(100000, Math.max(0, Number(String(fd.get("promo_quota") ?? "").replace(/[^\d]/g, "")) || 0))]);
+    out.push(["promo_start", day(fd.get("promo_start")) || today]);
+  }
+  return out;
 }
 
 /** Unggah gambar QRIS ke Supabase Storage (bucket "assets") lalu simpan tautannya di pengaturan. */

@@ -1,3 +1,4 @@
+import { PromoBadge } from "@/components/promo-badge";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { CheckCircle2, Clock, Download, Landmark, MessageCircle, QrCode, XCircle } from "lucide-react";
@@ -106,6 +107,7 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
             <p className="mt-3 text-xs leading-relaxed text-white/75">
               Tiga angka terakhir (<b>{String(o.amount).slice(-3)}</b>) adalah kode unik agar pembayaran Anda mudah dikenali. Mohon bayar persis sampai angka terakhir.
             </p>
+            {o.product.startsWith("plus") && <PromoBadge tone="dark" className="mt-4" />}
           </div>
           <div className="space-y-5 p-6">
             {!o.coupon_code && status === "pending" && <CouponForm orderId={o.id} action={applyCoupon} suggested={refCookie} />}

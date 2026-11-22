@@ -5,6 +5,57 @@ import { saveFeatures } from "@/app/actions/admin";
 import { SubmitButton } from "@/components/submit-button";
 import { FormMessage } from "@/components/ui";
 import type { PlanFeature } from "@/lib/plans";
+import { useState } from "react";
+
+function PromoFields({ settings }: { settings: Record<string, unknown> }) {
+  const [mode, setMode] = useState(String(settings.promo_mode ?? "none"));
+  return (
+    <section className="card p-5 lg:p-6">
+      <h2 className="font-bold text-heading">Promo harga Plus</h2>
+      <p className="mt-1 text-sm text-muted">Tampil di halaman Paket, Beli Plus, halaman depan, dan halaman pembayaran. Angka kuota dihitung otomatis dari pembelian Plus yang sudah lunas, jadi selalu jujur. Saat kuota habis atau tanggal lewat, pita promo hilang sendiri dan kembali ke kalimat harga spesial.</p>
+      <div className="mt-4 grid gap-4 sm:grid-cols-3">
+        <div>
+          <label className="label">Jenis batas</label>
+          <select name="promo_mode" value={mode} onChange={(e) => setMode(e.target.value)} className="input">
+            <option value="none">Tanpa batas (kalimat harga spesial)</option>
+            <option value="date">Sampai tanggal (hitung mundur)</option>
+            <option value="quota">Untuk X pembeli pertama</option>
+          </select>
+        </div>
+        {mode !== "none" && (
+          <div>
+            <label className="label">Nama promo</label>
+            <input name="promo_label" maxLength={40} defaultValue={String(settings.promo_label ?? "")} placeholder="Promo Pembukaan" className="input" />
+          </div>
+        )}
+        {mode === "date" && (
+          <div>
+            <label className="label">Berakhir pada (23.59 WIB)</label>
+            <input type="date" name="promo_end" defaultValue={String(settings.promo_end ?? "")} className="input" />
+          </div>
+        )}
+        {mode === "quota" && (
+          <>
+            <div>
+              <label className="label">Jumlah kuota (orang)</label>
+              <input name="promo_quota" inputMode="numeric" defaultValue={String(settings.promo_quota ?? "")} placeholder="100" className="input" />
+            </div>
+            <div>
+              <label className="label">Dihitung sejak</label>
+              <input type="date" name="promo_start" defaultValue={String(settings.promo_start ?? "")} className="input" />
+              <p className="mt-1 text-xs text-muted">Kosongkan = mulai hari ini.</p>
+            </div>
+          </>
+        )}
+      </div>
+      <div className="mt-4">
+        <label className="label">Kalimat pengingat harga <span className="font-normal text-muted">(opsional)</span></label>
+        <input name="promo_note" maxLength={200} defaultValue={String(settings.promo_note ?? "")} placeholder="Harga spesial saat ini. Harga dapat menyesuaikan sewaktu-waktu seiring bertambahnya fitur dan materi, jadi amankan selagi masih berlaku." className="input" />
+        <p className="mt-1 text-xs text-muted">Kosongkan untuk memakai kalimat bawaan di atas. Selalu tampil saat tidak ada promo berbatas.</p>
+      </div>
+    </section>
+  );
+}
 
 export function FeaturesForm({ features, settings, canEdit }: { features: PlanFeature[]; settings: Record<string, unknown>; canEdit: boolean }) {
   const [state, action] = useActionState(saveFeatures, undefined);
@@ -55,6 +106,8 @@ export function FeaturesForm({ features, settings, canEdit }: { features: PlanFe
             <p className="mt-1 text-xs text-muted">Satu rekening per baris dengan format: <b>Nama bank, nomor rekening, a.n. pemilik</b>. Halaman pembayaran otomatis menampilkannya per bank dengan logo dan tombol salin.</p>
           </div>
         </section>
+
+        <PromoFields settings={settings} />
 
         <section className="card p-5 lg:p-6">
           <h2 className="font-bold text-heading">Affiliate & kode kupon</h2>
