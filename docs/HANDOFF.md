@@ -193,11 +193,12 @@ After changing env variables, **Redeploy** in Vercel.
 
 - **WhatsApp (Fonnte), transactional only**: order created (buyer + admin), unpaid > 3 hours reminder, paid, cancelled, birthday promo, Plus renewal (`renewal_days`, default 7,3,1, plus day after expiry), mentoring/event reminders within 24h, affiliate notices, event city announcements. Sent by actions and the 07:00 cron (`/api/cron/daily`, cap `wa_daily_max`), logged in `notification_log`.
 - **Order page (22 Nov)**: QRIS download button; bank accounts parsed from `app_settings.bank_accounts` (one per line "BANK number a.n. holder", `src/lib/banks.ts`) and shown per bank with a coloured bank badge and a copy button. Buyer always gets WA + email info on "Beli" (also when an unpaid order is reused); admin WA only for new orders.
+- **Blasting (22 Nov, SQL 018)**: Admin > Blasting sends email (Resend batch API) or WhatsApp (Fonnte queue: many targets per request, `delay` "8-20" random, max 300 per blast) to a filtered audience. Filters: plan, age range, province/regency, joined within N days, inactive N days (auth last_sign_in_at), each test sudah/belum (from `assessment_results`, new test keys appear automatically), any course / a specific course started-completed-not, and "sudah/belum" for **every public table with a `user_id` column** (auto-discovered by `admin_blast_features`, labels in `FEATURE_LABELS` in `src/lib/blast.ts`, unknown tables fall back to the table name), plus "pending order". Consent: WA only to `wa_opt_in`, email skips `email_opt_out`; emails carry an HMAC unsubscribe link to `/berhenti-email`. `{nama}` personalises. Preview count, test send, history in `blasts`.
 - **Auth extras**: forgot password (`/lupa-sandi`) and set new password (`/atur-sandi`).
 
 ## 6. Database migrations (run by Ridha in Supabase > SQL Editor)
 
-All files are in `supabase/`. **Everything is run except `008_ai_companion.sql`.**
+All files are in `supabase/`. **Everything is run except `008_ai_companion.sql` and `018_blasting.sql`.**
 
 | File | Content | Status |
 |---|---|---|
@@ -218,6 +219,7 @@ All files are in `supabase/`. **Everything is run except `008_ai_companion.sql`.
 | `015_event_courses_articles.sql` | Gathering event, 8 courses/44 lessons, articles | ✅ |
 | `016_push.sql` | push subscriptions/secrets/broadcasts | ✅ |
 | `017_service_role_grants.sql` | grants for service_role + default privileges | ✅ |
+| `018_blasting.sql` | `blasts` history, `profiles.email_opt_out`, RPCs `admin_blast_features/feature_users/tests/courses` | ⏳ **not run yet** (added 22 Nov) |
 
 New migrations go in `supabase/018_*.sql` and onward. Every migration must include explicit `GRANT` statements (to `authenticated`, `anon` where needed, and `service_role`), because "Grant API access" was unchecked when the project was created. Seed inserts should be idempotent (`on conflict do nothing`).
 

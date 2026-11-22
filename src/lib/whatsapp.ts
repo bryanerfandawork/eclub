@@ -214,3 +214,36 @@ export async function notifyEventCity(eventId: string): Promise<{ sent: number; 
   }
   return { sent, total: todo.length };
 }
+
+/**
+ * Blasting WA lewat antrean Fonnte: banyak nomor dalam satu permintaan, Fonnte yang memberi jeda acak
+ * antar pesan (lebih aman dari blokir). {name} di pesan diganti nama depan penerima oleh Fonnte.
+ */
+export async function sendWaBlast(targets: { wa: string; name: string }[], message: string): Promise<{ sent: number; failed: number; reason?: string }> {
+  const token = process.env.FONNTE_TOKEN;
+  if (!token) return { sent: 0, failed: targets.length, reason: "FONNTE_TOKEN belum diisi" };
+  let sent = 0;
+  let failed = 0;
+  let reason: string | undefined;
+  for (let i = 0; i < targets.length; i += 100) {
+    const chunk = targets.slice(i, i + 100);
+    const target = chunk.map((t) => `${t.wa}|${t.name.replace(/[|,]/g, " ")}`).join(",");
+    try {
+      const body = new URLSearchParams({ target, message, countryCode: "62", delay: "8-20" });
+      const res = await fetch("https://api.fonnte.com/send", { method: "POST", headers: { Authorization: token }, body });
+      const data = (await res.json().catch(() => ({}))) as Record<string, unknown>;
+      const ok = res.ok && (data.status ?? data.Status) !== false;
+      if (ok) sent += chunk.length;
+      else {
+        failed += chunk.length;
+        reason = String(data.reason ?? data.detail ?? res.status);
+        console.error("sendWaBlast gagal", reason);
+      }
+    } catch (e) {
+      failed += chunk.length;
+      reason = "koneksi ke Fonnte gagal";
+      console.error("sendWaBlast", e);
+    }
+  }
+  return { sent, failed, reason };
+}

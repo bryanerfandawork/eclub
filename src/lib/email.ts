@@ -7,7 +7,7 @@ export const emailConfigured = () => !!process.env.RESEND_API_KEY;
 const SITE = () => process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.eclub.co.id";
 const FROM = "EClub Indonesia <noreply@eclub.co.id>";
 const idr = (n: number) => "Rp" + n.toLocaleString("id-ID");
-const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]!);
+export const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]!);
 
 export async function sendEmail(to: string, subject: string, html: string): Promise<boolean> {
   const key = process.env.RESEND_API_KEY;
@@ -26,7 +26,7 @@ export async function sendEmail(to: string, subject: string, html: string): Prom
   }
 }
 
-function layout(title: string, preheader: string, body: string, cta?: { href: string; label: string }) {
+export function layout(title: string, preheader: string, body: string, cta?: { href: string; label: string }, footer?: string) {
   return `<!doctype html><html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(title)}</title></head>
 <body style="margin:0;padding:0;background:#f6f1ec;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#2b1d1a;">
 <span style="display:none;max-height:0;overflow:hidden;">${esc(preheader)}</span>
@@ -44,7 +44,7 @@ ${cta ? `<table role="presentation" cellpadding="0" cellspacing="0" style="margi
 <tr><td style="padding:20px 32px 28px;border-top:1px solid #efe6df;">
 <p style="margin:0;font-size:12px;line-height:1.6;color:#9a8b85;">Salam bertumbuh,<br><b style="color:#2b1d1a;">Tim EClub Indonesia</b> &middot; <a href="${SITE()}" style="color:#8B2220;text-decoration:none;">www.eclub.co.id</a></p>
 </td></tr></table>
-<p style="margin:18px 0 0;font-size:11px;color:#9a8b85;">Email ini dikirim otomatis, mohon tidak membalas email ini.</p>
+<p style="margin:18px 0 0;font-size:11px;color:#9a8b85;">${footer ?? "Email ini dikirim otomatis, mohon tidak membalas email ini."}</p>
 </td></tr></table></body></html>`;
 }
 
@@ -97,4 +97,36 @@ export async function emailOrder(orderId: string, kind: "created" | "paid" | "ca
   } catch (e) {
     console.error("emailOrder", e);
   }
+}
+
+/** Kirim banyak email sekaligus (Resend batch, maks 100 per panggilan). Mengembalikan jumlah terkirim. */
+export async function sendEmailBatch(items: { to: string; subject: string; html: string }[]): Promise<number> {
+  const key = process.env.RESEND_API_KEY;
+  if (!key) return 0;
+  let sent = 0;
+  for (let i = 0; i < items.length; i += 100) {
+    const chunk = items.slice(i, i + 100).map((x) => ({ from: FROM, to: [x.to], subject: x.subject, html: x.html }));
+    try {
+      const res = await fetch("https://api.resend.com/emails/batch", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
+        body: JSON.stringify(chunk),
+      });
+      if (res.ok) sent += chunk.length;
+      else console.error("sendEmailBatch", res.status, await res.text().catch(() => ""));
+    } catch (e) {
+      console.error("sendEmailBatch", e);
+    }
+    if (i + 100 < items.length) await new Promise((r) => setTimeout(r, 600));
+  }
+  return sent;
+}
+
+/** Ubah teks biasa (baris kosong = paragraf baru, tautan otomatis) menjadi HTML aman. */
+export function textToHtml(text: string) {
+  return text
+    .trim()
+    .split(/\n{2,}/)
+    .map((para) => p(esc(para).replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" style="color:#8B2220;">$1</a>').replace(/\n/g, "<br>")))
+    .join("");
 }
