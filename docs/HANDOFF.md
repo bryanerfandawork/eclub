@@ -87,6 +87,7 @@ All accounts below belong to Ridha (GitHub account `bryanerfandawork`). The old 
 | `SUPABASE_SERVICE_ROLE_KEY` | set | cron, push, webhooks (server only) |
 | `FONNTE_TOKEN` | set | WhatsApp |
 | `CRON_SECRET` | set | protects `/api/cron/daily` (Vercel Cron sends it) |
+| `RESEND_API_KEY` | **not set yet** (added 22 Nov) | order emails (created / paid / cancelled) via Resend API, `src/lib/email.ts`; skipped silently if missing |
 | `ANTHROPIC_API_KEY` | **not set** | AI Companion |
 | `MOOTA_WEBHOOK_SECRET` | not set (Moota paused) | Moota webhook |
 | `NEXT_PUBLIC_SITE_URL` | optional | defaults to https://www.eclub.co.id |
@@ -191,6 +192,7 @@ After changing env variables, **Redeploy** in Vercel.
 - **Landing page** (`src/app/page.tsx`): funnel order: hero (CTA Cek Posisi) -> pains -> dream calculator lead magnet (`DreamCalc`, no login) -> philosophy -> 12 features -> SEF map -> 4-step journey -> testimonials (real only) -> pricing + table -> classes/mentoring -> nearest events (`public_events`, anon) -> affiliate -> kolaborasi form -> FAQ -> CTA.
 
 - **WhatsApp (Fonnte), transactional only**: order created (buyer + admin), unpaid > 3 hours reminder, paid, cancelled, birthday promo, Plus renewal (`renewal_days`, default 7,3,1, plus day after expiry), mentoring/event reminders within 24h, affiliate notices, event city announcements. Sent by actions and the 07:00 cron (`/api/cron/daily`, cap `wa_daily_max`), logged in `notification_log`.
+- **Order page (22 Nov)**: QRIS download button; bank accounts parsed from `app_settings.bank_accounts` (one per line "BANK number a.n. holder", `src/lib/banks.ts`) and shown per bank with a coloured bank badge and a copy button. Buyer always gets WA + email info on "Beli" (also when an unpaid order is reused); admin WA only for new orders.
 - **Auth extras**: forgot password (`/lupa-sandi`) and set new password (`/atur-sandi`).
 
 ## 6. Database migrations (run by Ridha in Supabase > SQL Editor)

@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { isDemoMode } from "@/lib/supabase/config";
 import { createClient } from "@/lib/supabase/server";
+import { emailOrder } from "@/lib/email";
 import { notifyEventCity, notifyOrderCreated, notifyScheduleConfirmed } from "@/lib/whatsapp";
 import type { FormState } from "./auth";
 
@@ -18,7 +19,7 @@ export async function bookMentoring(_: FormState, formData: FormData): Promise<F
   const { data, error } = await supabase.rpc("book_mentoring", { p_slot: slot, p_goal: goal });
   if (error) return { error: error.message.includes("function") ? "Fitur mentoring belum aktif (SQL tahap 13)." : error.message };
   if (data) {
-    await notifyOrderCreated(String(data));
+    await Promise.all([notifyOrderCreated(String(data)), emailOrder(String(data), "created")]);
     redirect(`/pesanan/${data}`);
   }
   await notifyScheduleConfirmed("mentoring", slot);
@@ -33,7 +34,7 @@ export async function registerEvent(_: FormState, formData: FormData): Promise<F
   const { data, error } = await supabase.rpc("register_event", { p_event: id });
   if (error) return { error: error.message.includes("function") ? "Fitur event belum aktif (SQL tahap 13)." : error.message };
   if (data) {
-    await notifyOrderCreated(String(data));
+    await Promise.all([notifyOrderCreated(String(data)), emailOrder(String(data), "created")]);
     redirect(`/pesanan/${data}`);
   }
   await notifyScheduleConfirmed("event", id);

@@ -52,7 +52,7 @@ export function FeaturesForm({ features, settings, canEdit }: { features: PlanFe
           <div className="mt-4">
             <label className="label">Rekening tujuan transfer</label>
             <textarea name="bank_accounts" rows={3} defaultValue={String(settings.bank_accounts ?? "")} className="input resize-y" placeholder={"BCA 1234567890 a.n. PT EClub Indonesia\nMandiri 0987654321 a.n. PT EClub Indonesia"} />
-            <p className="mt-1 text-xs text-muted">Ditampilkan di halaman pembayaran. Pada mode otomatis, harus rekening yang terhubung ke Moota.</p>
+            <p className="mt-1 text-xs text-muted">Satu rekening per baris dengan format: <b>Nama bank, nomor rekening, a.n. pemilik</b>. Halaman pembayaran otomatis menampilkannya per bank dengan logo dan tombol salin.</p>
           </div>
         </section>
 

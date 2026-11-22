@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { isDemoMode } from "@/lib/supabase/config";
 import { createClient } from "@/lib/supabase/server";
 import { normalizeWa, notifyOrderCancelled, notifyOrderCreated, notifyOrderPaid, notifyCommission, notifyItemPaid } from "@/lib/whatsapp";
+import { emailOrder } from "@/lib/email";
 import type { FormState } from "./auth";
 
 export async function startOrder(_: FormState, formData: FormData): Promise<FormState> {
@@ -15,8 +16,10 @@ export async function startOrder(_: FormState, formData: FormData): Promise<Form
   const { data, error } = await supabase.rpc("create_order", { p_product: product, p_course_slug: slug });
   if (error || !data) return { error: error?.message ?? "Gagal membuat pesanan." };
   const order = data as { id: string; created_at: string };
-  // Kirim notifikasi hanya untuk pesanan yang baru dibuat (bukan pesanan lama yang dipakai ulang).
-  if (Date.now() - new Date(order.created_at).getTime() < 60_000) await notifyOrderCreated(order.id);
+  // Pembeli selalu dikirimi info bayar (juga saat pesanan lama yang belum dibayar dipakai ulang).
+  // Admin hanya dikabari untuk pesanan yang benar-benar baru.
+  const isNew = Date.now() - new Date(order.created_at).getTime() < 120_000;
+  await Promise.all([notifyOrderCreated(order.id, isNew), emailOrder(order.id, "created")]);
   redirect(`/pesanan/${(data as { id: string }).id}`);
 }
 
@@ -25,7 +28,7 @@ export async function adminMarkPaid(formData: FormData) {
   const supabase = await createClient();
   const id = String(formData.get("id"));
   const { error } = await supabase.rpc("admin_mark_paid", { p_order: id });
-  if (!error) await Promise.all([notifyOrderPaid(id), notifyCommission(id), notifyItemPaid(id)]);
+  if (!error) await Promise.all([notifyOrderPaid(id), notifyCommission(id), notifyItemPaid(id), emailOrder(id, "paid")]);
   revalidatePath("/admin/pesanan");
 }
 
@@ -34,7 +37,7 @@ export async function adminCancelOrder(formData: FormData) {
   const supabase = await createClient();
   const id = String(formData.get("id"));
   const { error } = await supabase.rpc("admin_cancel_order", { p_order: id });
-  if (!error) await notifyOrderCancelled(id);
+  if (!error) await Promise.all([notifyOrderCancelled(id), emailOrder(id, "cancelled")]);
   revalidatePath("/admin/pesanan");
 }
 

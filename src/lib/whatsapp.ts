@@ -17,8 +17,10 @@ export async function sendWa(target: string, message: string): Promise<boolean> 
   try {
     const body = new URLSearchParams({ target, message, countryCode: "62" });
     const res = await fetch("https://api.fonnte.com/send", { method: "POST", headers: { Authorization: token }, body });
-    const data = (await res.json().catch(() => ({}))) as { status?: boolean };
-    return res.ok && data.status !== false;
+    const data = (await res.json().catch(() => ({}))) as { status?: boolean; reason?: string };
+    const ok = res.ok && data.status !== false;
+    if (!ok) console.error("sendWa gagal", res.status, data.reason ?? "");
+    return ok;
   } catch {
     return false;
   }

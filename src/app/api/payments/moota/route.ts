@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { emailOrder } from "@/lib/email";
 import { notifyOrderPaid, notifyCommission, notifyItemPaid } from "@/lib/whatsapp";
 import { createClient } from "@supabase/supabase-js";
 import { moota } from "@/lib/payments/moota";
@@ -28,7 +29,7 @@ export async function POST(request: Request) {
       p_amount: p.amount,
       p_raw: p.raw,
     });
-    if (data && !error) await Promise.all([notifyOrderPaid(String(data)), notifyCommission(String(data)), notifyItemPaid(String(data))]);
+    if (data && !error) await Promise.all([notifyOrderPaid(String(data)), notifyCommission(String(data)), notifyItemPaid(String(data)), emailOrder(String(data), "paid")]);
     results.push({ ref: p.ref, order: data ?? null, error: error?.message });
   }
   return NextResponse.json({ ok: true, processed: results.length, results });

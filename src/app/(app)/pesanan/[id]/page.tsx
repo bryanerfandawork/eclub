@@ -1,8 +1,9 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { CheckCircle2, Clock, Landmark, MessageCircle, QrCode, XCircle } from "lucide-react";
+import { CheckCircle2, Clock, Download, Landmark, MessageCircle, QrCode, XCircle } from "lucide-react";
 import { cookies } from "next/headers";
 import { applyCoupon, saveOrderWa } from "@/app/actions/orders";
+import { parseBankAccounts } from "@/lib/banks";
 import { getSettings } from "@/lib/plans";
 import { isDemoMode } from "@/lib/supabase/config";
 import { createClient } from "@/lib/supabase/server";
@@ -39,9 +40,11 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
   }
   if (!o) notFound();
   const settings = await getSettings();
-  const banks = String(settings.bank_accounts ?? "").trim();
+  const banks = String(settings.bank_accounts ?? "").trim() || (isDemoMode ? "BCA 1234567890 a.n. PT EClub Indonesia\nMandiri 1230009876543 a.n. PT EClub Indonesia" : "");
   const manual = String(settings.payment_mode ?? "manual") !== "auto";
+  const { accounts, rest: bankNotes } = parseBankAccounts(banks);
   const qris = String(settings.qris_image_url ?? "");
+  const qrisDownload = qris ? (qris.includes("/storage/v1/object/public/") ? `${qris}${qris.includes("?") ? "&" : "?"}download=QRIS-EClub.png` : qris) : "";
   const adminWa = String(settings.admin_whatsapp ?? "").replace(/[^\d]/g, "").replace(/^0/, "62");
   const code = o.id.slice(0, 8).toUpperCase();
   const waText = encodeURIComponent(`Halo Admin EClub, saya sudah membayar.\n\nKode pesanan: ${code}\nProduk: ${o.title}\nNominal: Rp${o.amount.toLocaleString("id-ID")}\n\nBerikut bukti pembayarannya:`);
@@ -118,16 +121,42 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
                 </p>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={qris} alt="QRIS EClub" className="mx-auto mt-3 w-full max-w-[260px] rounded-xl border border-line bg-white p-2" />
-                <p className="mt-2 text-center text-xs text-muted">Scan dengan aplikasi bank atau e-wallet apa pun, lalu masukkan nominal di atas.</p>
+                <div className="mt-3 flex justify-center">
+                  <a href={qrisDownload} download="QRIS-EClub.png" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 rounded-lg border border-line bg-white px-3.5 py-2 text-xs font-semibold text-heading hover:bg-paper">
+                    <Download className="h-3.5 w-3.5" /> Unduh QRIS
+                  </a>
+                </div>
+                <p className="mt-2 text-center text-xs text-muted">Scan dengan aplikasi bank atau e-wallet apa pun, lalu masukkan nominal di atas. Bayar dari HP yang sama? Unduh QRIS, lalu pilih gambar ini di menu scan aplikasi Anda.</p>
               </div>
             )}
             <div>
               <p className="flex items-center gap-2 text-sm font-bold text-heading">
                 <Landmark className="h-4 w-4 text-gold" /> {qris ? "Atau transfer ke rekening" : "Rekening tujuan"}
               </p>
-              <p className="mt-2 rounded-xl bg-paper p-4 text-sm leading-relaxed whitespace-pre-line text-ink">
-                {banks || "Rekening tujuan belum diatur. Silakan hubungi admin EClub."}
-              </p>
+              {accounts.length > 0 ? (
+                <ul className="mt-3 space-y-2.5">
+                  {accounts.map((a) => (
+                    <li key={a.bank + a.number} className="rounded-xl border border-line bg-white p-3">
+                      <div className="flex items-center gap-3">
+                        <span className="grid h-10 w-14 shrink-0 place-items-center rounded-lg text-[13px] font-extrabold tracking-tight" style={{ background: a.brand.bg, color: a.brand.fg, boxShadow: a.brand.accent ? `inset 0 -4px 0 ${a.brand.accent}` : undefined }}>
+                          {a.brand.label}
+                        </span>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-bold text-heading">{a.bank}</p>
+                          {a.holder && <p className="truncate text-xs text-muted">a.n. {a.holder}</p>}
+                        </div>
+                      </div>
+                      <div className="mt-2.5 flex items-center justify-between gap-2 rounded-lg bg-paper py-2 pr-2 pl-3">
+                        <p className="font-mono text-base font-bold tracking-wide text-heading">{a.number.replace(/(\d{4})(?=\d)/g, "$1\u2009")}</p>
+                        <CopyButton value={a.number} />
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="mt-2 rounded-xl bg-paper p-4 text-sm leading-relaxed text-ink">{banks || "Rekening tujuan belum diatur. Silakan hubungi admin EClub."}</p>
+              )}
+              {accounts.length > 0 && bankNotes.length > 0 && <p className="mt-2 text-xs leading-relaxed whitespace-pre-line text-muted">{bankNotes.join("\n")}</p>}
             </div>
             {manual && adminWa.length > 8 && (
               <a href={`https://wa.me/${adminWa}?text=${waText}`} target="_blank" rel="noopener noreferrer" className="btn w-full bg-[#25D366] py-3 text-white hover:brightness-95">
