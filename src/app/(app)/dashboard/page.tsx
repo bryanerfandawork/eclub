@@ -1,7 +1,7 @@
 import Link from "next/link";
-import { ArrowRight, CalendarCheck2, CheckCircle2, Circle, Compass, Flame, Gem, Plus, Quote } from "lucide-react";
+import { ArrowRight, CalendarCheck2, CalendarDays, MapPin, CheckCircle2, Circle, Compass, Flame, Gem, Plus, Quote } from "lucide-react";
 import { getAssessmentResults, getDailyRange, getDreams, getOpenActions, getProfile, getProgressStats } from "@/lib/data";
-import { compactRupiah, dreamProgress, greeting, todayJakarta } from "@/lib/format";
+import { compactRupiah, dreamProgress, greeting, rupiah, todayJakarta } from "@/lib/format";
 import { DailyList } from "@/components/daily-list";
 import { STAGES } from "@/lib/journey";
 import { PLACEMENT_KEY } from "@/lib/placement";
@@ -14,6 +14,9 @@ import { createClient } from "@/lib/supabase/server";
 import { motivationOfDay } from "@/lib/motivation";
 import { getVapidPublicKey } from "@/lib/push";
 import { PushToggle } from "@/components/push-toggle";
+import { getEvents } from "@/lib/schedule";
+import { getAccount } from "@/lib/plans";
+import { regencyName } from "@/lib/regions";
 
 export const metadata = { title: "Dashboard" };
 
@@ -27,7 +30,11 @@ export default async function DashboardPage() {
     getProgressStats(),
   ]);
   const [ew, placed, disc] = await Promise.all([getAssessmentResults("8-wheel-entrepreneur", 1), getAssessmentResults(PLACEMENT_KEY, 1), getDiscResult()]);
-  const [fin, vapid] = await Promise.all([getFinance(today.slice(0, 7)), isDemoMode ? null : getVapidPublicKey()]);
+  const [fin, vapid, events, account] = await Promise.all([getFinance(today.slice(0, 7)), isDemoMode ? null : getVapidPublicKey(), getEvents(), getAccount()]);
+  const nowMs = Date.now();
+  const nextEvent = (events ?? []).filter((e) => new Date(e.starts_at).getTime() + e.duration_min * 60_000 > nowMs).sort((a, b) => a.starts_at.localeCompare(b.starts_at))[0];
+  const eventDays = nextEvent ? Math.round((new Date(new Date(nextEvent.starts_at).toLocaleDateString("en-CA", { timeZone: "Asia/Jakarta" })).getTime() - new Date(today).getTime()) / 86_400_000) : 0;
+  const eventPrice = nextEvent ? (account.plan === "plus" ? nextEvent.plus_price : nextEvent.price) : 0;
   let bioMissing = false;
   if (!isDemoMode) {
     const supabase = await createClient();
@@ -64,6 +71,28 @@ export default async function DashboardPage() {
         <h1 className="text-[28px] font-bold tracking-tight text-heading lg:text-[34px]">{firstName} 👋</h1>
         <p className="mt-2 max-w-2xl text-[15px] leading-relaxed text-muted italic">✨ {motivationOfDay(today)}</p>
       </section>
+
+      {nextEvent && (
+        <Link href="/event" className="flex animate-rise items-center gap-4 overflow-hidden rounded-2xl border border-gold/40 bg-card p-4 shadow-soft transition hover:shadow-lift lg:p-5">
+          <span className="grid h-14 w-14 shrink-0 place-items-center rounded-2xl bg-brand text-center leading-none text-white">
+            <span>
+              <span className="block text-xl font-bold">{new Date(nextEvent.starts_at).toLocaleDateString("id-ID", { day: "numeric", timeZone: "Asia/Jakarta" })}</span>
+              <span className="block text-[10px] font-semibold uppercase text-gold">{new Date(nextEvent.starts_at).toLocaleDateString("id-ID", { month: "short", timeZone: "Asia/Jakarta" })}</span>
+            </span>
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="flex items-center gap-1.5 text-[11px] font-semibold tracking-wide text-gold uppercase">
+              <CalendarDays className="h-3.5 w-3.5" /> {eventDays <= 0 ? "Hari ini" : eventDays === 1 ? "Besok" : `${eventDays} hari lagi`} · Event terdekat
+            </span>
+            <span className="mt-0.5 line-clamp-2 font-bold text-heading">{nextEvent.title}</span>
+            <span className="mt-0.5 flex items-center gap-1 truncate text-xs text-muted">
+              <MapPin className="h-3 w-3 shrink-0" />
+              {new Date(nextEvent.starts_at).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jakarta" })} WIB · {nextEvent.location || regencyName(nextEvent.regency) || "Online"} · {nextEvent.registered ? "Anda terdaftar ✓" : eventPrice ? rupiah(eventPrice) : "Gratis"}
+            </span>
+          </span>
+          <ArrowRight className="h-5 w-5 shrink-0 text-brand" />
+        </Link>
+      )}
 
       <PushToggle publicKey={vapid} variant="card" />
 
