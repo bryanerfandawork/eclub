@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState, useTransition } from "react";
-import { ArrowRight, Check, HelpCircle, Lightbulb, Plus } from "lucide-react";
+import { useMemo, useState } from "react";
+import { SaveStatus, useAutoSave } from "@/components/autosave";
+import { Check, HelpCircle, Lightbulb, Plus } from "lucide-react";
 import { saveIncome } from "@/app/actions/income";
 import { ASSETS, CHIPS, HELP, SWOT, type Assets, type IncomeProfile, type Swot } from "@/lib/income";
 
@@ -58,22 +59,13 @@ function Card({ id, title, desc, help, children }: { id: string; title: string; 
   );
 }
 
-export function PotensiForm({ initial, isNew }: { initial: IncomeProfile; isNew: boolean }) {
+export function PotensiForm({ initial }: { initial: IncomeProfile; isNew?: boolean }) {
   const [chips, setChips] = useState({ interests: initial.interests, hobbies: initial.hobbies, talents: initial.talents, passions: initial.passions });
   const [swot, setSwot] = useState<Swot>(initial.swot);
   const [assets, setAssets] = useState<Assets>(initial.assets);
-  const [saving, start] = useTransition();
-  const [status, setStatus] = useState<{ ok?: boolean; error?: string } | null>(null);
   const profile = useMemo(() => ({ ...initial, ...chips, swot, assets }), [initial, chips, swot, assets]);
-  const json = JSON.stringify([chips, swot, assets]);
-  const [savedJson, setSavedJson] = useState(isNew ? "" : json);
-  const dirty = json !== savedJson;
-  const save = () =>
-    start(async () => {
-      const r = await saveIncome(profile, "potensi");
-      setStatus(r);
-      if (r.ok) setSavedJson(json);
-    });
+  const json = JSON.stringify(profile);
+  const saveState = useAutoSave(json, () => saveIncome(JSON.parse(json), "potensi"));
 
   // Aha: strategi SWOT sederhana dari pilihan pertama di tiap kotak.
   const strat: string[] = [];
@@ -85,7 +77,7 @@ export function PotensiForm({ initial, isNew }: { initial: IncomeProfile; isNew:
   const weakest = (Object.keys(ASSETS) as (keyof Assets)[]).find((k) => !assets[k].length);
 
   return (
-    <div className="mt-5 space-y-5 pb-24 lg:pb-0">
+    <div className="mt-5 space-y-5">
       <Card id="minat" title="Minat, hobi, bakat & passion" desc="Pilih yang paling terasa. Pilihan ini dipakai untuk rekomendasi ide income di Peta Income." help={<Link href={`/artikel/${HELP.self.slug}`} className="inline-flex items-center gap-1 text-xs font-medium text-brand hover:underline"><HelpCircle className="h-3.5 w-3.5" /> {HELP.self.label}</Link>}>
         <div className="space-y-5">
           {(Object.keys(CHIPS) as (keyof typeof CHIPS)[]).map((g) => (
@@ -145,25 +137,7 @@ export function PotensiForm({ initial, isNew }: { initial: IncomeProfile; isNew:
         )}
       </Card>
 
-      <div className="card flex flex-col items-start gap-3 p-5 sm:flex-row sm:items-center">
-        <div className="flex-1">
-          <p className="font-bold text-heading">Lanjut ke langkah 4: Action Plan</p>
-          <p className="mt-0.5 text-sm text-muted">Bekal Anda dipakai untuk memilih rencana income dan target harian yang paling cocok.</p>
-        </div>
-        <Link href="/income#rencana" className="btn-primary shrink-0">
-          Susun rencana <ArrowRight className="h-4 w-4" />
-        </Link>
-      </div>
-
-      <div className="fixed inset-x-0 bottom-[64px] z-30 border-t border-line bg-white/95 px-4 py-2.5 backdrop-blur lg:sticky lg:bottom-4 lg:rounded-2xl lg:border lg:shadow-lift">
-        <div className="flex items-center justify-end gap-3">
-          {status?.error && <p className="flex-1 text-xs text-danger">{status.error}</p>}
-          {status?.ok && !dirty && <p className="flex-1 text-xs text-success">Tersimpan. Langkah 3 Anda makin lengkap.</p>}
-          <button type="button" onClick={save} disabled={saving || (!dirty && !status?.error)} className="btn-primary">
-            {saving ? "Menyimpan…" : dirty ? "Simpan Potensi Diri" : <><Check className="h-4 w-4" /> Tersimpan</>}
-          </button>
-        </div>
-      </div>
+      <SaveStatus s={saveState} />
     </div>
   );
 }

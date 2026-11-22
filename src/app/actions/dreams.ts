@@ -27,10 +27,9 @@ export async function createDream(_: FormState, formData: FormData): Promise<For
 
   const supabase = await createClient();
   const limit = await getLimit("dreams");
-  if (limit != null) {
-    const { count } = await supabase.from("dreams").select("id", { count: "exact", head: true });
-    if ((count ?? 0) >= limit) return { error: `Paket Anda bisa menyimpan ${limit} mimpi. ${UPGRADE_HINT}` };
-  }
+  const { count } = await supabase.from("dreams").select("id", { count: "exact", head: true });
+  if (limit != null && (count ?? 0) >= limit) return { error: `Paket Anda bisa menyimpan ${limit} mimpi. ${UPGRADE_HINT}` };
+  const isFirst = (count ?? 0) === 0;
   const { data, error } = await supabase
     .from("dreams")
     .insert({
@@ -49,7 +48,22 @@ export async function createDream(_: FormState, formData: FormData): Promise<For
   if (firstStep) await supabase.from("dream_actions").insert({ dream_id: data.id, title: firstStep.slice(0, 160) });
 
   revalidateDreams();
-  redirect(`/goals/${data.id}`);
+  redirect(`/goals/${data.id}${isFirst ? "?pertama=1" : ""}`);
+}
+
+/** Isi / ubah target dana & tanggal untuk mimpi yang sudah ada. */
+export async function setDreamTarget(_: FormState, formData: FormData): Promise<FormState> {
+  if (isDemoMode) return { error: DEMO_MSG };
+  const id = String(formData.get("id"));
+  const amount = money(formData.get("target_amount"));
+  const date = String(formData.get("target_date") ?? "");
+  if (!amount) return { error: "Isi perkiraan dana yang dibutuhkan." };
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || date <= new Date().toISOString().slice(0, 10)) return { error: "Pilih tanggal target di masa depan." };
+  const supabase = await createClient();
+  const { error } = await supabase.from("dreams").update({ target_amount: amount, target_date: date }).eq("id", id);
+  if (error) return { error: "Gagal menyimpan. Coba lagi." };
+  revalidateDreams(id);
+  return { message: "Target tersimpan. Sekarang EClub bisa menghitung tabungan per bulan." };
 }
 
 export async function updateSaved(_: FormState, formData: FormData): Promise<FormState> {

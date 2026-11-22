@@ -5,6 +5,8 @@ import { getAssessmentResults, getDreams, getProfile, getProgressStats } from ".
 import { getDiscResult } from "./disc/server";
 import { getIncomeProfile } from "./income-server";
 import { PLACEMENT_KEY } from "./placement";
+
+export const REVIEW_KEY = "weekly_review";
 import { todayJakarta } from "./format";
 import { STEPS, type Step, type StepItem } from "./steps";
 
@@ -12,8 +14,9 @@ export type JourneyItem = StepItem & { done: boolean };
 export type JourneyStep = Omit<Step, "items"> & { items: JourneyItem[]; done: number; total: number; complete: boolean };
 export type Journey = { steps: JourneyStep[]; next: (JourneyItem & { step: number }) | null; current: number; pct: number };
 
-export async function getJourney(): Promise<Journey> {
-  const [profile, dreams, stats, disc, ew, placed, income] = await Promise.all([
+/** Status setiap isian perjalanan (dipakai Home, halaman Perjalanan, dan tombol Lanjut). */
+export async function getDoneMap(): Promise<Record<string, boolean>> {
+  const [profile, dreams, stats, disc, ew, placed, income, review] = await Promise.all([
     getProfile(),
     getDreams(),
     getProgressStats(),
@@ -21,6 +24,7 @@ export async function getJourney(): Promise<Journey> {
     getAssessmentResults("8-wheel-entrepreneur", 1),
     getAssessmentResults(PLACEMENT_KEY, 1),
     getIncomeProfile().catch(() => null),
+    getAssessmentResults(REVIEW_KEY, 1),
   ]);
   let finance = false;
   let habit = false;
@@ -47,7 +51,7 @@ export async function getJourney(): Promise<Journey> {
     dream_num: dreams.some((d) => d.target_amount && d.target_date),
     life: !!profile.success_definition,
     placement: !!(placed[0]?.scores as unknown as { placement?: string } | undefined)?.placement,
-    income: !!income && income.sources.length > 0 && income.expenses.some((e) => e.amount > 0),
+    income: !!income && !!income.situation.role && income.sources.some((x) => x.amount > 0) && income.expenses.some((e) => e.amount > 0),
     finance,
     gaya: !!disc,
     minat: chips >= 3,
@@ -56,13 +60,20 @@ export async function getJourney(): Promise<Journey> {
     wheel: ew.length > 0,
     plan: !!income && income.plans.length > 0,
     target: false,
+    rekap: false,
+    review: !!review[0] && Date.now() - new Date(review[0].created_at).getTime() < 7 * 86_400_000,
     daily: stats.dailyTotal30 > 0,
     habit,
     streak: stats.last7.filter((d) => d.done > 0).length >= 3,
     syukur,
-    review: false,
+    progress: false,
     retest: !!ew[0] && Date.now() - new Date(ew[0].created_at).getTime() < 90 * 86_400_000,
   };
+  return done;
+}
+
+export async function getJourney(): Promise<Journey> {
+  const done = await getDoneMap();
   const steps: JourneyStep[] = STEPS.map((s) => {
     const items = s.items.map((i) => ({ ...i, done: !!done[i.key] }));
     const req = items.filter((i) => !i.optional);

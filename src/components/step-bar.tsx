@@ -2,15 +2,46 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ArrowRight } from "lucide-react";
-import { STEPS, stepOfPath } from "@/lib/steps";
+import { useCallback, useEffect, useState } from "react";
+import { ArrowRight, CheckCircle2, Lock } from "lucide-react";
+import { STEPS, base, nextFrom, stepOfPath } from "@/lib/steps";
+
+/** Status isian dari server; dimuat ulang saat pindah halaman, saat kembali ke tab, dan setelah isian disimpan. */
+function useDone() {
+  const path = usePathname();
+  const [done, setDone] = useState<Record<string, boolean> | null>(null);
+  const load = useCallback(() => {
+    fetch("/api/journey", { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : { done: null }))
+      .then((d) => setDone(d.done ?? {}))
+      .catch(() => setDone({}));
+  }, []);
+  useEffect(() => {
+    load();
+  }, [path, load]);
+  useEffect(() => {
+    const on = () => load();
+    window.addEventListener("focus", on);
+    window.addEventListener("eclub:saved", on);
+    return () => {
+      window.removeEventListener("focus", on);
+      window.removeEventListener("eclub:saved", on);
+    };
+  }, [load]);
+  return done;
+}
+
+/** Beri tahu tombol Lanjut bahwa ada isian yang baru tersimpan. */
+export function notifySaved() {
+  if (typeof window !== "undefined") window.dispatchEvent(new Event("eclub:saved"));
+}
 
 /** Penunjuk "Langkah X dari 5" di atas setiap fitur, supaya fitur terasa satu perjalanan. */
 export function StepBar() {
   const path = usePathname();
+  const done = useDone();
   const step = stepOfPath(path);
   if (!step) return null;
-  const next = STEPS[step.no] ?? null;
   return (
     <div className="mb-5 rounded-2xl border border-line bg-white/70 p-3 print:hidden">
       <div className="flex items-center gap-3">
@@ -22,20 +53,23 @@ export function StepBar() {
           ))}
         </Link>
         <p className="min-w-0 flex-1 truncate text-xs text-muted">
-          <b className="text-heading">Langkah {step.no}: {step.title}</b> <span className="hidden sm:inline">· {step.q}</span>
+          <b className="text-heading">
+            Langkah {step.no}: {step.title}
+          </b>{" "}
+          <span className="hidden sm:inline">· {step.q}</span>
         </p>
-        {next && (
-          <Link href={next.items[0].href} className="hidden shrink-0 items-center gap-1 text-xs font-semibold text-brand hover:underline sm:inline-flex">
-            Lanjut: {next.title} <ArrowRight className="h-3.5 w-3.5" />
-          </Link>
-        )}
       </div>
       <div className="mt-2.5 flex flex-wrap gap-1.5">
         {step.items.map((i) => {
-          const on = !i.href.includes("#") && path === i.href;
+          const here = path === base(i.href);
+          const ok = done?.[i.key];
           return (
-            <Link key={i.key} href={i.href} className={`shrink-0 rounded-full border px-2.5 py-1 text-[11px] font-medium transition ${on ? "border-brand bg-brand text-white" : "border-line bg-white text-ink hover:border-brand/40"}`}>
-              {i.label}
+            <Link
+              key={i.key}
+              href={i.href}
+              className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] font-medium transition ${here ? "border-brand bg-brand text-white" : "border-line bg-white text-ink hover:border-brand/40"}`}
+            >
+              {ok && <CheckCircle2 className={`h-3 w-3 ${here ? "text-gold" : "text-success"}`} />} {i.label}
             </Link>
           );
         })}
@@ -44,21 +78,44 @@ export function StepBar() {
   );
 }
 
-/** Tombol "Lanjut" lebar penuh di bawah setiap fitur: selalu terlihat, tanpa perlu digeser. */
+/** Tombol "Lanjut" lebar penuh di bawah setiap fitur. Terkunci sampai isian wajib di halaman ini selesai. */
 export function StepNext() {
   const path = usePathname();
-  const step = stepOfPath(path);
-  if (!step) return null;
-  const next = STEPS[step.no] ?? null;
-  const idx = step.items.findIndex((i) => !i.href.includes("#") && i.href === path);
-  const sibling = idx >= 0 ? step.items.slice(idx + 1).find((i) => i.href.split("#")[0] !== path) : null;
-  const target = sibling ?? (next ? { label: `Langkah ${next.no}: ${next.title}`, href: next.items[0].href } : { label: "Lihat Perjalanan 5 Langkah", href: "/journey" });
+  const done = useDone();
+  const info = done ? nextFrom(path, done) : null;
+  const blockedKey = info?.blocked?.key;
+  // Selama terkunci, cek ulang berkala (isian yang disimpan lewat formulir biasa tidak memicu event).
+  useEffect(() => {
+    if (!blockedKey) return;
+    let n = 0;
+    const t = setInterval(() => {
+      if (++n > 40 || document.hidden) return;
+      notifySaved();
+    }, 6000);
+    return () => clearInterval(t);
+  }, [blockedKey]);
+  if (!stepOfPath(path) && path !== "/rekap" && path !== "/evaluasi") return null;
+  if (!info) return null;
+  const { blocked, target } = info;
   return (
     <div className="mt-10 print:hidden">
-      <p className="mb-2 text-center text-xs text-muted">Sudah selesai di sini?</p>
-      <Link href={target.href} className="btn-primary w-full py-4 text-base">
-        Lanjut: {target.label} <ArrowRight className="h-5 w-5" />
-      </Link>
+      {blocked ? (
+        <>
+          <button type="button" disabled className="btn w-full cursor-not-allowed bg-line py-4 text-base text-muted">
+            <Lock className="h-4 w-4" /> Lanjut
+          </button>
+          <p className="mt-2 text-center text-sm text-muted">
+            Selesaikan dulu <b className="text-heading">{blocked.label}</b> di halaman ini, lalu tombol Lanjut akan aktif.
+          </p>
+        </>
+      ) : (
+        <>
+          <p className="mb-2 text-center text-xs text-muted">Bagian ini sudah beres 👍</p>
+          <Link href={target.href} className="btn-primary w-full py-4 text-base">
+            Lanjut: {target.label} <ArrowRight className="h-5 w-5" />
+          </Link>
+        </>
+      )}
       <Link href="/journey" className="mt-2 block text-center text-xs font-medium text-muted hover:text-brand">
         Lihat semua langkah
       </Link>

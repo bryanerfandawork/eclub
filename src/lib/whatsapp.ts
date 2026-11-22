@@ -247,3 +247,23 @@ export async function sendWaBlast(targets: { wa: string; name: string }[], messa
   }
   return { sent, failed, reason };
 }
+
+/** Sapaan WhatsApp sekali setelah member mengisi nomor WA. Tidak pernah melempar error. */
+export async function notifyWelcome(userId: string, wa: string) {
+  try {
+    if (!waConfigured()) return;
+    const admin = createAdminClient();
+    if (!admin) return;
+    const { count } = await admin.from("notification_log").select("id", { count: "exact", head: true }).eq("user_id", userId).eq("kind", "wa_welcome");
+    if (count) return;
+    const { data: p } = await admin.from("profiles").select("full_name").eq("id", userId).maybeSingle();
+    const name = ((p?.full_name as string) || "Sahabat").split(" ")[0];
+    const ok = await sendWa(
+      wa,
+      `Halo ${name}, selamat datang di *EClub*! 👋\n\nNomor ini sudah tersimpan, jadi info pesanan, jadwal mentoring, dan event akan kami kirim ke sini.\n\nPerjalanan Anda dimulai dari 5 langkah sederhana:\n1. Mimpi\n2. Kondisi saat ini\n3. Potensi diri\n4. Action plan\n5. Evaluasi berkala\n\nLanjutkan langkah pertama di sini: ${SITE()}/journey\n\nSalam bertumbuh,\nTim EClub Indonesia`,
+    );
+    await admin.from("notification_log").insert({ user_id: userId, kind: "wa_welcome", status: ok ? "sent" : "failed" });
+  } catch (e) {
+    console.error("notifyWelcome", e);
+  }
+}

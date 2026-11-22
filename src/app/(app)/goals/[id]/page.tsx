@@ -5,10 +5,14 @@ import { deleteAction, deleteDream, setDreamStatus, toggleAction } from "@/app/a
 import { ProgressBar } from "@/components/ui";
 import { getDream } from "@/lib/data";
 import { dreamProgress, monthsUntil, rupiah, tanggal } from "@/lib/format";
-import { AddActionForm, AddSavingForm } from "./client";
+import { AddActionForm, AddSavingForm, SetTargetForm } from "./client";
+import { MoreDreams } from "@/components/more-dreams";
+import { getLimit } from "@/lib/plans";
 
-export default async function DreamDetailPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function DreamDetailPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ pertama?: string }> }) {
   const { id } = await params;
+  const first = (await searchParams).pertama === "1";
+  const limit = first ? await getLimit("dreams") : null;
   const result = await getDream(id);
   if (!result) notFound();
   const { dream: d, actions } = result;
@@ -25,6 +29,7 @@ export default async function DreamDetailPage({ params }: { params: Promise<{ id
         <ChevronLeft className="h-4 w-4" /> Mimpi saya
       </Link>
 
+      {first && <MoreDreams canAdd={limit == null || limit > 1} nextHref={d.target_amount && d.target_date ? "/my-life" : "#target"} nextLabel={d.target_amount && d.target_date ? "Lanjut: Definisi sukses & nilai hidup" : "Lanjut: beri angka & tanggal"} />}
       <section className="relative animate-rise overflow-hidden rounded-3xl bg-brand p-6 text-white shadow-lift lg:p-8">
         <div className="pointer-events-none absolute -right-20 -bottom-24 h-72 w-72 rounded-full bg-gold/20 blur-3xl" />
         <span className="rounded-full bg-white/10 px-2.5 py-1 text-[11px] font-semibold text-gold">{d.category}</span>
@@ -59,6 +64,12 @@ export default async function DreamDetailPage({ params }: { params: Promise<{ id
           ) : null}
         </div>
       </section>
+
+      {(!d.target_amount || !d.target_date) && (
+        <div className="mt-6">
+          <SetTargetForm dreamId={d.id} amount={d.target_amount} date={d.target_date} />
+        </div>
+      )}
 
       <div className="mt-6 grid gap-5 lg:grid-cols-5 lg:gap-6">
         <section className="card p-5 lg:col-span-3 lg:p-6">

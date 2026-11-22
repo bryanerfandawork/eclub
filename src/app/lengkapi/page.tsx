@@ -17,7 +17,7 @@ export default async function OnboardingPage() {
     getAssessmentResults(PLACEMENT_KEY, 1),
   ]);
   const saved = (await cookies()).get("eclub_next")?.value;
-  const next = saved && saved.startsWith("/") && !saved.startsWith("//") ? saved : placed.length ? "/dashboard" : "/posisi";
+  const next = saved && saved.startsWith("/") && !saved.startsWith("//") ? saved : "/dashboard";
   let init = { whatsapp: "", birth_date: "", province: "", regency: "" };
   if (!isDemoMode) {
     const supabase = await createClient();

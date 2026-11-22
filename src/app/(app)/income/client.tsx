@@ -1,21 +1,19 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState, useTransition } from "react";
-import { ArrowRight, BookOpen, Check, Crown, HelpCircle, Lightbulb, Lock, Plus, Sparkles, Target, Trash2, Users, X } from "lucide-react";
+import { useMemo, useState } from "react";
+import { Check, CheckCircle2, Circle, HelpCircle, Lightbulb, Plus, Sparkles, Target, Trash2, X } from "lucide-react";
+import { SaveStatus, useAutoSave } from "@/components/autosave";
 import { saveIncome } from "@/app/actions/income";
-import { HELP, ROLES, KIND_DESC, KIND_LABEL, KIND_SEF, recommend, summarize, type DreamLite, type IncomeKind, type IncomeProfile } from "@/lib/income";
-import type { Factor } from "@/lib/disc/score";
+import { HELP, ROLES, KIND_DESC, KIND_LABEL, KIND_SEF, summarize, type DreamLite, type IncomeKind, type IncomeProfile } from "@/lib/income";
 
-type Course = { slug: string; title: string } | null;
 type Props = {
   initial: IncomeProfile;
   isNew: boolean;
   dreams: DreamLite[];
-  disc: { primary: Factor; secondary: Factor | null } | null;
   hint: { out: { label: string; amount: number }[]; income: number } | null;
-  canReco: boolean;
-  courses: Record<IncomeKind, Course>;
+  mode: "kondisi" | "rencana";
+  ideas: string[];
 };
 
 const rp = (n: number) => (n < 0 ? "-" : "") + "Rp" + Math.abs(Math.round(n)).toLocaleString("id-ID");
@@ -65,52 +63,45 @@ function Section({ id, n, title, desc, help, children }: { id: string; n: number
   );
 }
 
-export function IncomeMap({ initial, isNew, dreams, disc, hint, canReco, courses }: Props) {
-  const chips = { interests: initial.interests, hobbies: initial.hobbies, talents: initial.talents, passions: initial.passions };
+export function IncomeMap({ initial, isNew, dreams, hint, mode, ideas }: Props) {
   const [situation, setSituation] = useState(initial.situation);
   const [sources, setSources] = useState(() => withIds(initial.sources));
   const [expenses, setExpenses] = useState(() => withIds(initial.expenses));
   const [plans, setPlans] = useState(() => withIds(initial.plans));
-  const [saving, startSave] = useTransition();
-  const [status, setStatus] = useState<{ ok?: boolean; error?: string } | null>(null);
 
   const profile: IncomeProfile = useMemo(
     () => ({ ...initial, situation, sources: sources.map(({ _k, ...s }) => s), expenses: expenses.map(({ _k, ...e }) => e), plans: plans.map(({ _k, ...p }) => p) }),
     [initial, situation, sources, expenses, plans],
   );
   const json = JSON.stringify(profile);
-  const [savedJson, setSavedJson] = useState(isNew ? "" : json);
-  const dirty = json !== savedJson;
+  const saveState = useAutoSave(json, () => saveIncome(JSON.parse(json), "income"));
   const s = useMemo(() => summarize(profile, dreams), [profile, dreams]);
-  const reco = useMemo(() => (canReco ? recommend(profile, disc) : null), [canReco, profile, disc]);
-  const chosen = chips.interests.length + chips.hobbies.length + chips.talents.length + chips.passions.length;
-
-  const save = () =>
-    startSave(async () => {
-      const r = await saveIncome(profile, "income");
-      setStatus(r);
-      if (r.ok) setSavedJson(json);
-    });
+  const need = [
+    { ok: !!situation.role, label: "Pilih kesibukan Anda sekarang", href: "#kondisi" },
+    { ok: profile.sources.some((x) => x.amount > 0), label: "Isi minimal 1 penghasilan beserta jumlahnya", href: "#penghasilan" },
+    { ok: profile.expenses.some((x) => x.amount > 0), label: "Isi pengeluaran bulanan", href: "#pengeluaran" },
+  ];
+  const complete = need.every((n) => n.ok);
 
   const topExpense = [...profile.expenses].sort((a, b) => b.amount - a.amount)[0];
   const faster = s.monthsNow && s.monthsWithPlan ? s.monthsNow - s.monthsWithPlan : 0;
   const focusIdx = KINDS.indexOf(s.focus);
 
   return (
-    <div className="pb-24 lg:pb-0">
+    <div>
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_380px] lg:items-start">
         <div className="min-w-0 space-y-5">
-          {isNew && (
+          {isNew && mode === "kondisi" && (
             <div className="flex items-start gap-3 rounded-2xl bg-gold-soft/70 p-4 text-sm text-ink">
               <Sparkles className="mt-0.5 h-5 w-5 shrink-0 text-gold" />
               <p>
-                <b>Isi apa adanya, tidak perlu persis.</b> Angka taksiran sudah cukup untuk melihat posisi Anda. Hasilnya langsung muncul {""}
-                <span className="hidden lg:inline">di samping</span>
-                <span className="lg:hidden">di bawah</span> sambil Anda mengisi.
+                <b>Isi apa adanya, tidak perlu persis.</b> Angka taksiran sudah cukup. Isian tersimpan otomatis, dan hasilnya muncul setelah 3 bagian terisi.
               </p>
             </div>
           )}
 
+          {mode === "kondisi" && (
+            <>
           <Section id="kondisi" n={1} title="Kesibukan Anda sekarang" desc="Kerja di mana, usaha apa, atau sedang sibuk apa? Ini titik awal peta Anda." help="sources">
             <div className="flex flex-wrap gap-1.5">
               {ROLES.map((r) => (
@@ -224,7 +215,11 @@ export function IncomeMap({ initial, isNew, dreams, disc, hint, canReco, courses
             </button>
           </Section>
 
-          <Section id="rencana" n={4} title="Rencana massive income (Action Plan)" desc="Sumber penghasilan tambahan yang ingin Anda bangun, dan targetnya per bulan. Ini masuk langkah 4 perjalanan Anda." help="plans">
+            </>
+          )}
+
+          {mode === "rencana" && (
+          <Section id="rencana" n={1} title="Rencana income berikutnya" desc="Sumber penghasilan tambahan (massive income) yang ingin Anda bangun, dan targetnya per bulan." help="plans">
             <div className="space-y-2">
               {plans.map((x, i) => (
                 <div key={x._k} className="grid grid-cols-[minmax(0,1fr)_140px_auto] items-center gap-2 sm:grid-cols-[minmax(0,1fr)_180px_auto]">
@@ -245,12 +240,48 @@ export function IncomeMap({ initial, isNew, dreams, disc, hint, canReco, courses
             <button type="button" onClick={() => setPlans((xs) => [...xs, { _k: ++uid, name: "", target: 0 }])} className="mt-3 inline-flex items-center gap-1 text-sm font-semibold text-brand">
               <Plus className="h-4 w-4" /> Tambah rencana
             </button>
-            <p className="mt-2 text-xs text-muted">Belum ada ide? Lihat rekomendasi di bagian bawah.</p>
+            {ideas.length > 0 && (
+              <div className="mt-4">
+                <p className="text-xs font-semibold text-heading">Belum ada ide? Ketuk untuk menambahkan:</p>
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  {ideas
+                    .filter((n) => !plans.some((p) => p.name === n))
+                    .map((n) => (
+                      <button key={n} type="button" onClick={() => setPlans((xs) => [...xs, { _k: ++uid, name: n, target: 0 }])} className="inline-flex items-center gap-1 rounded-full border border-line bg-white px-3 py-1.5 text-xs font-medium text-ink hover:border-brand/40">
+                        <Plus className="h-3 w-3 text-brand" /> {n}
+                      </button>
+                    ))}
+                </div>
+              </div>
+            )}
           </Section>
+          )}
+          <SaveStatus s={saveState} />
         </div>
 
         {/* Ringkasan langsung */}
         <aside className="min-w-0 space-y-4 lg:sticky lg:top-4">
+          {!complete && (
+            <div className="card p-5">
+              <p className="font-bold text-heading">Hasil muncul setelah 3 isian ini lengkap</p>
+              <ul className="mt-3 space-y-2">
+                {need.map((n) => (
+                  <li key={n.label}>
+                    <a href={n.href} className="flex items-center gap-2 text-sm">
+                      {n.ok ? <CheckCircle2 className="h-4 w-4 shrink-0 text-success" /> : <Circle className="h-4 w-4 shrink-0 text-line" strokeWidth={2.4} />}
+                      <span className={n.ok ? "text-muted line-through" : "text-ink"}>{n.label}</span>
+                    </a>
+                  </li>
+                ))}
+              </ul>
+              {mode === "rencana" && (
+                <Link href="/income" className="btn-primary mt-4 w-full">
+                  Lengkapi Peta Income dulu
+                </Link>
+              )}
+            </div>
+          )}
+          {complete && (
           <div className="overflow-hidden rounded-3xl bg-brand text-white shadow-lift">
             <div className="p-5">
               <p className="eyebrow">Posisi income Anda</p>
@@ -279,7 +310,8 @@ export function IncomeMap({ initial, isNew, dreams, disc, hint, canReco, courses
             </div>
           </div>
 
-          {s.income > 0 && (
+          )}
+          {complete && mode === "kondisi" && s.income > 0 && (
             <div className="card p-5">
               <p className="flex items-center gap-2 font-bold text-heading">
                 <Lightbulb className="h-4 w-4 text-gold" /> Aha!
@@ -317,6 +349,7 @@ export function IncomeMap({ initial, isNew, dreams, disc, hint, canReco, courses
             </div>
           )}
 
+          {complete && mode === "rencana" && (
           <div id="mimpi" className="card scroll-mt-20 p-5">
             <p className="flex items-center gap-2 font-bold text-heading">
               <Target className="h-4 w-4 text-brand" /> Sinkron dengan mimpi
@@ -369,137 +402,10 @@ export function IncomeMap({ initial, isNew, dreams, disc, hint, canReco, courses
               </Link>
             </div>
           </div>
-
-          <div className="hidden lg:block">
-            <SaveBar dirty={dirty} saving={saving} status={status} onSave={save} />
-          </div>
+          )}
         </aside>
       </div>
 
-      {/* Rekomendasi */}
-      <section className="mt-8">
-        <div className="flex flex-wrap items-end justify-between gap-2">
-          <div>
-            <p className="eyebrow">Rekomendasi untuk Anda</p>
-            <h2 className="mt-1 text-xl font-bold text-heading">Ide active, massive, dan passive income yang nyambung dengan Anda</h2>
-          </div>
-          {canReco && <span className="inline-flex items-center gap-1 rounded-full bg-gold-soft px-2.5 py-1 text-xs font-semibold text-brand"><Crown className="h-3.5 w-3.5" /> Plus</span>}
-        </div>
-        {reco ? (
-          <>
-            {(!disc || chosen < 3) && (
-              <p className="mt-3 rounded-xl bg-paper p-3 text-sm text-muted">
-                {!disc ? (
-                  <>
-                    Agar lebih tajam, <Link href="/gaya-diri" className="font-semibold text-brand">isi Tes Gaya Diri</Link> (gratis, 10 menit).{" "}
-                  </>
-                ) : null}
-                {chosen < 3 ? <>Pilih minat, hobi, bakat, dan passion di <Link href="/potensi#minat" className="font-semibold text-brand">Potensi Diri</Link>.</> : null}
-              </p>
-            )}
-            <div className="mt-4 grid gap-4 lg:grid-cols-3">
-              {KINDS.map((k) => (
-                <div key={k} className="card flex flex-col p-5">
-                  <div className="flex items-center gap-2">
-                    <span className={`h-2.5 w-2.5 rounded-full ${KIND_TONE[k]}`} />
-                    <p className="font-bold text-heading">{KIND_LABEL[k]}</p>
-                    <span className="ml-auto text-[11px] text-muted">{KIND_SEF[k]}</span>
-                  </div>
-                  <ul className="mt-3 flex-1 space-y-4">
-                    {reco[k].map((r) => (
-                      <li key={r.id}>
-                        <p className="text-sm font-semibold text-heading">{r.name}</p>
-                        <p className="mt-0.5 text-xs leading-relaxed text-muted">{r.how}</p>
-                        <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
-                          {r.reasons.map((x) => (
-                            <span key={x} className="rounded-full bg-gold-soft/70 px-2 py-0.5 text-[11px] text-ink">
-                              ✓ {x}
-                            </span>
-                          ))}
-                          <span className="rounded-full bg-paper px-2 py-0.5 text-[11px] text-muted">modal {r.capital}</span>
-                          {k === "massive" && !plans.some((p) => p.name === r.name) && (
-                            <button type="button" onClick={() => setPlans((xs) => [...xs, { _k: ++uid, name: r.name, target: 0 }])} className="text-[11px] font-semibold text-brand hover:underline">
-                              + Jadikan rencana
-                            </button>
-                          )}
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
-                  {courses[k] && (
-                    <Link href={`/learn/${courses[k]!.slug}`} className="mt-4 flex items-center gap-2 rounded-xl bg-paper p-3 text-xs font-semibold text-heading hover:text-brand">
-                      <BookOpen className="h-4 w-4 shrink-0 text-brand" /> <span className="min-w-0 flex-1">Kelas: {courses[k]!.title}</span> <ArrowRight className="h-3.5 w-3.5 shrink-0" />
-                    </Link>
-                  )}
-                </div>
-              ))}
-            </div>
-            <p className="mt-3 text-xs text-muted">Rekomendasi ini disusun dari aturan EClub (Gaya Diri + pilihan Anda), bukan nasihat keuangan. Pelajari risiko sebelum berinvestasi.</p>
-          </>
-        ) : (
-          <div className="relative mt-4 overflow-hidden rounded-3xl border border-line">
-            <div className="pointer-events-none grid gap-4 p-5 blur-[6px] select-none lg:grid-cols-3" aria-hidden>
-              {KINDS.map((k) => (
-                <div key={k} className="card p-5">
-                  <p className="font-bold text-heading">{KIND_LABEL[k]}</p>
-                  {[1, 2, 3].map((i) => (
-                    <div key={i} className="mt-4">
-                      <div className="h-3 w-3/4 rounded bg-heading/30" />
-                      <div className="mt-2 h-2 w-full rounded bg-muted/20" />
-                      <div className="mt-1 h-2 w-5/6 rounded bg-muted/20" />
-                      <div className="mt-2 h-4 w-1/2 rounded-full bg-gold/30" />
-                    </div>
-                  ))}
-                </div>
-              ))}
-            </div>
-            <div className="absolute inset-0 grid place-items-center bg-white/40 p-5">
-              <div className="max-w-md rounded-3xl bg-brand p-6 text-center text-white shadow-lift">
-                <Lock className="mx-auto h-7 w-7 text-gold" />
-                <p className="mt-2 text-lg font-bold">9 ide income khusus untuk Anda</p>
-                <p className="mt-1.5 text-sm leading-relaxed text-white/75">
-                  Member Plus mendapat rekomendasi active, massive, dan passive income yang dicocokkan dengan Gaya Diri, minat, bakat, dan mimpi, lengkap dengan kelas yang perlu dipelajari.
-                </p>
-                <Link href="/paket" className="btn-gold mt-4">
-                  <Crown className="h-4 w-4" /> Buka dengan Plus
-                </Link>
-              </div>
-            </div>
-          </div>
-        )}
-
-        <div className="card mt-5 flex flex-col items-start gap-3 p-5 sm:flex-row sm:items-center">
-          <Users className="h-8 w-8 shrink-0 text-brand" />
-          <div className="flex-1">
-            <p className="font-bold text-heading">Bingung memilih jalan yang paling pas?</p>
-            <p className="mt-0.5 text-sm text-muted">Konsultasikan Peta Income Anda di sesi mentoring 1-on-1. Mentor membantu menyaring ide dan menyusun langkah 90 hari.</p>
-          </div>
-          <Link href="/mentoring" className="btn-primary shrink-0">
-            Konsultasi <ArrowRight className="h-4 w-4" />
-          </Link>
-        </div>
-      </section>
-
-      <div className="fixed inset-x-0 bottom-[64px] z-30 border-t border-line bg-white/95 px-4 py-2.5 backdrop-blur lg:hidden">
-        <div className="flex items-center gap-3">
-          <div className="min-w-0 flex-1">
-            <p className="text-[11px] text-muted">Sisa uang / bulan</p>
-            <p className={`text-sm font-bold tabular-nums ${s.surplus < 0 ? "text-danger" : "text-heading"}`}>{rp(s.surplus)}</p>
-          </div>
-          <SaveBar dirty={dirty} saving={saving} status={status} onSave={save} compact />
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function SaveBar({ dirty, saving, status, onSave, compact }: { dirty: boolean; saving: boolean; status: { ok?: boolean; error?: string } | null; onSave: () => void; compact?: boolean }) {
-  return (
-    <div className={compact ? "flex items-center gap-2" : "space-y-2"}>
-      <button type="button" onClick={onSave} disabled={saving || (!dirty && !status?.error)} className={`btn-primary ${compact ? "" : "w-full py-3"}`}>
-        {saving ? "Menyimpan…" : dirty ? "Simpan Peta Income" : <><Check className="h-4 w-4" /> Tersimpan</>}
-      </button>
-      {status?.error && <p className={`text-xs text-danger ${compact ? "max-w-[140px]" : ""}`}>{status.error}</p>}
     </div>
   );
 }

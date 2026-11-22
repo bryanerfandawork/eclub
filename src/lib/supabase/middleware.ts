@@ -2,7 +2,7 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { SUPABASE_ANON_KEY, SUPABASE_URL, isDemoMode } from "./config";
 
-const PROTECTED = ["/dashboard", "/journey", "/goals", "/learn", "/profile", "/today", "/wheel-of-life", "/progress", "/my-life", "/assessment", "/admin", "/paket", "/beli", "/pesanan", "/posisi", "/disc", "/gaya-diri", "/potensi", "/keuangan", "/affiliate", "/mentoring", "/event", "/kebiasaan", "/sertifikat", "/komunitas", "/target", "/income", "/lengkapi", "/aktifkan-notifikasi"];
+const PROTECTED = ["/dashboard", "/journey", "/goals", "/learn", "/profile", "/today", "/wheel-of-life", "/progress", "/my-life", "/assessment", "/admin", "/paket", "/beli", "/pesanan", "/posisi", "/disc", "/gaya-diri", "/potensi", "/keuangan", "/affiliate", "/mentoring", "/event", "/kebiasaan", "/sertifikat", "/komunitas", "/target", "/income", "/rencana", "/rekap", "/evaluasi", "/lengkapi", "/aktifkan-notifikasi"];
 const AUTH_PAGES = ["/masuk", "/daftar"];
 /** [halaman aplikasi, halaman pratinjau publik] */
 const PUBLIC_PREVIEW: [string, string][] = [

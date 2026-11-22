@@ -2,6 +2,8 @@ import Link from "next/link";
 import { CalendarDays, Gem, Plus } from "lucide-react";
 import { PageHeader, ProgressBar } from "@/components/ui";
 import { getDreams } from "@/lib/data";
+import { getLimit } from "@/lib/plans";
+import { MoreDreams } from "@/components/more-dreams";
 import { compactRupiah, dreamProgress, tanggal } from "@/lib/format";
 
 export const metadata = { title: "My Dreams" };
@@ -9,7 +11,7 @@ export const metadata = { title: "My Dreams" };
 const STATUS: Record<string, string> = { active: "Aktif", achieved: "Tercapai 🎉", paused: "Ditunda" };
 
 export default async function GoalsPage() {
-  const dreams = await getDreams();
+  const [dreams, limit] = await Promise.all([getDreams(), getLimit("dreams")]);
   return (
     <>
       <PageHeader
@@ -22,6 +24,7 @@ export default async function GoalsPage() {
           </Link>
         }
       />
+      {dreams.length === 1 && <MoreDreams canAdd={limit == null || limit > 1} />}
       {dreams.length === 0 ? (
         <div className="card flex flex-col items-center gap-3 px-6 py-16 text-center">
           <div className="grid h-14 w-14 place-items-center rounded-2xl bg-gold-soft text-gold">

@@ -44,6 +44,10 @@ export async function updateWhatsApp(_: FormState, formData: FormData): Promise<
     .update({ whatsapp: wa, wa_opt_in: optIn, wa_daily: formData.get("wa_daily") === "on" })
     .eq("id", user.id);
   if (error) return { error: "Gagal menyimpan. Pastikan SQL tahap 9 sudah dijalankan." };
+  if (wa) {
+    const { notifyWelcome } = await import("@/lib/whatsapp");
+    await notifyWelcome(user.id, wa);
+  }
   revalidatePath("/profile");
   return { message: optIn ? "Notifikasi WhatsApp aktif." : "Pengaturan WhatsApp tersimpan." };
 }
@@ -71,7 +75,7 @@ export async function updateBio(_: FormState, formData: FormData): Promise<FormS
 
 /** Langkah "Lengkapi data diri" setelah daftar (WA, tanggal lahir, domisili). */
 export async function completeOnboarding(_: FormState, formData: FormData): Promise<FormState> {
-  if (isDemoMode) redirect("/posisi");
+  if (isDemoMode) redirect("/dashboard");
   const raw = String(formData.get("whatsapp") ?? "").trim();
   const wa = normalizeWa(raw);
   const birth = String(formData.get("birth_date") ?? "");
@@ -91,6 +95,8 @@ export async function completeOnboarding(_: FormState, formData: FormData): Prom
     .update({ whatsapp: wa, wa_opt_in: formData.get("wa_opt_in") === "on", birth_date: birth, province, regency })
     .eq("id", user.id);
   if (error) return { error: "Gagal menyimpan. Coba lagi sebentar lagi." };
+  const { notifyWelcome } = await import("@/lib/whatsapp");
+  await notifyWelcome(user.id, wa);
   revalidatePath("/", "layout");
   redirect(safeNext(formData.get("next")));
 }

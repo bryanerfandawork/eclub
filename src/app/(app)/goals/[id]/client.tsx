@@ -2,7 +2,7 @@
 
 import { useActionState, useEffect, useRef } from "react";
 import { Plus } from "lucide-react";
-import { addAction, updateSaved } from "@/app/actions/dreams";
+import { addAction, setDreamTarget, updateSaved } from "@/app/actions/dreams";
 import { MoneyInput } from "@/components/money-input";
 import { SubmitButton } from "@/components/submit-button";
 import { FormMessage } from "@/components/ui";
@@ -42,6 +42,29 @@ export function AddSavingForm({ dreamId }: { dreamId: string }) {
         </SubmitButton>
       </div>
       <FormMessage state={state} />
+    </form>
+  );
+}
+
+export function SetTargetForm({ dreamId, amount, date }: { dreamId: string; amount: number | null; date: string | null }) {
+  const [state, action] = useActionState(setDreamTarget, undefined);
+  return (
+    <form id="target" action={action} className="card scroll-mt-20 space-y-3 p-5">
+      <p className="font-bold text-heading">Beri angka & tanggal pada mimpi ini</p>
+      <p className="text-sm text-muted">Dengan angka dan tanggal, EClub bisa menghitung berapa yang perlu disisihkan per bulan dan per hari. Taksiran saja sudah cukup.</p>
+      <input type="hidden" name="id" value={dreamId} />
+      <div className="grid gap-3 sm:grid-cols-2">
+        <div>
+          <label className="label">Perkiraan dana</label>
+          <MoneyInput name="target_amount" defaultValue={amount ?? 0} placeholder="60.000.000" />
+        </div>
+        <div>
+          <label className="label">Target tercapai</label>
+          <input type="date" name="target_date" defaultValue={date ?? ""} className="input" />
+        </div>
+      </div>
+      <FormMessage state={state} />
+      <SubmitButton className="btn-primary w-full">Simpan target</SubmitButton>
     </form>
   );
 }

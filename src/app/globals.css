@@ -58,3 +58,6 @@ body {
 
 /* Baris geser horizontal (Learn, dll.) */
 @utility no-scrollbar { scrollbar-width: none; &::-webkit-scrollbar { display: none; } }
+
+/* Isi grid tidak boleh melebarkan kolom (mencegah geser horizontal di HP). */
+.grid > * { min-width: 0; }

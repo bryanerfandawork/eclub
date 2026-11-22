@@ -318,3 +318,13 @@ Setelah membaca HANDOFF, ringkas dalam 5 poin apa yang kamu pahami, lalu tanya s
 - `/journey` = hub 5 langkah. `StepBar` (di app-shell) menampilkan "Langkah X dari 5" + pintasan di setiap fitur. Menu samping & menu HP dikelompokkan per langkah.
 - `/potensi` baru: minat-bakat-passion-hobi (dipindah dari Peta Income), Personal SWOT (pilihan cepat + strategi otomatis), Peta Aset (finansial, sosial, diri, fisik). Disimpan di `income_profiles` (kolom swot, assets, situation di SQL 020). Peta Income kini punya "Kesibukan Anda sekarang".
 - Tes DISC tampil sebagai "Tes Gaya Diri" (route `/gaya-diri`, `/disc` redirect). Faktor tampil sebagai Daya Dorong/Pikat/Tahan/Cermat (`FACTOR_LABEL`). Kunci internal & tabel tetap `disc`.
+
+## Perbaikan alur setelah uji coba Ridha (22 Nov malam)
+- Tombol Lanjut (`StepNext` di `src/components/step-bar.tsx`, logika `nextFrom` di `src/lib/steps.ts`): terkunci sampai isian wajib di halaman itu selesai (status dari `/api/journey`), isian yang terlewat diselesaikan dulu, lalu maju; setelah langkah 4 → `/rekap` → `/evaluasi`.
+- Simpan otomatis (`src/components/autosave.tsx`) di Peta Income & Potensi Diri; pesan merah bila gagal (mis. SQL 020 belum dijalankan).
+- Langkah 4 punya halaman sendiri `/rencana` (mode "rencana" dari Peta Income). `/income` = langkah 2 saja; hasil muncul setelah 3 isian lengkap.
+- Rekomendasi (kelas, ide income Plus, bacaan, mentoring) hanya di `/rekap`. Rekomendasi di Peta Income & Target Harian dihapus.
+- `/evaluasi`: evaluasi mingguan (disimpan di `assessment_results` key `weekly_review`, tanpa SQL baru).
+- Mimpi pertama → `?pertama=1` menampilkan ajakan tambah mimpi / Plus. Mimpi tanpa angka bisa diberi target belakangan (`setDreamTarget`).
+- WA sapaan sekali setelah nomor WA disimpan (`notifyWelcome`, dicatat di `notification_log` kind `wa_welcome`).
+- Member baru setelah /lengkapi diarahkan ke /dashboard (kartu 5 langkah), bukan langsung /posisi.
