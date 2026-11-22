@@ -88,3 +88,47 @@ end $$;
 
 revoke execute on function public.admin_blast_features, public.admin_blast_feature_users, public.admin_blast_tests, public.admin_blast_courses from public, anon;
 grant execute on function public.admin_blast_features, public.admin_blast_feature_users, public.admin_blast_tests, public.admin_blast_courses to authenticated, service_role;
+
+-- ========== Bagian 2: terakhir aktif + daftar pengguna untuk admin ==========
+
+-- 7) Kapan terakhir membuka aplikasi (diperbarui otomatis saat member membuka halaman, maks tiap 10 menit).
+alter table public.profiles add column if not exists last_seen_at timestamptz;
+create or replace function public.touch_last_seen() returns void
+language sql security definer set search_path = '' as $$
+  update public.profiles set last_seen_at = now()
+  where id = auth.uid() and (last_seen_at is null or last_seen_at < now() - interval '10 minutes');
+$$;
+revoke execute on function public.touch_last_seen from public, anon;
+grant execute on function public.touch_last_seen to authenticated;
+
+-- 8) Daftar pengguna dengan urutan pilihan admin.
+create or replace function public.admin_users(search text default '', sort text default 'created', dir text default 'desc', lim integer default 50, off integer default 0)
+returns table (id uuid, email text, full_name text, segment text, role text, plan text, plan_expires_at timestamptz, created_at timestamptz,
+  last_sign_in_at timestamptz, last_active timestamptz, whatsapp text, province text, regency text, birth_date date, dreams_count bigint, total bigint)
+language plpgsql stable security definer set search_path = '' as $$
+begin
+  perform public.require_admin();
+  return query
+    with base as (
+      select p.id, u.email::text as email, p.full_name, p.segment, p.role, p.plan, p.plan_expires_at, p.created_at, u.last_sign_in_at,
+        greatest(p.last_seen_at, u.last_sign_in_at) as last_active, p.whatsapp, p.province, p.regency, p.birth_date,
+        (select count(*) from public.dreams d where d.user_id = p.id) as dreams_count
+      from public.profiles p join auth.users u on u.id = p.id
+      where coalesce(search, '') = '' or u.email ilike '%' || search || '%' or p.full_name ilike '%' || search || '%' or p.whatsapp ilike '%' || search || '%'
+    )
+    select b.*, count(*) over () as total from base b
+    order by
+      case when sort = 'name' and dir = 'asc' then lower(b.full_name) end asc nulls last,
+      case when sort = 'name' and dir = 'desc' then lower(b.full_name) end desc nulls last,
+      case when sort = 'email' and dir = 'asc' then b.email end asc nulls last,
+      case when sort = 'email' and dir = 'desc' then b.email end desc nulls last,
+      case when sort = 'active' and dir = 'asc' then b.last_active end asc nulls first,
+      case when sort = 'active' and dir = 'desc' then b.last_active end desc nulls last,
+      case when sort = 'plan' and dir = 'asc' then b.plan end asc nulls last,
+      case when sort = 'plan' and dir = 'desc' then b.plan end desc nulls last,
+      case when sort = 'created' and dir = 'asc' then b.created_at end asc,
+      b.created_at desc
+    limit least(greatest(lim, 1), 5000) offset greatest(off, 0);
+end $$;
+revoke execute on function public.admin_users from public, anon;
+grant execute on function public.admin_users to authenticated;

@@ -11,6 +11,8 @@ import { aiConfigured } from "@/lib/ai";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const [profile, account] = await Promise.all([getProfile(), getAccount()]);
+  // Catat "terakhir aktif" (dibatasi tiap 10 menit di database). Abaikan bila SQL 018 belum dijalankan.
+  if (!isDemoMode) await (await createClient()).rpc("touch_last_seen").then(() => null, () => null);
   // Data diri wajib (WA, tanggal lahir, domisili) sebelum memakai fitur apa pun. Admin dikecualikan.
   if (!isDemoMode && !isAdmin(account.role)) {
     const supabase = await createClient();

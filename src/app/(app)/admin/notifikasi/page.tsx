@@ -5,7 +5,8 @@ import { todayJakarta } from "@/lib/format";
 import { provinceName, regencyName } from "@/lib/regions";
 import { isDemoMode } from "@/lib/supabase/config";
 import { createClient } from "@/lib/supabase/server";
-import { BroadcastForm, MorningForm } from "./forms";
+import { BroadcastForm, MorningForm, NudgeForm } from "./forms";
+import { EVENING, pickLine } from "@/lib/nudges";
 
 export const metadata = { title: "Admin · Notifikasi" };
 
@@ -46,6 +47,16 @@ export default async function AdminPush() {
           </div>
         </div>
         <MorningForm on={settings.push_morning !== false && settings.push_morning !== "false"} title={String(settings.push_morning_title ?? "Selamat pagi dari EClub ☀️")} />
+      </section>
+      <section className="card p-5 lg:p-6">
+        <h2 className="font-bold text-heading">Pengingat malam (19.00 WIB)</h2>
+        <p className="mt-1 text-sm text-muted">Dikirim otomatis setiap malam, jam orang biasanya santai memegang HP. Tiap orang maksimal 1 notifikasi malam, dan yang sudah mencentang aksi hari ini tidak diganggu. Ada {EVENING.length} kalimat yang bergilir setiap hari.</p>
+        <div className="mt-3 rounded-xl bg-paper p-4 text-sm">
+          <p className="text-xs font-semibold text-muted">Contoh malam ini</p>
+          <p className="mt-1 font-semibold text-heading">{pickLine(EVENING, Math.floor((Date.now() + 7 * 3600_000) / 86_400_000))[0]}</p>
+          <p className="text-ink">{pickLine(EVENING, Math.floor((Date.now() + 7 * 3600_000) / 86_400_000))[1]}</p>
+        </div>
+        <NudgeForm evening={settings.push_evening !== false && settings.push_evening !== "false"} winback={settings.push_winback !== false && settings.push_winback !== "false"} />
       </section>
 
       <section className="card p-5 lg:p-6">

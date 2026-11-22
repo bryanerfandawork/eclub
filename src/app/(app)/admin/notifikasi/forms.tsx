@@ -2,7 +2,7 @@
 
 import { useActionState, useState } from "react";
 import { adminSendBroadcast } from "@/app/actions/push";
-import { adminSavePushSettings } from "@/app/actions/admin";
+import { adminSaveNudgeSettings, adminSavePushSettings } from "@/app/actions/admin";
 import { SubmitButton } from "@/components/submit-button";
 import { FormMessage } from "@/components/ui";
 import { PROVINCES, REGENCIES } from "@/lib/regions";
@@ -90,6 +90,30 @@ export function BroadcastForm() {
       )}
       <FormMessage state={state} />
       <SubmitButton pendingText="Mengirim…">{when === "now" ? "Kirim notifikasi" : "Jadwalkan"}</SubmitButton>
+    </form>
+  );
+}
+
+export function NudgeForm({ evening, winback }: { evening: boolean; winback: boolean }) {
+  const [state, action] = useActionState(adminSaveNudgeSettings, undefined);
+  return (
+    <form action={action} className="mt-4 space-y-3">
+      <label className="flex items-start gap-2.5 text-sm">
+        <input type="checkbox" name="push_evening" defaultChecked={evening} className="mt-0.5 h-4 w-4 accent-[#8b2220]" />
+        <span>
+          <b className="text-heading">Pengingat progres harian</b>
+          <span className="block text-xs text-muted">Untuk member yang aktif 0-2 hari terakhir dan belum mencentang aksi hari ini.</span>
+        </span>
+      </label>
+      <label className="flex items-start gap-2.5 text-sm">
+        <input type="checkbox" name="push_winback" defaultChecked={winback} className="mt-0.5 h-4 w-4 accent-[#8b2220]" />
+        <span>
+          <b className="text-heading">Ajak kembali member yang lama tidak membuka EClub</b>
+          <span className="block text-xs text-muted">Dikirim di hari ke-3, 5, 7, 14, 21, 30, lalu tiap 30 hari sampai 6 bulan.</span>
+        </span>
+      </label>
+      <FormMessage state={state} />
+      <SubmitButton>Simpan</SubmitButton>
     </form>
   );
 }

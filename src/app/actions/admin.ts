@@ -38,6 +38,32 @@ export async function setUserRole(_: FormState, formData: FormData): Promise<For
   return { message: "Peran diperbarui." };
 }
 
+/** Hapus akun beserta seluruh datanya. Khusus super admin; tidak bisa menghapus diri sendiri atau super admin lain. */
+export async function adminDeleteUser(_: FormState, formData: FormData): Promise<FormState> {
+  if (isDemoMode) return { error: DEMO_MSG };
+  const { getAccount } = await import("@/lib/plans");
+  const { createAdminClient } = await import("@/lib/supabase/admin");
+  if ((await getAccount()).role !== "super_admin") return { error: "Khusus super admin." };
+  const id = String(formData.get("id") ?? "");
+  const confirm = String(formData.get("confirm") ?? "").trim().toLowerCase();
+  const supabase = await createClient();
+  const admin = createAdminClient();
+  if (!admin) return { error: "SUPABASE_SERVICE_ROLE_KEY belum diisi di Vercel." };
+  const {
+    data: { user: me },
+  } = await supabase.auth.getUser();
+  if (!me || me.id === id) return { error: "Tidak bisa menghapus akun Anda sendiri." };
+  const { data: target } = await admin.auth.admin.getUserById(id);
+  if (!target?.user) return { error: "Akun tidak ditemukan." };
+  if (confirm !== (target.user.email ?? "").toLowerCase()) return { error: "Ketik email akun dengan benar untuk konfirmasi." };
+  const { data: prof } = await admin.from("profiles").select("role").eq("id", id).maybeSingle();
+  if (prof?.role === "super_admin") return { error: "Super admin lain tidak bisa dihapus. Ubah dulu perannya." };
+  const { error } = await admin.auth.admin.deleteUser(id);
+  if (error) return { error: "Gagal menghapus: " + error.message };
+  revalidatePath("/admin/pengguna");
+  return { message: "Akun dihapus." };
+}
+
 export async function saveFeatures(_: FormState, formData: FormData): Promise<FormState> {
   if (isDemoMode) return { error: DEMO_MSG };
   const supabase = await createClient();
@@ -152,4 +178,15 @@ export async function uploadBrandAsset(_: FormState, formData: FormData): Promis
   if (e2) return { error: "Gagal menyimpan: " + e2.message };
   revalidatePath("/", "layout");
   return { message: "Logo tersimpan dan langsung dipakai di seluruh aplikasi." };
+}
+
+export async function adminSaveNudgeSettings(_: FormState, formData: FormData): Promise<FormState> {
+  if (isDemoMode) return { error: DEMO_MSG };
+  const supabase = await createClient();
+  for (const skey of ["push_evening", "push_winback"]) {
+    const { error } = await supabase.rpc("admin_set_setting", { skey, svalue: formData.get(skey) === "on" });
+    if (error) return { error: "Gagal menyimpan: " + error.message };
+  }
+  revalidatePath("/admin/notifikasi");
+  return { message: "Pengaturan notifikasi malam tersimpan." };
 }

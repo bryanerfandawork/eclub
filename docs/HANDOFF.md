@@ -69,7 +69,7 @@ All accounts below belong to Ridha (GitHub account `bryanerfandawork`). The old 
 |---|---|---|
 | Code | Next.js 15.5 (App Router, server actions), TypeScript, Tailwind v4 | this repo |
 | Repo | github.com/bryanerfandawork/eclub (**public**). Every push to `main` auto-deploys to Vercel. | GitHub |
-| Hosting | Vercel **Hobby** (free, non-commercial only: must move to **Pro** before selling). Live: https://www.eclub.co.id and https://eclub-five.vercel.app. One daily cron (`vercel.json`, `0 0 * * *` = 07:00 WIB) calls `/api/cron/daily`. | vercel.com > project eclub > Settings |
+| Hosting | Vercel **Hobby** (free, non-commercial only: must move to **Pro** before selling). Live: https://www.eclub.co.id and https://eclub-five.vercel.app. Two daily crons (`vercel.json`): `0 0 * * *` = 07:00 WIB `/api/cron/daily`, and `0 12 * * *` = 19:00 WIB `/api/cron/evening` (Hobby runs each once a day, at some minute within that hour). | vercel.com > project eclub > Settings |
 | Database / auth / storage | Supabase project `uvkqbwtlnbdcpbreijwr` (Tokyo, free). Storage bucket `assets` (QRIS, logos). | supabase.com > SQL Editor, Authentication, Storage |
 | Auth URLs | Site URL `https://www.eclub.co.id`; Redirect URLs `https://www.eclub.co.id/**`, `https://eclub.co.id/**`, plus the vercel.app entry. Done. | Supabase > Authentication > URL Configuration |
 | Email (SMTP) | **Resend** as custom SMTP, sender "EClub Indonesia" `noreply@eclub.co.id`. 5 Indonesian templates in `supabase/email-templates/` (confirm signup, reset password, magic link, change email, invite) pasted into Supabase. Header logo uses `https://www.eclub.co.id/api/brand/logo?v=dark`. Done and tested. | resend.com (domain eclub.co.id verified) + Supabase > Authentication > SMTP Settings / Email Templates |
@@ -194,11 +194,13 @@ After changing env variables, **Redeploy** in Vercel.
 - **WhatsApp (Fonnte), transactional only**: order created (buyer + admin), unpaid > 3 hours reminder, paid, cancelled, birthday promo, Plus renewal (`renewal_days`, default 7,3,1, plus day after expiry), mentoring/event reminders within 24h, affiliate notices, event city announcements. Sent by actions and the 07:00 cron (`/api/cron/daily`, cap `wa_daily_max`), logged in `notification_log`.
 - **Order page (22 Nov)**: QRIS download button; bank accounts parsed from `app_settings.bank_accounts` (one per line "BANK number a.n. holder", `src/lib/banks.ts`) and shown per bank with a coloured bank badge and a copy button. Buyer always gets WA + email info on "Beli" (also when an unpaid order is reused); admin WA only for new orders.
 - **Blasting (22 Nov, SQL 018)**: Admin > Blasting sends email (Resend batch API) or WhatsApp (Fonnte queue: many targets per request, `delay` "8-20" random, max 300 per blast) to a filtered audience. Filters: plan, age range, province/regency, joined within N days, inactive N days (auth last_sign_in_at), each test sudah/belum (from `assessment_results`, new test keys appear automatically), any course / a specific course started-completed-not, and "sudah/belum" for **every public table with a `user_id` column** (auto-discovered by `admin_blast_features`, labels in `FEATURE_LABELS` in `src/lib/blast.ts`, unknown tables fall back to the table name), plus "pending order". Consent: WA only to `wa_opt_in`, email skips `email_opt_out`; emails carry an HMAC unsubscribe link to `/berhenti-email`. `{nama}` personalises. Preview count, test send, history in `blasts`.
+- **Admin > Pengguna (22 Nov)**: search (name/email/WA), sort (newest, oldest, recently active, longest inactive, name, email, Plus first), pages of 50, "last active" (greatest of `last_seen_at` and last sign-in) with a green/gold/grey dot, Excel export (`/api/admin/users-export`, exceljs, follows search + sort), and **delete account** (super admin only, type the email to confirm, cannot delete self or another super admin; uses `auth.admin.deleteUser`, which cascades all the member's data including orders). Falls back to the old list until SQL 018 is run.
+- **Evening pushes (22 Nov)**: `/api/cron/evening` at 19:00 WIB. Active 0-2 days and no daily action done today: rotating line from `EVENING` in `src/lib/nudges.ts` (50 lines). Inactive exactly 3, 5, 7, 14, 21, 30 days (then every 30 days up to 180): `WINBACK` lines. Max one evening push per person. Toggles `push_evening`, `push_winback` in Admin > Notifikasi.
 - **Auth extras**: forgot password (`/lupa-sandi`) and set new password (`/atur-sandi`).
 
 ## 6. Database migrations (run by Ridha in Supabase > SQL Editor)
 
-All files are in `supabase/`. **Everything is run except `008_ai_companion.sql` and `018_blasting.sql`.**
+All files are in `supabase/`. **Everything is run except `008_ai_companion.sql` and `018_blasting_users.sql`.**
 
 | File | Content | Status |
 |---|---|---|
@@ -219,7 +221,7 @@ All files are in `supabase/`. **Everything is run except `008_ai_companion.sql` 
 | `015_event_courses_articles.sql` | Gathering event, 8 courses/44 lessons, articles | ✅ |
 | `016_push.sql` | push subscriptions/secrets/broadcasts | ✅ |
 | `017_service_role_grants.sql` | grants for service_role + default privileges | ✅ |
-| `018_blasting.sql` | `blasts` history, `profiles.email_opt_out`, RPCs `admin_blast_features/feature_users/tests/courses` | ⏳ **not run yet** (added 22 Nov) |
+| `018_blasting_users.sql` | `blasts` history, `profiles.email_opt_out`, RPCs `admin_blast_features/feature_users/tests/courses`; `profiles.last_seen_at` + `touch_last_seen()` (called by the app layout), `admin_users(search, sort, dir, lim, off)` | ⏳ **not run yet** (added 22 Nov) |
 
 New migrations go in `supabase/018_*.sql` and onward. Every migration must include explicit `GRANT` statements (to `authenticated`, `anon` where needed, and `service_role`), because "Grant API access" was unchecked when the project was created. Seed inserts should be idempotent (`on conflict do nothing`).
 
