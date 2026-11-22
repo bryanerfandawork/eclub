@@ -44,7 +44,7 @@ export const SEF_STEPS: { key: SefStepKey; phase: (typeof SEF_PHASES)[number]["k
     no: 3,
     name: "Systemation",
     desc: "Menyusun proses, SOP, keuangan, dan kebiasaan kerja yang konsisten.",
-    tools: [{ label: "Daily Action", href: "/today" }],
+    tools: [{ label: "Laporan Harian", href: "/today" }],
   },
   {
     key: "transformation",

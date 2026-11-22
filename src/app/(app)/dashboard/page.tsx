@@ -1,8 +1,8 @@
 import Link from "next/link";
-import { ArrowRight, CalendarCheck2, CalendarDays, MapPin, Circle, Flame, Gem, Plus, Quote } from "lucide-react";
-import { getAssessmentResults, getDailyRange, getDreams, getOpenActions, getProfile, getProgressStats } from "@/lib/data";
+import { ArrowRight, CalendarDays, MapPin, Circle, Gem, Plus, Quote } from "lucide-react";
+import { getAssessmentResults, getDreams, getOpenActions, getProfile, getProgressStats } from "@/lib/data";
 import { compactRupiah, dreamProgress, greeting, rupiah, todayJakarta } from "@/lib/format";
-import { DailyList } from "@/components/daily-list";
+import { AssistantHome } from "@/components/assistant-home";
 import { getJourney } from "@/lib/steps-server";
 import { JourneyCard } from "@/components/journey-card";
 import { PLACEMENT_KEY } from "@/lib/placement";
@@ -29,11 +29,10 @@ export const metadata = { title: "Dashboard" };
 
 export default async function DashboardPage() {
   const today = todayJakarta();
-  const [profile, dreams, actions, todayItems, stats] = await Promise.all([
+  const [profile, dreams, actions, stats] = await Promise.all([
     getProfile(),
     getDreams(),
     getOpenActions(4),
-    getDailyRange(today, today),
     getProgressStats(),
   ]);
   const [ew, , disc] = await Promise.all([getAssessmentResults("8-wheel-entrepreneur", 1), getAssessmentResults(PLACEMENT_KEY, 1), getDiscResult()]);
@@ -65,6 +64,8 @@ export default async function DashboardPage() {
       </section>
 
       <JourneyCard j={journey} />
+
+      <AssistantHome streak={stats.streak} />
 
       <PushToggle publicKey={vapid} variant="card" />
 
@@ -105,26 +106,8 @@ export default async function DashboardPage() {
       )}
 
       <div className="grid gap-5 lg:grid-cols-3 lg:gap-6">
-        {/* Aksi hari ini */}
-        <section className="card p-6 lg:col-span-1">
-          <div className="flex items-center justify-between">
-            <h3 className="flex items-center gap-2 font-bold text-heading">
-              <CalendarCheck2 className="h-5 w-5 text-brand" /> Aksi hari ini
-            </h3>
-            <span className="flex items-center gap-1 rounded-full bg-gold-soft px-2.5 py-1 text-xs font-semibold text-brand">
-              <Flame className="h-3.5 w-3.5" /> {stats.streak}
-            </span>
-          </div>
-          <div className="mt-2">
-            <DailyList items={todayItems} date={today} compact />
-          </div>
-          <Link href="/today" className="mt-3 inline-block text-sm font-semibold text-brand/80 hover:text-brand">
-            Lihat semua
-          </Link>
-        </section>
-
         {/* Mimpi */}
-        <section className="lg:col-span-2">
+        <section className="lg:col-span-3">
           <div className="mb-3 flex items-center justify-between">
             <h3 className="font-bold text-heading">Mimpi saya</h3>
             <Link href="/goals" className="text-sm font-semibold text-heading/70 hover:text-heading">
@@ -140,7 +123,7 @@ export default async function DashboardPage() {
               <p className="max-w-xs text-sm text-muted">Mimpi yang ditulis dan direncanakan jauh lebih mungkin terwujud.</p>
             </Link>
           ) : (
-            <div className="-mx-5 flex snap-x gap-4 overflow-x-auto px-5 pb-2 sm:mx-0 sm:grid sm:grid-cols-2 sm:overflow-visible sm:px-0">
+            <div className="-mx-5 flex snap-x gap-4 overflow-x-auto px-5 pb-2 sm:mx-0 sm:grid sm:grid-cols-2 sm:overflow-visible lg:grid-cols-4 sm:px-0">
               {active.slice(0, 4).map((d) => {
                 const p = dreamProgress(d.target_amount, d.saved_amount);
                 return (

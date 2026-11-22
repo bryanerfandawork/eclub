@@ -34,7 +34,7 @@ export const FEATURE_LABELS: Record<string, string> = {
   fin_products: "Input produk / HPP",
   dreams: "Membuat impian (Dream Planner)",
   dream_actions: "Menyusun langkah aksi impian",
-  daily_actions: "Memakai Daily Action",
+  daily_actions: "Memakai Laporan Harian",
   habits: "Membuat kebiasaan",
   habit_logs: "Mencentang kebiasaan",
   gratitude_entries: "Menulis jurnal syukur",

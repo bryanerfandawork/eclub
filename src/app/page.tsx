@@ -22,7 +22,6 @@ import {
   MessagesSquare,
   CalendarDays,
   MapPin,
-  Award,
   Repeat,
   HandCoins,
   Building2,
@@ -44,30 +43,30 @@ export const dynamic = "force-dynamic";
 
 const FEATURES: { icon: typeof Heart; title: string; desc: string; tag?: string }[] = [
   { icon: Radar, title: "Cek Posisi SEF", desc: "Jawab beberapa pertanyaan singkat, lalu lihat Anda sedang di tahap mana dan apa langkah paling tepat berikutnya.", tag: "Mulai di sini" },
+  { icon: Repeat, title: "Peta Income", desc: "Petakan penghasilan aktif, masif, dan pasif Anda, lalu hitung jarak ke mimpi. Cocok untuk karyawan, pelajar, freelancer, maupun pemilik usaha." },
   { icon: Crosshair, title: "Target Jualan Harian", desc: "Mimpi Rp60 juta dalam 5 tahun? Sistem menghitung tabungan per hari dan berapa produk yang harus terjual setiap hari." },
   { icon: Wallet, title: "Keuangan & HPP", desc: "Hitung HPP dan harga jual tiap produk, catat pemasukan dan pengeluaran, lalu lihat untung per produk dan laba rugi bulanan." },
   { icon: Gem, title: "Dream Planner", desc: "Ubah mimpi menjadi angka, tanggal, dan tabungan yang jelas. Lihat progresnya bergerak setiap kali Anda menabung." },
-  { icon: CalendarCheck2, title: "Daily Action & Kebiasaan", desc: "Pecah target besar menjadi aksi harian, bangun kebiasaan baik, dan tulis jurnal syukur. Rangkaian konsisten menjaga semangat." },
-  { icon: Heart, title: "My Life & Tes Diri", desc: "Rumuskan definisi sukses dan visi hidup, lalu kenali diri lewat Tes Gaya Diri dan 8 Wheel Entrepreneur." },
+  { icon: CalendarCheck2, title: "Asisten Harian", desc: "Pekerjaan rutin dan kebiasaan Anda terhubung ke mimpi. Setiap hari laporkan rencana aksi: selesai, lanjut besok, atau tutup. Malam hari diingatkan, Minggu dapat Rapor Mingguan.", tag: "Baru" },
+  { icon: Heart, title: "Potensi Diri & Tes Gaya Diri", desc: "Kenali bekal Anda: minat, bakat, passion, Personal SWOT, Peta Aset, Tes Gaya Diri, dan 8 Wheel Entrepreneur." },
   { icon: BookOpen, title: "Kelas Berjenjang", desc: "Kelas video mengikuti tahapan SEF, dari Personal Mapping hingga Investation. Lulus satu tahap, dapat sertifikat." },
   { icon: Users, title: "Mentoring & Event", desc: "Pesan sesi 1-on-1 dengan mentor dan ikuti workshop atau webinar. Event di kota Anda akan dikabarkan lewat WhatsApp." },
   { icon: MessagesSquare, title: "Komunitas", desc: "Berbagi progres, bertanya, dan saling menyemangati dengan sesama member yang sedang bertumbuh." },
   { icon: Sparkles, title: "AI Companion", desc: "Teman diskusi 24 jam yang memahami mimpi, posisi SEF, dan hasil tes Anda untuk menyusun rencana dan evaluasi." },
-  { icon: Award, title: "Sertifikat", desc: "Setiap tahap SEF yang Anda selesaikan menghasilkan sertifikat dengan kode verifikasi yang bisa dicek publik." },
   { icon: HandCoins, title: "Affiliate & Kupon", desc: "Member Plus punya link dan kode kupon sendiri. Teman dapat potongan, Anda dapat bagi hasil dari setiap transaksi." },
 ];
 
 const PAINS = [
   { pain: "Sibuk setiap hari, tapi tidak yakin sedang menuju ke mana.", gain: "My Life membantu Anda merumuskan definisi sukses dan visi 10 tahun, jadi setiap langkah punya arah." },
   { pain: "Punya banyak mimpi, tapi selalu tertunda karena tidak tahu mulai dari mana.", gain: "Dream Planner mengubah mimpi menjadi angka, tanggal, dan tabungan bulanan yang jelas." },
-  { pain: "Semangat di awal, lalu hilang setelah seminggu.", gain: "Daily Action dan rangkaian konsisten membuat kemajuan kecil terasa, setiap hari." },
+  { pain: "Semangat di awal, lalu hilang setelah seminggu.", gain: "Asisten Harian mengingatkan pekerjaan dan kebiasaan Anda, lalu merangkum kemajuan setiap hari dan setiap minggu." },
   { pain: "Sudah jualan, tapi tidak tahu sebenarnya untung berapa per produk.", gain: "Kalkulator HPP dan Target Harian menunjukkan untung per produk dan berapa yang harus terjual setiap hari." },
 ];
 
 
 const FAQ = [
   { q: "Apakah EClub hanya untuk pengusaha?", a: "Tidak. EClub untuk siapa saja yang ingin bertumbuh: pelajar, karyawan, profesional, freelancer, maupun pemilik bisnis. Setiap orang punya definisi sukses dan kendaraan yang berbeda." },
-  { q: "Apakah versi gratis benar-benar bisa dipakai?", a: "Ya, gratis selamanya: Cek Posisi, Target Jualan Harian, kalkulator HPP untuk 3 produk, catatan keuangan, Dream Planner, Daily Action, kebiasaan, komunitas, dan Tes Gaya Diri (hasil dasar). Plus membuka laporan lengkap, batas lebih besar, kelas Plus, dan harga mentoring khusus." },
+  { q: "Apakah versi gratis benar-benar bisa dipakai?", a: "Ya, gratis selamanya: seluruh Perjalanan 5 Langkah, Cek Posisi, Peta Income, Target Jualan Harian, kalkulator HPP untuk 3 produk, catatan keuangan, Dream Planner, Asisten Harian (3 rencana aksi baru per hari, kebiasaan tidak dihitung), jurnal syukur, komunitas, dan Tes Gaya Diri (hasil dasar). Plus membuka rencana aksi tanpa batas, laporan lengkap, ide income personal, kelas Plus, dan harga mentoring khusus." },
   { q: "Bagaimana cara kerja affiliate?", a: "Setiap member Plus otomatis punya link dan kode kupon pribadi. Teman yang memakai kupon mendapat potongan, dan Anda mendapat bagi hasil dari setiap transaksinya. Saldo bisa dicairkan setiap kelipatan Rp100.000." },
   { q: "Apakah EClub bisa mengisi pelatihan di kantor atau komunitas kami?", a: "Bisa. Kami menerima in-house training, workshop, undangan pembicara, dan kemitraan. Isi formulir di bagian Kolaborasi, tim kami akan menghubungi lewat WhatsApp." },
   { q: "Apakah data saya aman?", a: "Data tersimpan terenkripsi dan setiap akun hanya bisa mengakses datanya sendiri. Tim admin tidak bisa membaca isi mimpi, jawaban tes, atau catatan pribadi Anda." },
@@ -92,20 +91,20 @@ function PhoneMockup() {
             </span>
           </div>
           <div className="rounded-2xl bg-brand p-3.5 text-white">
-            <p className="text-[9px] font-semibold tracking-widest text-gold uppercase">Perjalanan Anda</p>
-            <p className="mt-1 text-sm font-bold">Survive · Acquisition</p>
+            <p className="text-[9px] font-semibold tracking-widest text-gold uppercase">Perjalanan 5 Langkah</p>
+            <p className="mt-1 text-sm font-bold">Langkah 4 · Action Plan</p>
             <div className="mt-2.5 flex gap-1">
-              {[1, 1, 1, 0, 0, 0].map((on, i) => (
+              {[1, 1, 1, 0, 0].map((on, i) => (
                 <span key={i} className={`h-1 flex-1 rounded-full ${on ? "bg-gold" : "bg-white/20"}`} />
               ))}
             </div>
           </div>
           <div className="rounded-2xl border border-line bg-white p-3">
-            <p className="text-[11px] font-bold text-heading">Aksi hari ini</p>
+            <p className="text-[11px] font-bold text-heading">Laporan hari ini</p>
             {[
-              ["Olahraga pagi 20 menit", true],
+              ["Ibadah tepat waktu", true],
               ["Hubungi 3 calon pelanggan", false],
-              ["Catat pengeluaran", false],
+              ["Kerjakan tugas kuliah bab 2", false],
             ].map(([t, done]) => (
               <p key={String(t)} className="mt-2 flex items-center gap-2 text-[11px]">
                 {done ? <CheckCircle2 className="h-3.5 w-3.5 text-success" /> : <Circle className="h-3.5 w-3.5 text-line" />}
@@ -187,15 +186,15 @@ export default async function Home() {
           </p>
           <div className="mt-8 flex animate-rise flex-col justify-center gap-3 sm:flex-row lg:justify-start">
             <Link href="/daftar" className="btn-primary px-7 py-3.5 text-[15px]">
-              Cek posisi saya, gratis <ArrowRight className="h-4 w-4" />
+              Mulai perjalanan saya, gratis <ArrowRight className="h-4 w-4" />
             </Link>
             <a href="#hitung" className="btn-ghost px-7 py-3.5 text-[15px]">Hitung target harian</a>
           </div>
           <p className="mt-4 animate-rise text-xs text-muted">Gratis selamanya untuk fitur inti. Tanpa kartu kredit. Cukup 5 menit sehari.</p>
           <dl className="mx-auto mt-12 grid max-w-md grid-cols-3 gap-4 border-t border-line pt-6 lg:mx-0">
             {[
+              ["5", "langkah perjalanan"],
               ["4", "fase SEF"],
-              ["8", "dimensi entrepreneur"],
               ["100%", "bisa dipakai di HP"],
             ].map(([n, l]) => (
               <div key={l}>
@@ -337,14 +336,16 @@ export default async function Home() {
       <section className="mx-auto max-w-6xl px-5 py-20 lg:px-10 lg:py-28">
         <div className="text-center">
           <p className="eyebrow">Cara kerja</p>
-          <h2 className="mt-3 text-3xl font-bold tracking-tight text-heading sm:text-4xl">Mulai dalam 5 menit</h2>
+          <h2 className="mt-3 text-3xl font-bold tracking-tight text-heading sm:text-4xl">Perjalanan 5 Langkah</h2>
+          <p className="mx-auto mt-3 max-w-2xl text-[15px] text-muted">Seperti didampingi konsultan rencana hidup: satu tombol Lanjut memandu Anda dari mimpi sampai kebiasaan harian. Setelah itu, EClub menjadi asisten harian Anda.</p>
         </div>
-        <ol className="mt-12 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <ol className="mt-12 grid gap-4 md:grid-cols-2 lg:grid-cols-5">
           {[
-            ["Daftar & Cek Posisi", "Daftar gratis, lalu jawab pertanyaan singkat. Anda langsung tahu sedang di tahap SEF mana."],
-            ["Hitung target harian", "Masukkan produk, HPP, harga jual, dan mimpi Anda. Dapatkan target jualan per hari yang jelas."],
-            ["Belajar & didampingi", "Ikuti kelas yang cocok dengan tahap Anda, atau pesan mentoring untuk melaju lebih cepat."],
-            ["Tumbuh bersama", "Jaga konsistensi lewat Daily Action, kebiasaan, dan komunitas. Puas? Ajak teman dan dapat bagi hasil."],
+            ["Mimpi", "Tulis mimpi-mimpi Anda, beri angka dan tanggal, lalu rumuskan arti sukses versi Anda."],
+            ["Kondisi Saat Ini", "Cek Posisi di peta SEF dan Peta Income: kesibukan, penghasilan, dan pengeluaran Anda hari ini."],
+            ["Potensi Diri", "Tes Gaya Diri, minat dan bakat, Personal SWOT, serta Peta Aset. Kenali bekal Anda."],
+            ["Action Plan", "Rencana income, target harian, pekerjaan rutin, dan kebiasaan yang terhubung ke mimpi."],
+            ["Evaluasi Berkala", "Laporan harian, Rapor Mingguan setiap Minggu, dan tinjauan bulanan. Arah selalu terjaga."],
           ].map(([t, d], i) => (
             <li key={t} className="card p-6">
               <span className="grid h-10 w-10 place-items-center rounded-xl bg-gold-soft text-sm font-bold text-brand">{i + 1}</span>
@@ -404,7 +405,7 @@ export default async function Home() {
                   "Peta Income: posisi active, massive, passive",
                   "Target Jualan Harian dari mimpi Anda",
                   "Kalkulator HPP (3 produk) & catatan keuangan",
-                  "Dream Planner, Daily Action & kebiasaan",
+                  "Dream Planner & Asisten Harian (3 rencana/hari)",
                   "Tes Gaya Diri (hasil dasar) & 8 Wheel",
                   "Komunitas member & kelas gratis",
                 ].map((p) => (
@@ -432,6 +433,7 @@ export default async function Home() {
               <ul className="mt-5 space-y-2 text-sm text-white/85">
                 {[
                   "Semua fitur Free, dengan batas lebih besar",
+                  "Rencana aksi harian tanpa batas",
                   "Produk HPP tanpa batas & laporan laba rugi",
                   "Laporan lengkap Gaya Diri + rekomendasi karier",
                   "Rekomendasi ide income personal",

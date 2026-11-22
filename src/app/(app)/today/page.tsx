@@ -1,87 +1,211 @@
-import { CalendarCheck2, Flame, Undo2 } from "lucide-react";
-import { carryOverDaily } from "@/app/actions/growth";
-import { DailyList } from "@/components/daily-list";
+import Link from "next/link";
+import { ArrowRight, CalendarCheck2, CheckCircle2, Circle, Clock, Heart, Repeat, Settings2, Trophy, X } from "lucide-react";
+import { closeDaily, followupDaily, toggleDaily } from "@/app/actions/growth";
+import { toggleHabit } from "@/app/actions/habits";
+import { PendingButton } from "@/components/pending-button";
+import { AssistantPanel } from "@/components/assistant-panel";
+import { AddPlanForm } from "@/components/plan-form";
 import { PageHeader, ProgressBar } from "@/components/ui";
-import { WeekBars } from "@/components/week-bars";
+import { daysBetween, getAssistantStats, getHabitsToday, getWorks, originOf, statusOf } from "@/lib/assistant";
 import { getDailyRange, getDreams, getProgressStats } from "@/lib/data";
+import { demoDaily } from "@/lib/demo";
 import { tanggalPanjang, todayJakarta } from "@/lib/format";
+import { getLimit } from "@/lib/plans";
+import { isDemoMode } from "@/lib/supabase/config";
+import type { DailyAction } from "@/lib/types";
 
-export const metadata = { title: "Daily Action" };
+export const metadata = { title: "Laporan Harian" };
+
+const jktDate = (iso: string) => (iso ? new Date(iso).toLocaleDateString("en-CA", { timeZone: "Asia/Jakarta" }) : "");
 
 export default async function TodayPage() {
   const today = todayJakarta();
-  const [items, dreams, stats] = await Promise.all([getDailyRange(todayJakarta(-7), today), getDreams(), getProgressStats()]);
-  const todayItems = items.filter((a) => a.action_date === today);
-  const leftover = items.filter((a) => a.action_date < today && !a.done).length;
-  const done = todayItems.filter((a) => a.done).length;
-  const pct = todayItems.length ? Math.round((done / todayItems.length) * 100) : 0;
+  const tomorrow = todayJakarta(1);
+  const [items, works, allDreams, { habits, logs }, stats, progress, limit] = await Promise.all([
+    isDemoMode ? Promise.resolve(demoDaily) : getDailyRange(todayJakarta(-29), tomorrow),
+    getWorks(),
+    getDreams(),
+    getHabitsToday(),
+    getAssistantStats(),
+    getProgressStats(),
+    getLimit("daily_action"),
+  ]);
+  const dreams = allDreams.filter((d) => d.status === "active");
+  const dreamTitle = (id?: string | null) => allDreams.find((d) => d.id === id)?.title;
+  const workOf = (id?: string | null) => works.find((w) => w.id === id);
+  const dreamOf = (a: DailyAction) => dreamTitle(a.dream_id) ?? dreamTitle(workOf(a.work_id)?.dream_id);
+
+  const todays = items.filter((a) => a.action_date === today && statusOf(a) !== "closed");
+  const overdue = items.filter((a) => a.action_date < today && statusOf(a) === "open");
+  const later = items.filter((a) => a.action_date === tomorrow && statusOf(a) === "open");
+  const done = todays.filter((a) => statusOf(a) === "done").length;
+  const pct = todays.length ? Math.round((done / todays.length) * 100) : 0;
+  const createdToday = items.filter((a) => jktDate(a.created_at) === today).length;
+  const left = limit === null ? null : Math.max(0, limit - createdToday);
+  const doneHabit = new Set(logs.filter((l) => l.log_date === today).map((l) => l.habit_id));
+
+  // Kelompokkan rencana hari ini per pekerjaan.
+  const groups = [...works.map((w) => ({ key: w.id, name: w.name, dream: dreamTitle(w.dream_id) })), { key: "", name: "Lainnya", dream: undefined }]
+    .map((g) => ({ ...g, items: todays.filter((a) => (a.work_id && workOf(a.work_id) ? a.work_id : "") === g.key) }))
+    .filter((g) => g.items.length);
+
+  const Row = ({ a, mode }: { a: DailyAction; mode: "today" | "overdue" | "later" }) => {
+    const st = statusOf(a);
+    const age = daysBetween(originOf(a), today);
+    const meta = [mode !== "today" && workOf(a.work_id)?.name, dreamOf(a) && `✨ ${dreamOf(a)}`, (a.followups ?? 0) > 0 && `dilanjutkan ${a.followups}x`, age > 0 && st === "open" && `${age} hari berjalan`].filter(Boolean);
+    return (
+      <li className="flex flex-wrap items-center gap-x-3 gap-y-2 py-3">
+        {mode === "today" ? (
+          <form action={toggleDaily} className="shrink-0">
+            <input type="hidden" name="id" value={a.id} />
+            <input type="hidden" name="done" value={String(st === "done")} />
+            <PendingButton className="grid h-9 w-9 place-items-center rounded-full" aria-label={st === "done" ? "Tandai belum" : "Tandai selesai"}>
+              {st === "done" ? <CheckCircle2 className="h-6 w-6 text-success" /> : <Circle className="h-6 w-6 text-line" strokeWidth={2.2} />}
+            </PendingButton>
+          </form>
+        ) : (
+          <Clock className={`ml-2 h-5 w-5 shrink-0 ${mode === "overdue" ? "text-gold" : "text-muted"}`} />
+        )}
+        <span className="min-w-0 flex-1">
+          <span className={`block text-[15px] ${st === "done" ? "text-muted line-through" : "text-ink"}`}>{a.title}</span>
+          {meta.length > 0 && <span className="block text-xs text-muted">{meta.join(" · ")}</span>}
+        </span>
+        {st === "open" && mode !== "later" && (
+          <span className="flex w-full justify-end gap-1.5 sm:w-auto">
+            <form action={followupDaily}>
+              <input type="hidden" name="id" value={a.id} />
+              <input type="hidden" name="to" value={mode === "overdue" ? "today" : "tomorrow"} />
+              <PendingButton className="rounded-lg border border-line px-2.5 py-1.5 text-xs font-semibold text-heading hover:border-gold">
+                {mode === "overdue" ? "Kerjakan hari ini" : "Lanjut besok"}
+              </PendingButton>
+            </form>
+            <form action={closeDaily}>
+              <input type="hidden" name="id" value={a.id} />
+              <PendingButton className="flex items-center gap-1 rounded-lg border border-line px-2.5 py-1.5 text-xs font-semibold text-muted hover:border-danger hover:text-danger" title="Tutup: tidak dilanjutkan">
+                <X className="h-3.5 w-3.5" /> Tutup
+              </PendingButton>
+            </form>
+          </span>
+        )}
+      </li>
+    );
+  };
 
   return (
     <>
-      <PageHeader eyebrow="Execute · Daily Action" title="Aksi hari ini" desc={tanggalPanjang(today)} />
+      <PageHeader
+        eyebrow="Laporan harian"
+        title="Hari ini"
+        desc={`${tanggalPanjang(today)}. Centang kebiasaan, laporkan rencana aksi: selesai, lanjut besok, atau tutup.`}
+        action={
+          <Link href="/rutinitas" className="btn-ghost text-sm">
+            <Settings2 className="h-4 w-4" /> Atur pekerjaan & kebiasaan
+          </Link>
+        }
+      />
       <div className="grid gap-5 lg:grid-cols-5 lg:gap-6">
-        <section className="card p-5 lg:col-span-3 lg:p-6">
-          <div className="flex items-center justify-between">
-            <h2 className="flex items-center gap-2 font-bold text-heading">
-              <CalendarCheck2 className="h-5 w-5 text-brand" /> Daftar aksi
-            </h2>
-            <span className="text-xs font-medium text-muted">
-              {done}/{todayItems.length} selesai
-            </span>
-          </div>
-          {todayItems.length > 0 && (
-            <div className="mt-3">
-              <ProgressBar value={pct} tone="brand" />
+        <div className="space-y-5 lg:col-span-3">
+          <section className="card p-5 lg:p-6">
+            <div className="flex items-center justify-between">
+              <h2 className="flex items-center gap-2 font-bold text-heading">
+                <Repeat className="h-5 w-5 text-gold" /> Kebiasaan hari ini
+              </h2>
+              {habits.length > 0 && (
+                <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${doneHabit.size >= habits.length ? "bg-success/10 text-success" : "bg-paper text-muted"}`}>
+                  {habits.filter((h) => doneHabit.has(h.id)).length}/{habits.length}
+                </span>
+              )}
             </div>
-          )}
-          {leftover > 0 && (
-            <form action={carryOverDaily} className="mt-4">
-              <button className="flex w-full items-center gap-2 rounded-xl border border-dashed border-gold bg-gold-soft/50 px-3.5 py-2.5 text-left text-sm font-medium text-heading hover:bg-gold-soft">
-                <Undo2 className="h-4 w-4 text-gold" /> Pindahkan {leftover} aksi yang belum selesai ke hari ini
-              </button>
-            </form>
-          )}
-          <div className="mt-2">
-            <DailyList items={todayItems} date={today} dreams={dreams.filter((d) => d.status === "active").map((d) => ({ id: d.id, title: d.title }))} />
-          </div>
-        </section>
-        <aside className="space-y-5 lg:col-span-2">
-          <section className="rounded-2xl bg-brand p-6 text-white shadow-lift">
-            <div className="flex items-center gap-3">
-              <div className="grid h-12 w-12 place-items-center rounded-2xl bg-white/10">
-                <Flame className="h-6 w-6 text-gold" />
+            {habits.length === 0 ? (
+              <Link href="/rutinitas" className="mt-3 block rounded-xl border border-dashed border-line py-3 text-center text-sm font-semibold text-muted hover:border-gold">
+                + Tentukan kebiasaan harian
+              </Link>
+            ) : (
+              <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                {habits.map((h) => {
+                  const on = doneHabit.has(h.id);
+                  return (
+                    <form key={h.id} action={toggleHabit}>
+                      <input type="hidden" name="id" value={h.id} />
+                      <input type="hidden" name="date" value={today} />
+                      <input type="hidden" name="done" value={on ? "1" : "0"} />
+                      <PendingButton className={`flex w-full items-center gap-3 rounded-xl border p-2.5 text-left transition active:scale-[.98] ${on ? "border-success/30 bg-success/5" : "border-line hover:border-gold"}`}>
+                        <span className={`grid h-9 w-9 shrink-0 place-items-center rounded-lg text-lg ${on ? "bg-success text-white" : "bg-paper"}`}>{on ? "✓" : h.emoji}</span>
+                        <span className={`min-w-0 flex-1 truncate text-sm font-semibold ${on ? "text-success" : "text-heading"}`}>{h.name}</span>
+                      </PendingButton>
+                    </form>
+                  );
+                })}
               </div>
-              <div>
-                <p className="text-3xl font-bold">{stats.streak} hari</p>
-                <p className="text-sm text-white/70">Rangkaian konsisten</p>
-              </div>
-            </div>
-            {(() => {
-              const MILESTONES = [3, 7, 14, 21, 30];
-              const next = MILESTONES.find((m) => m > stats.streak);
-              const prev = [...MILESTONES].reverse().find((m) => m <= stats.streak) ?? 0;
-              return (
-                <>
-                  <div className="mt-5 flex gap-1.5">
-                    {MILESTONES.map((m) => (
-                      <span key={m} className={`flex-1 rounded-full py-1 text-center text-[11px] font-bold ${stats.streak >= m ? "bg-gold text-brand-deep" : "bg-white/10 text-white/50"}`}>
-                        {m}
-                      </span>
-                    ))}
-                  </div>
-                  <p className="mt-4 text-xs leading-relaxed text-white/75">
-                    {prev > 0 && <span className="font-semibold text-gold">Hebat, {prev} hari berturut-turut tercapai! </span>}
-                    {next
-                      ? `${next - stats.streak} hari lagi menuju ${next} hari. Selesaikan minimal satu aksi hari ini agar rangkaian tidak putus.`
-                      : "Anda sudah 30 hari konsisten. Kebiasaan ini sudah menjadi bagian dari diri Anda."}
-                  </p>
-                </>
-              );
-            })()}
+            )}
           </section>
+
+          <section className="card p-5 lg:p-6">
+            <div className="flex items-center justify-between">
+              <h2 className="flex items-center gap-2 font-bold text-heading">
+                <CalendarCheck2 className="h-5 w-5 text-brand" /> Rencana aksi hari ini
+              </h2>
+              <span className="text-xs font-medium text-muted">
+                {done}/{todays.length} selesai
+              </span>
+            </div>
+            {todays.length > 0 && (
+              <div className="mt-3">
+                <ProgressBar value={pct} tone="brand" />
+              </div>
+            )}
+            {groups.length === 0 && <p className="mt-3 text-sm text-muted">Belum ada rencana untuk hari ini. Tulis 1 sampai 3 hal terpenting dulu.</p>}
+            {groups.map((g) => (
+              <div key={g.key || "lain"} className="mt-4">
+                <p className="flex flex-wrap items-baseline gap-x-2 text-xs font-bold tracking-wide text-heading uppercase">
+                  {g.name} {g.dream && <span className="font-medium tracking-normal text-muted normal-case">✨ {g.dream}</span>}
+                </p>
+                <ul className="divide-y divide-line">
+                  {g.items.map((a) => (
+                    <Row key={a.id} a={a} mode="today" />
+                  ))}
+                </ul>
+              </div>
+            ))}
+            <AddPlanForm date={today} works={works.map((w) => ({ id: w.id, title: w.name }))} dreams={dreams.map((d) => ({ id: d.id, title: d.title }))} left={left} />
+          </section>
+
+          {overdue.length > 0 && (
+            <section className="card border-gold/40 p-5 lg:p-6">
+              <h2 className="font-bold text-heading">Tertunda dari hari sebelumnya ({overdue.length})</h2>
+              <p className="mt-0.5 text-xs text-muted">Kerjakan hari ini, atau tutup kalau memang sudah tidak perlu. Menutup bukan gagal.</p>
+              <ul className="mt-1 divide-y divide-line">
+                {overdue.map((a) => (
+                  <Row key={a.id} a={a} mode="overdue" />
+                ))}
+              </ul>
+            </section>
+          )}
+
+          {later.length > 0 && (
+            <section className="card p-5">
+              <h2 className="font-bold text-heading">Rencana besok ({later.length})</h2>
+              <ul className="mt-1 divide-y divide-line">
+                {later.map((a) => (
+                  <Row key={a.id} a={a} mode="later" />
+                ))}
+              </ul>
+            </section>
+          )}
+        </div>
+
+        <aside className="space-y-5 lg:col-span-2">
+          <AssistantPanel stats={stats} streak={progress.streak} />
           <section className="card p-5">
-            <h2 className="mb-4 font-bold text-heading">7 hari terakhir</h2>
-            <WeekBars days={stats.last7} />
+            <h2 className="font-bold text-heading">Tutup hari dengan baik</h2>
+            <div className="mt-3 space-y-2">
+              <Link href="/kebiasaan" className="flex items-center gap-3 rounded-xl border border-line p-3 text-sm font-semibold text-heading hover:border-gold">
+                <Heart className="h-5 w-5 text-brand" /> Tulis 3 hal yang disyukuri <ArrowRight className="ml-auto h-4 w-4 text-muted" />
+              </Link>
+              <Link href="/evaluasi#mingguan" className="flex items-center gap-3 rounded-xl border border-line p-3 text-sm font-semibold text-heading hover:border-gold">
+                <Trophy className="h-5 w-5 text-gold" /> Evaluasi mingguan (2 menit) <ArrowRight className="ml-auto h-4 w-4 text-muted" />
+              </Link>
+            </div>
           </section>
         </aside>
       </div>

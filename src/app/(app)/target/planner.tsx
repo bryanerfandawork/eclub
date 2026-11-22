@@ -187,7 +187,7 @@ export function TargetPlanner({ dreams, products, profitPerDay }: { dreams: Drea
               Jadikan aksi harian: <b>Jual {best.units} {best.name || "produk"}</b>
             </p>
             {state?.message ? (
-              <p className="mt-2 text-sm font-semibold text-success">✓ Ditambahkan ke Daily Action hari ini.</p>
+              <p className="mt-2 text-sm font-semibold text-success">✓ Ditambahkan ke Laporan Harian hari ini.</p>
             ) : (
               <SubmitButton className="btn-primary mt-3 w-full">Tambahkan ke aksi hari ini</SubmitButton>
             )}

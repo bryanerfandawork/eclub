@@ -26,3 +26,15 @@ export async function adminProcessPayout(formData: FormData) {
   if (!error) await notifyPayout(id, "processed");
   revalidatePath("/admin/affiliate");
 }
+
+/** Ganti kode affiliate/kupon sendiri: sekali saja, dan hanya bila kode lama belum pernah dipakai. */
+export async function changeRefCode(_: FormState, formData: FormData): Promise<FormState> {
+  if (isDemoMode) return { error: "Mode demo: kode belum bisa diganti." };
+  const code = String(formData.get("code") ?? "").trim().toUpperCase();
+  if (!/^[A-Z0-9]{4,15}$/.test(code)) return { error: "Kode 4-15 karakter, hanya huruf dan angka (tanpa spasi)." };
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("set_my_ref_code", { p_code: code });
+  if (error) return { error: error.message.includes("function") ? "Fitur ini aktif setelah SQL 021 dijalankan." : error.message };
+  revalidatePath("/affiliate");
+  return { message: `Kode berhasil diganti menjadi ${code} ✓` };
+}

@@ -5,7 +5,9 @@ import { PageHeader } from "@/components/ui";
 import { getAffiliate, PRODUCT_LABEL } from "@/lib/affiliate";
 import { rupiah, tanggal } from "@/lib/format";
 import { getAccount, getSettings, isAdmin } from "@/lib/plans";
-import { LinkPicker, PayoutForm, ShareLink, type ShareOption } from "./client";
+import { ChangeCodeForm, LinkPicker, PayoutForm, ShareLink, type ShareOption } from "./client";
+import { isDemoMode } from "@/lib/supabase/config";
+import { createClient } from "@/lib/supabase/server";
 import { listCourses } from "@/lib/lms";
 import { listArticles } from "@/lib/articles";
 
@@ -26,6 +28,14 @@ export default async function AffiliatePage() {
   const eligible = acc.plan === "plus" || isAdmin(acc.role);
   const yearly = Number(s.plus_price_yearly) || 0;
   const aff = await getAffiliate();
+  // Ganti kode sekali: hanya bila belum pernah diganti dan belum ada yang memakai kode lama.
+  let canChange = false;
+  if (eligible && aff && !isDemoMode && aff.referrals === 0 && aff.commissions.length === 0) {
+    const supabase = await createClient();
+    const { data: u } = await supabase.auth.getUser();
+    const { data, error } = await supabase.from("profiles").select("ref_code_changed").eq("id", u.user?.id ?? "").maybeSingle();
+    canChange = !error && data?.ref_code_changed === false;
+  }
   const [courses, articles] = eligible ? await Promise.all([listCourses(), listArticles().catch(() => [])]) : [[], []];
   const h = await headers();
   const origin = process.env.NEXT_PUBLIC_SITE_URL ?? `${h.get("x-forwarded-proto") ?? "https"}://${h.get("host")}`;
@@ -97,6 +107,7 @@ export default async function AffiliatePage() {
               <p className="mt-1 text-sm text-muted">
                 Teman hemat <b className="text-heading">{disc}%</b> saat memasukkan kode ini di halaman pembayaran, dan Anda tetap mendapat komisi {rate}%. Kupon aktif otomatis selama Anda member Plus. Cocok dibagikan lewat status WA atau live jualan.
               </p>
+              {canChange && <ChangeCodeForm current={aff.code} />}
             </section>
             <section className="card p-5">
               <h3 className="font-bold text-heading">🔗 Link siap bagikan</h3>

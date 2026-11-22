@@ -38,8 +38,8 @@ export type NavItem = {
 
 export const mobileNav: NavItem[] = [
   { label: "Home", href: "/dashboard", icon: Home },
+  { label: "Hari ini", href: "/today", icon: CalendarCheck2 },
   { label: "Goals", href: "/goals", icon: Target },
-  { label: "Keuangan", href: "/keuangan", icon: Wallet },
   { label: "Learn", href: "/learn", icon: BookOpen },
   { label: "Profile", href: "/profile", icon: User },
 ];
@@ -64,7 +64,7 @@ export const sidebarNav: { section: string; items: NavItem[] }[] = [
     items: [
       { label: "Cek Posisi", href: "/posisi", icon: Compass },
       { label: "Peta Income", href: "/income", icon: TrendingUp },
-      { label: "Keuangan", href: "/keuangan", icon: Coins },
+      { label: "Keuangan", href: "/keuangan", icon: Wallet },
     ],
   },
   {
@@ -82,15 +82,17 @@ export const sidebarNav: { section: string; items: NavItem[] }[] = [
   {
     section: "4 · Action Plan",
     items: [
+      { label: "Rencana Income", href: "/rencana", icon: Coins },
       { label: "Target Harian", href: "/target", icon: Crosshair },
-      { label: "Daily Action", href: "/today", icon: CalendarCheck2 },
-      { label: "Kebiasaan", href: "/kebiasaan", icon: Sprout },
+      { label: "Rutinitas Harian", href: "/rutinitas", icon: Sprout },
     ],
   },
   {
     section: "5 · Evaluasi",
     items: [
-      { label: "Bersyukur", href: "/kebiasaan#syukur", icon: HandHeart },
+      { label: "Laporan Harian", href: "/today", icon: CalendarCheck2 },
+      { label: "Jurnal Syukur", href: "/kebiasaan", icon: HandHeart },
+      { label: "Evaluasi Berkala", href: "/evaluasi", icon: Route },
       { label: "My Progress", href: "/progress", icon: BarChart3 },
     ],
   },

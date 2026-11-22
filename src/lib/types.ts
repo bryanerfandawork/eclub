@@ -76,7 +76,15 @@ export type DailyAction = {
   done: boolean;
   dream_id: string | null;
   created_at: string;
+  /** Kolom SQL 021 (opsional agar tetap jalan sebelum SQL dijalankan). */
+  work_id?: string | null;
+  status?: "open" | "done" | "closed";
+  origin_date?: string | null;
+  followups?: number;
 };
+
+export type Work = { id: string; name: string; dream_id: string | null };
+export type HabitItem = { id: string; name: string; emoji: string; dream_id?: string | null };
 
 export type LifePlan = {
   core_values: string[];

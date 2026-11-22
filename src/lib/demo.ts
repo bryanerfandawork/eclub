@@ -1,4 +1,4 @@
-import type { DailyAction, Dream, DreamAction, LifePlan, Profile, WheelAssessment } from "./types";
+import type { DailyAction, Dream, DreamAction, HabitItem, LifePlan, Profile, WheelAssessment, Work } from "./types";
 
 export const demoProfile: Profile = {
   id: "demo",
@@ -62,12 +62,25 @@ export const demoWheel: WheelAssessment[] = [
   },
 ];
 
+export const demoWorks: Work[] = [
+  { id: "w1", name: "Usaha kedai kopi", dream_id: "demo-1" },
+  { id: "w2", name: "Latihan & kesehatan", dream_id: null },
+];
+export const demoHabits: HabitItem[] = [
+  { id: "h1", name: "Ibadah tepat waktu", emoji: "🙏", dream_id: null },
+  { id: "h2", name: "Catat keuangan", emoji: "💰", dream_id: "demo-2" },
+  { id: "h3", name: "Follow-up 5 pelanggan", emoji: "📞", dream_id: "demo-1" },
+];
+
+const da = (id: string, title: string, o: number, done: boolean, work_id: string | null, dream_id: string | null, origin = o, followups = 0): DailyAction => ({
+  id, title, action_date: dayIso(o), done, dream_id, created_at: "", work_id, status: done ? "done" : "open", origin_date: dayIso(origin), followups,
+});
 export const demoDaily: DailyAction[] = [
-  { id: "d1", title: "Olahraga pagi 20 menit", action_date: dayIso(0), done: true, dream_id: null, created_at: "" },
-  { id: "d2", title: "Hubungi 3 calon pemasok", action_date: dayIso(0), done: false, dream_id: "demo-1", created_at: "" },
-  { id: "d3", title: "Baca 10 halaman buku", action_date: dayIso(0), done: false, dream_id: null, created_at: "" },
-  ...[-1, -2, -3, -5, -6].map((o, i) => ({ id: `p${i}`, title: "Catat pengeluaran harian", action_date: dayIso(o), done: true, dream_id: null, created_at: "" })),
-  { id: "p9", title: "Review target mingguan", action_date: dayIso(-4), done: false, dream_id: null, created_at: "" },
+  da("d1", "Olahraga pagi 20 menit", 0, true, "w2", null),
+  da("d2", "Hubungi 3 calon pemasok", 0, false, "w1", "demo-1", -3, 3),
+  da("d3", "Foto menu kopi baru untuk Instagram", 0, false, "w1", "demo-1", -1, 1),
+  ...[-1, -2, -3, -5, -6].map((o, i) => da(`p${i}`, "Rekap penjualan harian", o, true, "w1", "demo-1")),
+  da("p9", "Survei harga kemasan", -2, false, "w1", "demo-1"),
 ];
 
 export const demoLifePlan: LifePlan = {

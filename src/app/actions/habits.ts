@@ -9,6 +9,10 @@ import type { FormState } from "./auth";
 
 const DEMO = { error: "Mode demo: data belum bisa disimpan." };
 
+function revalidateHabits() {
+  for (const p of ["/kebiasaan", "/rutinitas", "/today", "/dashboard"]) revalidatePath(p);
+}
+
 export async function addHabit(_: FormState, formData: FormData): Promise<FormState> {
   if (isDemoMode) return DEMO;
   const name = String(formData.get("name") ?? "").trim().slice(0, 60);
@@ -20,9 +24,11 @@ export async function addHabit(_: FormState, formData: FormData): Promise<FormSt
     const { count } = await supabase.from("habits").select("id", { count: "exact", head: true }).eq("archived", false);
     if ((count ?? 0) >= limit) return { error: `Paket gratis bisa memantau ${limit} kebiasaan. Upgrade ke Plus untuk tanpa batas, atau arsipkan salah satu.` };
   }
-  const { error } = await supabase.from("habits").insert({ name, emoji });
-  if (error) return { error: "Gagal menyimpan. Pastikan SQL tahap 13 sudah dijalankan." };
-  revalidatePath("/kebiasaan");
+  const dream_id = String(formData.get("dream_id") ?? "") || null;
+  let { error } = await supabase.from("habits").insert({ name, emoji, dream_id });
+  if (error) ({ error } = await supabase.from("habits").insert({ name, emoji })); // sebelum SQL 021
+  if (error) return { error: "Gagal menyimpan. Coba lagi sebentar." };
+  revalidateHabits();
   return { message: "Kebiasaan ditambahkan ✓" };
 }
 
@@ -34,15 +40,14 @@ export async function toggleHabit(formData: FormData) {
   const supabase = await createClient();
   if (done) await supabase.from("habit_logs").delete().eq("habit_id", id).eq("log_date", date);
   else await supabase.from("habit_logs").insert({ habit_id: id, log_date: date });
-  revalidatePath("/kebiasaan");
-  revalidatePath("/dashboard");
+  revalidateHabits();
 }
 
 export async function archiveHabit(formData: FormData) {
   if (isDemoMode) return;
   const supabase = await createClient();
   await supabase.from("habits").update({ archived: true }).eq("id", String(formData.get("id")));
-  revalidatePath("/kebiasaan");
+  revalidateHabits();
 }
 
 export async function saveGratitude(_: FormState, formData: FormData): Promise<FormState> {

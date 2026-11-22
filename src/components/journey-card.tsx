@@ -26,7 +26,7 @@ export function JourneyCard({ j }: { j: Journey }) {
               </span>
               <span className={`mt-1.5 block text-[10px] leading-tight font-semibold lg:text-xs ${on ? "" : "text-white/85"}`}>{s.title}</span>
               <span className={`mt-0.5 hidden text-[10px] lg:block ${on ? "text-muted" : "text-white/55"}`}>
-                {s.done}/{s.total}
+                {s.total ? `${s.done}/${s.total}` : "Ritme"}
               </span>
             </Link>
           );
@@ -40,7 +40,7 @@ export function JourneyCard({ j }: { j: Journey }) {
           <p className="text-lg leading-snug font-bold">
             Langkah {cur.no}: {cur.title}
           </p>
-          <p className="mt-0.5 text-sm text-white/75">{j.current < 5 ? cur.why : "Langkah 1 sampai 4 sudah lengkap. Lihat rekap rekomendasi Anda, lalu jaga ritme dengan evaluasi mingguan."}</p>
+          <p className="mt-0.5 text-sm text-white/75">{j.current < 5 ? cur.why : "Langkah 1 sampai 4 sudah lengkap. Sekarang jaga ritmenya: laporan harian setiap hari, evaluasi tiap minggu, progres tiap bulan."}</p>
         </div>
         {j.current < 5 && j.next ? (
           <Link href={j.next.href} className="btn-gold shrink-0 py-3">
@@ -48,11 +48,11 @@ export function JourneyCard({ j }: { j: Journey }) {
           </Link>
         ) : (
           <div className="flex shrink-0 flex-col gap-2 sm:items-end">
-            <Link href="/rekap" className="btn-gold py-3">
-              Lihat rekap & rekomendasi <ArrowRight className="h-4 w-4" />
+            <Link href="/today" className="btn-gold py-3">
+              Isi laporan hari ini <ArrowRight className="h-4 w-4" />
             </Link>
-            <Link href="/evaluasi" className="text-center text-xs font-semibold text-white/80 hover:text-white">
-              Evaluasi minggu ini ›
+            <Link href="/rekap" className="text-center text-xs font-semibold text-white/80 hover:text-white">
+              Lihat rekap & rekomendasi ›
             </Link>
           </div>
         )}

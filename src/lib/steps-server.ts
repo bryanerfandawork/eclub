@@ -28,19 +28,24 @@ export async function getDoneMap(): Promise<Record<string, boolean>> {
   ]);
   let finance = false;
   let habit = false;
+  let work = false;
   let syukur = false;
   if (isDemoMode) {
     finance = true;
     habit = true;
+    work = true;
   } else {
     const supabase = await createClient();
-    const [f, h, g] = await Promise.all([
+    const [f, h, g, w] = await Promise.all([
       supabase.from("fin_transactions").select("id", { count: "exact", head: true }).gte("tx_date", todayJakarta(-30)),
       supabase.from("habits").select("id", { count: "exact", head: true }).eq("archived", false),
       supabase.from("gratitude_entries").select("id", { count: "exact", head: true }).gte("entry_date", todayJakarta(-6)),
+      supabase.from("works").select("id", { count: "exact", head: true }).eq("archived", false),
     ]);
     finance = (f.count ?? 0) > 0;
     habit = (h.count ?? 0) > 0;
+    // Sebelum SQL 021 dijalankan tabel works belum ada: cukup kebiasaan saja.
+    work = w.error ? habit : (w.count ?? 0) > 0;
     syukur = (g.count ?? 0) > 0;
   }
   const chips = income ? income.interests.length + income.hobbies.length + income.talents.length + income.passions.length : 0;
@@ -62,6 +67,9 @@ export async function getDoneMap(): Promise<Record<string, boolean>> {
     target: false,
     rekap: false,
     review: !!review[0] && Date.now() - new Date(review[0].created_at).getTime() < 7 * 86_400_000,
+    rutinitas: work && habit,
+    ritme: false,
+    report: stats.last7.some((d) => d.done > 0),
     daily: stats.dailyTotal30 > 0,
     habit,
     streak: stats.last7.filter((d) => d.done > 0).length >= 3,
@@ -78,7 +86,7 @@ export async function getJourney(): Promise<Journey> {
     const items = s.items.map((i) => ({ ...i, done: !!done[i.key] }));
     const req = items.filter((i) => !i.optional);
     const d = req.filter((i) => i.done).length;
-    return { ...s, items, done: d, total: req.length, complete: d === req.length };
+    return { ...s, items, done: d, total: req.length, complete: req.length > 0 && d === req.length };
   });
   let next: Journey["next"] = null;
   for (const s of steps) {

@@ -2,7 +2,7 @@
 
 import { useActionState, useState } from "react";
 import { Check, Copy } from "lucide-react";
-import { requestPayout } from "@/app/actions/affiliate";
+import { changeRefCode, requestPayout } from "@/app/actions/affiliate";
 import { SubmitButton } from "@/components/submit-button";
 import { FormMessage } from "@/components/ui";
 import type { FormState } from "@/app/actions/auth";
@@ -107,5 +107,29 @@ export function LinkPicker({ options }: { options: ShareOption[] }) {
         </a>
       </div>
     </div>
+  );
+}
+
+export function ChangeCodeForm({ current }: { current: string }) {
+  const [state, action] = useActionState<FormState, FormData>(changeRefCode, {});
+  const [open, setOpen] = useState(false);
+  if (state?.message) return <p className="mt-3 rounded-xl bg-success/10 px-3 py-2 text-sm font-medium text-success">{state?.message}</p>;
+  if (!open)
+    return (
+      <button type="button" onClick={() => setOpen(true)} className="mt-3 text-sm font-semibold text-brand hover:underline">
+        ✏️ Ganti kode (1 kali)
+      </button>
+    );
+  return (
+    <form action={action} className="mt-3 space-y-2 rounded-xl bg-paper p-3">
+      <p className="text-xs text-muted">Pilih kode yang mudah diingat, misal nama usaha Anda. Hanya bisa diganti satu kali dan selama kode lama belum pernah dipakai teman.</p>
+      <div className="flex gap-2">
+        <input name="code" className="input uppercase" placeholder={current} maxLength={15} minLength={4} pattern="[A-Za-z0-9]{4,15}" required />
+        <SubmitButton className="btn-primary shrink-0" pendingText="…">
+          Simpan
+        </SubmitButton>
+      </div>
+      <FormMessage state={state} />
+    </form>
   );
 }

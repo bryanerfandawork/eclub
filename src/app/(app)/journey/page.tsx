@@ -27,7 +27,7 @@ export default async function JourneyPage() {
               <div className="flex flex-wrap items-baseline justify-between gap-2">
                 <h2 className="text-lg font-bold text-heading">{s.title}</h2>
                 <span className="text-xs font-semibold text-muted">
-                  {s.done}/{s.total} selesai{s.no === 5 ? " minggu ini" : ""}
+                  {s.total ? `${s.done}/${s.total} selesai` : "Ritme harian, mingguan, bulanan"}
                 </span>
               </div>
               <p className="text-sm font-medium text-brand">{s.q}</p>

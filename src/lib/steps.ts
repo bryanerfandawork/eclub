@@ -50,12 +50,11 @@ export const STEPS: Step[] = [
     key: "aksi",
     title: "Action Plan",
     q: "Apa langkah nyata berikutnya?",
-    why: "Mimpi dipecah menjadi rencana income, target harian, dan kebiasaan kecil yang dikerjakan setiap hari.",
+    why: "Mimpi dipecah menjadi rencana income, pekerjaan rutin, dan kebiasaan kecil. Semuanya jadi pengingat dan laporan harian Anda.",
     items: [
       { key: "plan", label: "Tentukan rencana income", href: "/rencana" },
       { key: "target", label: "Pecah mimpi jadi target harian", href: "/target", optional: true },
-      { key: "daily", label: "Rencanakan aksi harian", href: "/today" },
-      { key: "habit", label: "Bangun 1 kebiasaan baik", href: "/kebiasaan" },
+      { key: "rutinitas", label: "Pekerjaan & kebiasaan harian", href: "/rutinitas" },
       { key: "rekap", label: "Rekap & rekomendasi untuk Anda", href: "/rekap", optional: true },
     ],
   },
@@ -64,12 +63,13 @@ export const STEPS: Step[] = [
     key: "evaluasi",
     title: "Evaluasi Berkala",
     q: "Apakah Anda makin dekat?",
-    why: "Evaluasi rutin menjaga semangat dan membetulkan arah sebelum terlambat. Setelah evaluasi, perbarui langkah 2 sampai 4.",
+    why: "Bukan isian sekali jalan, melainkan ritme: laporan harian, evaluasi mingguan, dan progres bulanan. Setelah evaluasi, perbarui langkah 2 sampai 4.",
     items: [
-      { key: "review", label: "Evaluasi mingguan (2 menit)", href: "/evaluasi" },
-      { key: "streak", label: "Centang aksi harian 3 hari minggu ini", href: "/today" },
-      { key: "syukur", label: "Tulis syukur minggu ini", href: "/kebiasaan#syukur" },
-      { key: "progress", label: "Lihat progres bulanan", href: "/progress", optional: true },
+      { key: "ritme", label: "Kenali ritme evaluasi", href: "/evaluasi", optional: true },
+      { key: "report", label: "Laporan harian (setiap hari)", href: "/today", optional: true },
+      { key: "syukur", label: "Jurnal syukur", href: "/kebiasaan", optional: true },
+      { key: "review", label: "Evaluasi mingguan (2 menit)", href: "/evaluasi#mingguan", optional: true },
+      { key: "progress", label: "Progres bulanan", href: "/progress", optional: true },
     ],
   },
 ];
@@ -106,7 +106,7 @@ export function nextFrom(path: string, done: Record<string, boolean>): NextInfo 
   const t = before ?? after; // yang terlewat diselesaikan dulu, baru maju
   const label = (x: (typeof FLOW)[number]) => (STEPS[x.step - 1].items[0].key === x.key || !here.some(({ x: h }) => h.step === x.step) ? `Langkah ${x.step} · ${x.label}` : x.label);
   if (t) return { blocked, target: { label: label(t), href: t.href } };
-  if (path === "/rekap") return { blocked, target: { label: "Langkah 5 · Evaluasi mingguan", href: "/evaluasi" } };
-  if (path === "/evaluasi") return { blocked, target: { label: "Kembali ke Dashboard", href: "/dashboard" } };
+  if (path === "/rekap") return { blocked, target: { label: "Langkah 5 · Ritme evaluasi", href: "/evaluasi" } };
+  if (path === "/evaluasi") return { blocked, target: { label: "Mulai laporan harian", href: "/today" } };
   return { blocked, target: { label: "Rekap & rekomendasi untuk Anda", href: "/rekap" } };
 }

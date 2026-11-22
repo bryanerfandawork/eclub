@@ -97,7 +97,7 @@ export async function getDailyRange(from: string, to: string): Promise<DailyActi
   const supabase = await createClient();
   const { data } = await supabase
     .from("daily_actions")
-    .select("id, title, action_date, done, dream_id, created_at")
+    .select("*")
     .gte("action_date", from)
     .lte("action_date", to)
     .order("action_date", { ascending: false })

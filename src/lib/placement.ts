@@ -93,7 +93,7 @@ export const PLACEMENT_COPY: Record<Placement, { title: string; why: string; nex
   systemation: {
     title: "Fase Sustain · Systemation (dari active ke massive income)",
     why: "Penghasilan aktif sudah ada. Saatnya merapikan keuangan, menyisihkan tabungan untuk mimpi, dan mulai membangun massive income (side hustle atau usaha) yang tidak bergantung pada satu sumber.",
-    next: "Isi Peta Income untuk melihat selisih menuju mimpi, ikuti kelas Systemation, dan jaga konsistensi lewat Daily Action.",
+    next: "Isi Peta Income untuk melihat selisih menuju mimpi, ikuti kelas Systemation, dan jaga konsistensi lewat Laporan Harian.",
   },
   transformation: {
     title: "Fase Scale Up · Transformation (melipatgandakan massive income)",

@@ -318,7 +318,7 @@ export const MOTIVATIONS = [
   "Hari ini mulai dengan pertanyaan: apa yang paling berdampak untuk usaha saya?",
   "Setiap hari adalah kesempatan kedua.",
   "Tetap semangat. Mimpi Anda layak diperjuangkan setiap hari dalam setahun.",
-  "Hari ini cek Daily Action Anda. Satu centang lagi, satu langkah lagi.",
+  "Hari ini cek Laporan Harian Anda. Satu centang lagi, satu langkah lagi.",
   "Pemula yang tekun akan menyalip ahli yang malas.",
   "Mimpi yang dibagikan ke orang yang tepat akan mendapat dukungan yang tepat.",
   "Hari ini rapikan katalog produk Anda. Kesan pertama itu penting.",
