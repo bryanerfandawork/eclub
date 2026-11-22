@@ -30,7 +30,7 @@ export function StepBar() {
           </Link>
         )}
       </div>
-      <div className="no-scrollbar mt-2.5 -mb-0.5 flex gap-1.5 overflow-x-auto">
+      <div className="mt-2.5 flex flex-wrap gap-1.5">
         {step.items.map((i) => {
           const on = !i.href.includes("#") && path === i.href;
           return (
@@ -39,12 +39,29 @@ export function StepBar() {
             </Link>
           );
         })}
-        {next && (
-          <Link href={next.items[0].href} className="shrink-0 rounded-full bg-gold-soft px-2.5 py-1 text-[11px] font-semibold text-brand sm:hidden">
-            Lanjut: {next.title} →
-          </Link>
-        )}
       </div>
+    </div>
+  );
+}
+
+/** Tombol "Lanjut" lebar penuh di bawah setiap fitur: selalu terlihat, tanpa perlu digeser. */
+export function StepNext() {
+  const path = usePathname();
+  const step = stepOfPath(path);
+  if (!step) return null;
+  const next = STEPS[step.no] ?? null;
+  const idx = step.items.findIndex((i) => !i.href.includes("#") && i.href === path);
+  const sibling = idx >= 0 ? step.items.slice(idx + 1).find((i) => i.href.split("#")[0] !== path) : null;
+  const target = sibling ?? (next ? { label: `Langkah ${next.no}: ${next.title}`, href: next.items[0].href } : { label: "Lihat Perjalanan 5 Langkah", href: "/journey" });
+  return (
+    <div className="mt-10 print:hidden">
+      <p className="mb-2 text-center text-xs text-muted">Sudah selesai di sini?</p>
+      <Link href={target.href} className="btn-primary w-full py-4 text-base">
+        Lanjut: {target.label} <ArrowRight className="h-5 w-5" />
+      </Link>
+      <Link href="/journey" className="mt-2 block text-center text-xs font-medium text-muted hover:text-brand">
+        Lihat semua langkah
+      </Link>
     </div>
   );
 }
