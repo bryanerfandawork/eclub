@@ -42,6 +42,11 @@ export default async function KantongPage() {
                       <span className="min-w-0 flex-1">
                         <span className="block truncate font-semibold text-heading">{p.name}</span>
                         <span className="block text-xs text-muted">{providerOf(p.provider)?.label ?? TYPE_INFO[p.type].label}</span>
+                        {(p.earmarks ?? []).map((e) => (
+                          <span key={e.dream_id} className="block truncate text-[11px] font-semibold text-gold">
+                            🐷 {rupiah(e.amount)} untuk {e.title}
+                          </span>
+                        ))}
                       </span>
                       <span className={`text-sm font-bold ${p.balance < 0 ? "text-danger" : "text-heading"}`}>{rupiah(p.balance)}</span>
                       <EditPocket p={p} />

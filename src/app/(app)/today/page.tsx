@@ -248,7 +248,7 @@ export default async function TodayPage() {
           </section>
         </aside>
       </div>
-      <QuickAdd defaultWallet="personal" pockets={fin.pockets} plus={plus} fab={false} />
+      <QuickAdd defaultWallet="personal" pockets={fin.pockets} plus={plus} fab={false} dreams={dreams.map((d) => ({ id: d.id, title: d.title }))} />
     </>
   );
 }

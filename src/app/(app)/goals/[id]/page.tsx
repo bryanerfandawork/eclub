@@ -8,6 +8,7 @@ import { dreamProgress, monthsUntil, rupiah, tanggal } from "@/lib/format";
 import { AddActionForm, AddSavingForm, SetTargetForm } from "./client";
 import { MoreDreams } from "@/components/more-dreams";
 import { getLimit } from "@/lib/plans";
+import { getPockets } from "@/lib/finance-server";
 
 export default async function DreamDetailPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ pertama?: string }> }) {
   const { id } = await params;
@@ -22,6 +23,7 @@ export default async function DreamDetailPage({ params, searchParams }: { params
   const remaining = Math.max(0, (d.target_amount ?? 0) - d.saved_amount);
   const perMonth = d.target_amount && months ? Math.ceil(remaining / months) : null;
   const doneCount = actions.filter((a) => a.done).length;
+  const kept = (await getPockets()).flatMap((pk) => (pk.earmarks ?? []).filter((e) => e.dream_id === d.id).map((e) => ({ name: pk.name, amount: e.amount })));
 
   return (
     <>
@@ -46,6 +48,11 @@ export default async function DreamDetailPage({ params, searchParams }: { params
             </div>
           </div>
         ) : null}
+        {kept.length > 0 && (
+          <p className="mt-3 text-sm text-white/80">
+            🐷 Disimpan di: {kept.map((k) => `${k.name} ${rupiah(k.amount)}`).join(" · ")}
+          </p>
+        )}
         <div className="mt-6 flex flex-wrap gap-x-6 gap-y-2 text-sm text-white/80">
           {d.target_date && (
             <span className="flex items-center gap-1.5">

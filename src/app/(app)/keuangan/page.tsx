@@ -8,6 +8,8 @@ import { CatatButton, DeleteTx, QuickAdd } from "@/components/finance/quick-add"
 import { PageHeader } from "@/components/ui";
 import { catInfo, effect, WALLET_LABEL, type Tx, type Wallet } from "@/lib/finance";
 import { getFinance, getMonthly, monthSummary } from "@/lib/finance-server";
+import { getDreams } from "@/lib/data";
+import { earmarked } from "@/lib/pockets";
 import { rupiah, todayJakarta } from "@/lib/format";
 
 export const metadata = { title: "Keuangan" };
@@ -31,7 +33,7 @@ export default async function KeuanganPage({ searchParams }: { searchParams: Pro
   const w: Wallet = sp.w === "business" ? "business" : "personal";
   const thisMonth = todayJakarta().slice(0, 7);
   const month = /^\d{4}-\d{2}$/.test(sp.m ?? "") && sp.m! <= thisMonth ? sp.m! : thisMonth;
-  const [{ balances, txs, hasAny, pockets }, acc] = await Promise.all([getFinance(month), getAccount()]);
+  const [{ balances, txs, hasAny, pockets }, acc, dreams] = await Promise.all([getFinance(month), getAccount(), getDreams()]);
   const plus = acc.plan === "plus" || isAdmin(acc.role);
   const monthly = plus ? await getMonthly(w) : [];
   const maxM = Math.max(1, ...monthly.flatMap((x) => [x.income, x.expense]));
@@ -91,6 +93,7 @@ export default async function KeuanganPage({ searchParams }: { searchParams: Pro
                 <span className="min-w-0">
                   <span className="block truncate text-xs font-semibold text-heading">{p.name}</span>
                   <span className={`block text-sm font-bold ${p.balance < 0 ? "text-danger" : "text-heading"}`}>{rupiah(p.balance)}</span>
+                  {earmarked(p) > 0 && <span className="block text-[11px] font-semibold text-gold">🐷 {compactRupiah(earmarked(p))} untuk mimpi</span>}
                 </span>
               </div>
             ))}
@@ -326,7 +329,7 @@ export default async function KeuanganPage({ searchParams }: { searchParams: Pro
         <ShieldCheck className="h-3.5 w-3.5" /> Catatan keuangan hanya bisa dilihat oleh Anda.
       </p>
       <div className="h-16 lg:hidden" />
-      <QuickAdd defaultWallet={w} pockets={pockets} plus={plus} />
+      <QuickAdd defaultWallet={w} pockets={pockets} plus={plus} dreams={dreams.filter((d) => d.status === "active").map((d) => ({ id: d.id, title: d.title }))} />
     </>
   );
 }
