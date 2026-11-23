@@ -60,7 +60,7 @@ export function StepBar() {
         </p>
       </div>
       <div className="mt-2.5 flex flex-wrap gap-1.5">
-        {step.items.map((i) => {
+        {step.items.filter((i) => !i.hidden || path === base(i.href)).map((i) => {
           const here = path === base(i.href);
           const ok = done?.[i.key];
           return (
@@ -105,7 +105,11 @@ export function StepNext() {
             <Lock className="h-4 w-4" /> Lanjut
           </button>
           <p className="mt-2 text-center text-sm text-muted">
-            Selesaikan dulu <b className="text-heading">{blocked.label}</b> di halaman ini, lalu tombol Lanjut akan aktif.
+            {blocked.key === "rekap" || blocked.key === "ritme" ? (
+              <>Tekan tombol <b className="text-heading">&quot;Saya paham&quot;</b> di atas untuk menandai langkah ini selesai.</>
+            ) : (
+              <>Selesaikan dulu <b className="text-heading">{blocked.label}</b> di halaman ini, lalu tombol Lanjut akan aktif.</>
+            )}
           </p>
         </>
       ) : (

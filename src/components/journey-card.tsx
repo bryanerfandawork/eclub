@@ -40,9 +40,9 @@ export function JourneyCard({ j }: { j: Journey }) {
           <p className="text-lg leading-snug font-bold">
             Langkah {cur.no}: {cur.title}
           </p>
-          <p className="mt-0.5 text-sm text-white/75">{j.current < 5 ? cur.why : "Langkah 1 sampai 4 sudah lengkap. Sekarang jaga ritmenya: laporan harian setiap hari, evaluasi tiap minggu, progres tiap bulan."}</p>
+          <p className="mt-0.5 text-sm text-white/75">{cur.why}</p>
         </div>
-        {j.current < 5 && j.next ? (
+        {j.next ? (
           <Link href={j.next.href} className="btn-gold shrink-0 py-3">
             {j.next.label} <ArrowRight className="h-4 w-4" />
           </Link>
@@ -58,5 +58,21 @@ export function JourneyCard({ j }: { j: Journey }) {
         )}
       </div>
     </section>
+  );
+}
+
+/** Setelah setup selesai: ringkas, di bagian bawah Home. */
+export function JourneyMini() {
+  return (
+    <Link href="/journey" className="card flex items-center gap-3 p-4 hover:border-gold">
+      <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-gold text-heading">
+        <Check className="h-5 w-5" />
+      </span>
+      <span className="min-w-0 flex-1 text-sm">
+        <b className="block text-heading">Perjalanan 5 Langkah selesai</b>
+        <span className="text-muted">Ada yang berubah? Perbarui mimpi, kondisi, potensi, atau rencana Anda kapan saja.</span>
+      </span>
+      <ArrowRight className="h-4 w-4 shrink-0 text-muted" />
+    </Link>
   );
 }

@@ -2,7 +2,10 @@ import Link from "next/link";
 import { ArrowRight, CalendarDays, CalendarRange, RefreshCw, Sun } from "lucide-react";
 import { PageHeader } from "@/components/ui";
 import { getProgressStats } from "@/lib/data";
-import { REVIEW_KEY } from "@/lib/steps-server";
+import { REVIEW_KEY, RITME_KEY } from "@/lib/steps-server";
+import { getAssessmentResults } from "@/lib/data";
+import { ackStep } from "@/app/actions/journey";
+import { PendingButton } from "@/components/pending-button";
 import { isDemoMode } from "@/lib/supabase/config";
 import { createClient } from "@/lib/supabase/server";
 import { todayJakarta } from "@/lib/format";
@@ -15,7 +18,7 @@ const RHYTHM = [
     icon: Sun,
     when: "Setiap hari · 3 menit",
     title: "Laporan harian",
-    body: "Centang kebiasaan, laporkan rencana aksi (selesai, lanjut besok, atau tutup), lalu tulis 3 hal yang disyukuri. Pukul 19.00 kami ingatkan yang belum selesai.",
+    body: "Lapor keuangan hari ini, centang kebiasaan, laporkan rencana aksi (selesai, lanjut besok, atau tutup), lalu tulis 3 hal yang disyukuri. Pukul 19.00 kami ingatkan yang belum selesai.",
     links: [["Buka laporan harian", "/today"], ["Jurnal syukur", "/kebiasaan"]],
   },
   {
@@ -35,7 +38,8 @@ const RHYTHM = [
 ];
 
 export default async function EvaluasiPage() {
-  const stats = await getProgressStats();
+  const [stats, ritme] = await Promise.all([getProgressStats(), getAssessmentResults(RITME_KEY, 1)]);
+  const ready = ritme.length > 0;
   let syukur = 0;
   let habitDays = 0;
   let reviews: { id: string; answers: { win?: string; focus?: string }; created_at: string }[] = [];
@@ -62,7 +66,7 @@ export default async function EvaluasiPage() {
     <>
       <PageHeader
         eyebrow="Langkah 5 · Evaluasi Berkala"
-        title="Bukan isian sekali jalan, tapi ritme"
+        title="Evaluasi bukan isian, tapi ritme"
         desc="Langkah 1 sampai 4 adalah peta. Langkah 5 menjaga Anda tetap di jalur: sedikit setiap hari, sejenak setiap minggu, dan tinjau ulang setiap bulan."
       />
       <div className="mb-8 grid gap-4 lg:grid-cols-3">
@@ -90,6 +94,28 @@ export default async function EvaluasiPage() {
           </section>
         ))}
       </div>
+      <section className={`mb-10 rounded-3xl p-6 text-center ${ready ? "border border-success/30 bg-success/5" : "bg-brand text-white shadow-lift"}`}>
+        {ready ? (
+          <>
+            <p className="text-lg font-bold text-success">✓ Anda siap menjalankan ritme ini</p>
+            <p className="mx-auto mt-1 max-w-md text-sm text-muted">Mulai hari ini, cukup buka Laporan Harian setiap hari: lapor keuangan, checklist rencana aksi & kebiasaan, lalu syukur.</p>
+            <Link href="/today" className="btn-primary mt-4 py-3">
+              Buka laporan hari ini <ArrowRight className="h-4 w-4" />
+            </Link>
+          </>
+        ) : (
+          <>
+            <p className="text-lg font-bold">Siap menjalankan ritme ini?</p>
+            <p className="mx-auto mt-1 max-w-md text-sm text-white/75">Dengan menekan tombol di bawah, perjalanan 5 langkah Anda selesai. Selanjutnya Home fokus pada laporan harian Anda.</p>
+            <form action={ackStep} className="mt-4">
+              <input type="hidden" name="step" value="ritme" />
+              <input type="hidden" name="next" value="/dashboard?selesai=1" />
+              <PendingButton className="btn-gold w-full py-3 sm:w-auto">Saya paham & siap rutin mengisi ✓</PendingButton>
+            </form>
+          </>
+        )}
+      </section>
+
       <h2 id="mingguan" className="mb-3 scroll-mt-24 text-xl font-bold text-heading">
         Evaluasi minggu ini
       </h2>

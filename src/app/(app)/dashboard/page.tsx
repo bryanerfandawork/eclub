@@ -4,7 +4,7 @@ import { getAssessmentResults, getDreams, getOpenActions, getProfile, getProgres
 import { compactRupiah, dreamProgress, greeting, rupiah, todayJakarta } from "@/lib/format";
 import { AssistantHome } from "@/components/assistant-home";
 import { getJourney } from "@/lib/steps-server";
-import { JourneyCard } from "@/components/journey-card";
+import { JourneyCard, JourneyMini } from "@/components/journey-card";
 import { PLACEMENT_KEY } from "@/lib/placement";
 import { getDiscResult } from "@/lib/disc/server";
 import { DiscSummary } from "@/components/disc-summary";
@@ -27,7 +27,8 @@ import { TrendingUp } from "lucide-react";
 
 export const metadata = { title: "Dashboard" };
 
-export default async function DashboardPage() {
+export default async function DashboardPage({ searchParams }: { searchParams: Promise<{ selesai?: string }> }) {
+  const justDone = (await searchParams).selesai === "1";
   const today = todayJakarta();
   const [profile, dreams, actions, stats] = await Promise.all([
     getProfile(),
@@ -63,9 +64,15 @@ export default async function DashboardPage() {
         <p className="mt-2 max-w-2xl text-[15px] leading-relaxed text-muted italic">✨ {motivationOfDay(today)}</p>
       </section>
 
-      <JourneyCard j={journey} />
+      {justDone && journey.setupDone && (
+        <section className="animate-rise rounded-2xl border border-gold/50 bg-gold-soft p-4 text-sm text-heading">
+          <b>🎉 Selamat, perjalanan 5 langkah Anda selesai!</b> Mulai sekarang Home fokus pada ritual harian Anda: lapor keuangan, checklist rencana aksi, dan syukur. Cukup 3 menit sehari.
+        </section>
+      )}
 
-      <AssistantHome streak={stats.streak} />
+      {!journey.setupDone && <JourneyCard j={journey} />}
+
+      <AssistantHome streak={stats.streak} hero={journey.setupDone} />
 
       <PushToggle publicKey={vapid} variant="card" />
 
@@ -286,6 +293,8 @@ export default async function DashboardPage() {
           <ArrowRight className="h-5 w-5 shrink-0 text-brand" />
         </Link>
       )}
+
+      {journey.setupDone && <JourneyMini />}
     </div>
   );
 }

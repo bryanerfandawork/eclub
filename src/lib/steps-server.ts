@@ -7,12 +7,14 @@ import { getIncomeProfile } from "./income-server";
 import { PLACEMENT_KEY } from "./placement";
 
 export const REVIEW_KEY = "weekly_review";
+export const REKAP_KEY = "rekap_ack";
+export const RITME_KEY = "ritme_ack";
 import { todayJakarta } from "./format";
 import { STEPS, type Step, type StepItem } from "./steps";
 
 export type JourneyItem = StepItem & { done: boolean };
 export type JourneyStep = Omit<Step, "items"> & { items: JourneyItem[]; done: number; total: number; complete: boolean };
-export type Journey = { steps: JourneyStep[]; next: (JourneyItem & { step: number }) | null; current: number; pct: number };
+export type Journey = { steps: JourneyStep[]; next: (JourneyItem & { step: number }) | null; current: number; pct: number; setupDone: boolean };
 
 /** Status setiap isian perjalanan (dipakai Home, halaman Perjalanan, dan tombol Lanjut). */
 export async function getDoneMap(): Promise<Record<string, boolean>> {
@@ -26,22 +28,29 @@ export async function getDoneMap(): Promise<Record<string, boolean>> {
     getIncomeProfile().catch(() => null),
     getAssessmentResults(REVIEW_KEY, 1),
   ]);
+  const [rekapAck, ritmeAck] = await Promise.all([getAssessmentResults(REKAP_KEY, 1), getAssessmentResults(RITME_KEY, 1)]);
   let finance = false;
   let habit = false;
   let work = false;
   let syukur = false;
+  let target = false;
   if (isDemoMode) {
     finance = true;
     habit = true;
     work = true;
+    target = true;
   } else {
     const supabase = await createClient();
-    const [f, h, g, w] = await Promise.all([
+    const [f, h, g, w, tp, td] = await Promise.all([
       supabase.from("fin_transactions").select("id", { count: "exact", head: true }).gte("tx_date", todayJakarta(-30)),
       supabase.from("habits").select("id", { count: "exact", head: true }).eq("archived", false),
       supabase.from("gratitude_entries").select("id", { count: "exact", head: true }).gte("entry_date", todayJakarta(-6)),
       supabase.from("works").select("id", { count: "exact", head: true }).eq("archived", false),
+      supabase.from("fin_products").select("id", { count: "exact", head: true }),
+      // Target Harian: tombol "Jadikan aksi harian" membuat rencana "Jual ..."; atau produk HPP tersimpan.
+      supabase.from("daily_actions").select("id", { count: "exact", head: true }).ilike("title", "Jual %"),
     ]);
+    target = (tp.count ?? 0) > 0 || (td.count ?? 0) > 0;
     finance = (f.count ?? 0) > 0;
     habit = (h.count ?? 0) > 0;
     // Sebelum SQL 021 dijalankan tabel works belum ada: cukup kebiasaan saja.
@@ -64,11 +73,11 @@ export async function getDoneMap(): Promise<Record<string, boolean>> {
     aset: !!as && [as.capital, as.social, as.human, as.physical].filter((x) => x.length).length >= 3,
     wheel: ew.length > 0,
     plan: !!income && income.plans.length > 0,
-    target: false,
-    rekap: false,
+    target,
+    rekap: isDemoMode || rekapAck.length > 0,
     review: !!review[0] && Date.now() - new Date(review[0].created_at).getTime() < 7 * 86_400_000,
     rutinitas: work && habit,
-    ritme: false,
+    ritme: ritmeAck.length > 0,
     report: stats.last7.some((d) => d.done > 0),
     daily: stats.dailyTotal30 > 0,
     habit,
@@ -96,8 +105,8 @@ export async function getJourney(): Promise<Journey> {
       break;
     }
   }
-  const req = steps.slice(0, 4).flatMap((s) => s.items.filter((i) => !i.optional));
+  const req = steps.flatMap((s) => s.items.filter((i) => !i.optional));
   const pct = Math.round((req.filter((i) => i.done).length / req.length) * 100);
-  const firstOpen = steps.slice(0, 4).find((s) => !s.complete);
-  return { steps, next, current: firstOpen ? firstOpen.no : 5, pct };
+  const firstOpen = steps.find((s) => !s.complete);
+  return { steps, next, current: firstOpen ? firstOpen.no : 5, pct, setupDone: !firstOpen };
 }

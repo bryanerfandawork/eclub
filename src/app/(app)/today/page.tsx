@@ -146,7 +146,7 @@ export default async function TodayPage() {
             )}
           </section>
 
-          <section className={`card p-5 lg:p-6 ${finToday.reported ? "" : "border-gold/50"}`}>
+          <section id="keuangan" className={`card scroll-mt-24 p-5 lg:p-6 ${finToday.reported ? "" : "border-gold/50"}`}>
             <div className="flex items-center justify-between">
               <h2 className="flex items-center gap-2 font-bold text-heading">
                 <WalletIcon className="h-5 w-5 text-success" /> Laporan keuangan hari ini

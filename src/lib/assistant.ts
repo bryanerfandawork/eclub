@@ -105,3 +105,10 @@ export async function getAssistantStats(): Promise<AssistantStats> {
     },
   };
 }
+
+export async function getSyukurToday(): Promise<boolean> {
+  if (isDemoMode) return false;
+  const supabase = await createClient();
+  const { data } = await supabase.from("gratitude_entries").select("entry_date").eq("entry_date", todayJakarta()).maybeSingle();
+  return !!data;
+}

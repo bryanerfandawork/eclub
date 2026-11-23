@@ -3,7 +3,7 @@
  * 1 Mimpi (arah) -> 2 Kondisi Saat Ini (titik awal) -> 3 Potensi Diri (bekal) -> 4 Action Plan (jembatan) -> 5 Evaluasi Berkala (kompas).
  * Langkah 5 berulang: setiap minggu/bulan kembali ke langkah 2-4 dengan data baru.
  */
-export type StepItem = { key: string; label: string; href: string; optional?: boolean };
+export type StepItem = { key: string; label: string; href: string; optional?: boolean; /** tidak tampil sebagai chip di atas halaman */ hidden?: boolean };
 export type Step = { no: number; key: string; title: string; q: string; why: string; items: StepItem[] };
 
 export const STEPS: Step[] = [
@@ -55,7 +55,7 @@ export const STEPS: Step[] = [
       { key: "plan", label: "Tentukan rencana income", href: "/rencana" },
       { key: "target", label: "Pecah mimpi jadi target harian", href: "/target", optional: true },
       { key: "rutinitas", label: "Pekerjaan & kebiasaan harian", href: "/rutinitas" },
-      { key: "rekap", label: "Rekap & rekomendasi untuk Anda", href: "/rekap", optional: true },
+      { key: "rekap", label: "Rekap & rekomendasi untuk Anda", href: "/rekap", hidden: true },
     ],
   },
   {
@@ -63,13 +63,9 @@ export const STEPS: Step[] = [
     key: "evaluasi",
     title: "Evaluasi Berkala",
     q: "Apakah Anda makin dekat?",
-    why: "Bukan isian sekali jalan, melainkan ritme: laporan harian, evaluasi mingguan, dan progres bulanan. Setelah evaluasi, perbarui langkah 2 sampai 4.",
+    why: "Bukan isian, melainkan ritme: laporan harian (keuangan, rencana aksi, syukur), Rapor Mingguan, dan tinjauan bulanan. Cukup baca dan nyatakan siap.",
     items: [
-      { key: "ritme", label: "Kenali ritme evaluasi", href: "/evaluasi", optional: true },
-      { key: "report", label: "Laporan harian (setiap hari)", href: "/today", optional: true },
-      { key: "syukur", label: "Jurnal syukur", href: "/kebiasaan", optional: true },
-      { key: "review", label: "Evaluasi mingguan (2 menit)", href: "/evaluasi#mingguan", optional: true },
-      { key: "progress", label: "Progres bulanan", href: "/progress", optional: true },
+      { key: "ritme", label: "Pahami ritme evaluasi & siap menjalankannya", href: "/evaluasi" },
     ],
   },
 ];
@@ -83,7 +79,7 @@ export function stepOfPath(path: string): Step | null {
 }
 
 /** Urutan isian langkah 1-4 (tombol Lanjut mengikuti urutan ini), lalu rekap, lalu evaluasi. */
-const FLOW = [...STEPS.slice(0, 4).flatMap((s) => s.items.map((i) => ({ ...i, step: s.no }))), { ...STEPS[4].items[0], step: 5 }];
+const FLOW = STEPS.flatMap((s) => s.items.map((i) => ({ ...i, step: s.no })));
 
 export type NextInfo = { blocked: StepItem | null; target: { label: string; href: string } };
 
@@ -98,15 +94,14 @@ export function nextFrom(path: string, done: Record<string, boolean>): NextInfo 
   const here = FLOW.map((x, i) => ({ x, i })).filter(({ x }) => at(x.href));
   if (!here.length) return null;
   const pos = here[here.length - 1].i;
-  const blocked = here.map(({ x }) => x).find((x) => !x.optional && x.step < 5 && !done[x.key]) ?? null;
-  const open = (x: (typeof FLOW)[number]) => !x.optional && x.step < 5 && !done[x.key] && !at(x.href);
+  const blocked = here.map(({ x }) => x).find((x) => !x.optional && !done[x.key]) ?? null;
+  const open = (x: (typeof FLOW)[number]) => !x.optional && !done[x.key] && !at(x.href);
   // Dari rencana income, mampir ke Target Harian (opsional, tapi penting untuk menyambungkan mimpi dan rencana).
   const after = FLOW.slice(pos + 1).find((x) => open(x) || (x.key === "target" && FLOW[pos].key === "plan" && !at(x.href)));
   const before = FLOW.slice(0, pos).find(open);
   const t = before ?? after; // yang terlewat diselesaikan dulu, baru maju
   const label = (x: (typeof FLOW)[number]) => (STEPS[x.step - 1].items[0].key === x.key || !here.some(({ x: h }) => h.step === x.step) ? `Langkah ${x.step} · ${x.label}` : x.label);
   if (t) return { blocked, target: { label: label(t), href: t.href } };
-  if (path === "/rekap") return { blocked, target: { label: "Langkah 5 · Ritme evaluasi", href: "/evaluasi" } };
   if (path === "/evaluasi") return { blocked, target: { label: "Mulai laporan harian", href: "/today" } };
-  return { blocked, target: { label: "Rekap & rekomendasi untuk Anda", href: "/rekap" } };
+  return { blocked, target: { label: "Kembali ke Home", href: "/dashboard" } };
 }

@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { ArrowRight, BookOpen, Circle, Crown, Gem, Lock, Newspaper, Sparkles, Target, TrendingUp, Users } from "lucide-react";
 import { PageHeader } from "@/components/ui";
+import { ackStep } from "@/app/actions/journey";
+import { PendingButton } from "@/components/pending-button";
 import { getAssessmentResults, getDreams, getProfile } from "@/lib/data";
 import { getDiscResult } from "@/lib/disc/server";
 import { INSIGHTS } from "@/lib/disc/insights";
@@ -37,7 +39,7 @@ export default async function RekapPage() {
   const discLite = nat?.primary ? { primary: nat.primary, secondary: order.find((f) => f !== nat.primary) ?? null } : null;
   const s = income ? summarize(income, dreams) : null;
   const reco = income && recoLimit !== 0 ? recommend(income, discLite) : null;
-  const missing = journey.steps.slice(0, 4).flatMap((st) => st.items.filter((i) => !i.optional && !i.done).map((i) => ({ ...i, step: st.no })));
+  const missing = journey.steps.slice(0, 4).flatMap((st) => st.items.filter((i) => !i.optional && !i.done && i.key !== "rekap").map((i) => ({ ...i, step: st.no })));
   const focus: IncomeKind = s?.focus ?? "active";
   const stepCourses = courses.filter((c) => (placement && c.sef_step === placement) || (c.sef_step && STEP_OF[focus].includes(c.sef_step))).slice(0, 3);
   const helpSlugs = ["active-massive-passive-income", "memulai-massive-income-side-hustle", "berapa-harus-menabung-untuk-mimpi", "mencatat-pengeluaran-bulanan"];
@@ -49,7 +51,7 @@ export default async function RekapPage() {
 
   return (
     <>
-      <PageHeader eyebrow="Rekap Perjalanan" title={`${firstName}, ini peta Anda dalam satu halaman`} desc="Semua yang sudah Anda isi di langkah 1 sampai 4, beserta rekomendasi kelas, ide income, bacaan, dan mentoring yang paling sesuai." />
+      <PageHeader eyebrow="Langkah 4 · Rekap" title={`${firstName}, ini peta Anda dalam satu halaman`} desc="Langkah 4 terakhir: semua yang sudah Anda isi di langkah 1 sampai 4, beserta rekomendasi kelas, ide income, bacaan, dan mentoring. Baca sampai bawah, lalu tandai selesai." />
 
       {missing.length > 0 && (
         <div className="mb-6 rounded-2xl border border-gold/40 bg-gold-soft/60 p-5">
@@ -230,6 +232,29 @@ export default async function RekapPage() {
           Konsultasi <ArrowRight className="h-4 w-4" />
         </Link>
       </div>
+
+      {(() => {
+        const acked = journey.steps[3].items.find((i) => i.key === "rekap")?.done;
+        return (
+          <section className="mt-6 rounded-3xl bg-brand p-6 text-center text-white shadow-lift">
+            <p className="text-lg font-bold">{acked ? "✓ Langkah 4 selesai" : "Sudah membaca rekap Anda?"}</p>
+            <p className="mx-auto mt-1 max-w-md text-sm text-white/75">
+              {acked ? "Lanjutkan ke langkah 5: kenali ritme evaluasi harian, mingguan, dan bulanan." : "Tandai langkah 4 selesai, lalu kenali ritme evaluasi yang akan menjaga Anda tetap di jalur."}
+            </p>
+            {acked ? (
+              <Link href="/evaluasi" className="btn-gold mt-4 py-3">
+                Langkah 5 · Ritme evaluasi <ArrowRight className="h-4 w-4" />
+              </Link>
+            ) : (
+              <form action={ackStep} className="mt-4">
+                <input type="hidden" name="step" value="rekap" />
+                <input type="hidden" name="next" value="/evaluasi" />
+                <PendingButton className="btn-gold w-full py-3 sm:w-auto">Saya paham & siap ke langkah berikutnya ✓</PendingButton>
+              </form>
+            )}
+          </section>
+        );
+      })()}
     </>
   );
 }
