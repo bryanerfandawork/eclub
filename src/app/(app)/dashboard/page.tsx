@@ -4,6 +4,7 @@ import { getAssessmentResults, getDreams, getOpenActions, getProfile, getProgres
 import { compactRupiah, dreamProgress, greeting, rupiah, todayJakarta } from "@/lib/format";
 import { AssistantHome } from "@/components/assistant-home";
 import { getJourney } from "@/lib/steps-server";
+import { getMe } from "@/lib/me";
 import { JourneyCard, JourneyMini } from "@/components/journey-card";
 import { PLACEMENT_KEY } from "@/lib/placement";
 import { getDiscResult } from "@/lib/disc/server";
@@ -11,7 +12,6 @@ import { DiscSummary } from "@/components/disc-summary";
 import { ProgressBar } from "@/components/ui";
 import { getFinance, monthSummary } from "@/lib/finance-server";
 import { isDemoMode } from "@/lib/supabase/config";
-import { createClient } from "@/lib/supabase/server";
 import { motivationOfDay } from "@/lib/motivation";
 import { getVapidPublicKey } from "@/lib/push";
 import { PushToggle } from "@/components/push-toggle";
@@ -30,31 +30,36 @@ export const metadata = { title: "Dashboard" };
 export default async function DashboardPage({ searchParams }: { searchParams: Promise<{ selesai?: string }> }) {
   const justDone = (await searchParams).selesai === "1";
   const today = todayJakarta();
-  const [profile, dreams, actions, stats] = await Promise.all([
+  // Semua data diambil bersamaan (bukan satu per satu) supaya Home cepat terbuka.
+  const [profile, dreams, actions, stats, ew, , disc, fin, vapid, events, account, share, income, journey, me] = await Promise.all([
     getProfile(),
     getDreams(),
     getOpenActions(4),
     getProgressStats(),
+    getAssessmentResults("8-wheel-entrepreneur", 1),
+    getAssessmentResults(PLACEMENT_KEY, 1),
+    getDiscResult(),
+    getFinance(today.slice(0, 7)),
+    isDemoMode ? null : getVapidPublicKey(),
+    getEvents(),
+    getAccount(),
+    myShare(),
+    getIncomeProfile().catch(() => null),
+    getJourney(),
+    isDemoMode ? null : getMe(),
   ]);
-  const [ew, , disc] = await Promise.all([getAssessmentResults("8-wheel-entrepreneur", 1), getAssessmentResults(PLACEMENT_KEY, 1), getDiscResult()]);
-  const [fin, vapid, events, account, share, income] = await Promise.all([getFinance(today.slice(0, 7)), isDemoMode ? null : getVapidPublicKey(), getEvents(), getAccount(), myShare(), getIncomeProfile().catch(() => null)]);
   const incomeSum = income ? summarize(income, dreams) : null;
   const nowMs = Date.now();
   const nextEvent = (events ?? []).filter((e) => new Date(e.starts_at).getTime() + e.duration_min * 60_000 > nowMs).sort((a, b) => a.starts_at.localeCompare(b.starts_at))[0];
   const eventDays = nextEvent ? Math.round((new Date(new Date(nextEvent.starts_at).toLocaleDateString("en-CA", { timeZone: "Asia/Jakarta" })).getTime() - new Date(today).getTime()) / 86_400_000) : 0;
   const eventPrice = nextEvent ? (account.plan === "plus" ? nextEvent.plus_price : nextEvent.price) : 0;
-  let bioMissing = false;
-  if (!isDemoMode) {
-    const supabase = await createClient();
-    const { data: b } = await supabase.from("profiles").select("whatsapp, birth_date, regency").eq("id", profile.id).maybeSingle();
-    bioMissing = !!b && (!b.whatsapp || !b.birth_date || !b.regency);
-  }
+  const b = me?.row;
+  const bioMissing = !!b && (!b.whatsapp || !b.birth_date || !b.regency);
   const finBiz = monthSummary(fin.txs, "business");
   const ewDue = ew[0] ? Date.now() - new Date(ew[0].created_at).getTime() > 90 * 86_400_000 : false;
   const firstName = (profile.full_name || "Sahabat").split(" ")[0];
   const active = dreams.filter((d) => d.status === "active");
 
-  const journey = await getJourney();
 
   return (
     <div className="space-y-6 lg:space-y-8">

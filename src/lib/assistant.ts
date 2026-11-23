@@ -1,4 +1,5 @@
 import "server-only";
+import { cache } from "react";
 import { demoDaily, demoHabits, demoWorks } from "./demo";
 import { getDailyRange, getDreams } from "./data";
 import { todayJakarta } from "./format";
@@ -11,14 +12,14 @@ export const statusOf = (a: DailyAction) => (a.status === "closed" ? "closed" : 
 export const originOf = (a: DailyAction) => a.origin_date || a.created_at?.slice(0, 10) || a.action_date;
 export const daysBetween = (from: string, to: string) => Math.max(0, Math.round((Date.parse(to) - Date.parse(from)) / 86_400_000));
 
-export async function getWorks(): Promise<Work[]> {
+async function getWorksRaw(): Promise<Work[]> {
   if (isDemoMode) return demoWorks;
   const supabase = await createClient();
   const { data, error } = await supabase.from("works").select("id, name, dream_id").eq("archived", false).order("created_at");
   return error ? [] : ((data ?? []) as Work[]);
 }
 
-export async function getHabitsToday(): Promise<{ habits: HabitItem[]; logs: { habit_id: string; log_date: string }[] }> {
+async function getHabitsTodayRaw(): Promise<{ habits: HabitItem[]; logs: { habit_id: string; log_date: string }[] }> {
   if (isDemoMode)
     return { habits: demoHabits, logs: [0, -1, -2, -3].flatMap((d) => [{ habit_id: "h1", log_date: todayJakarta(d) }, ...(d ? [{ habit_id: "h2", log_date: todayJakarta(d) }] : [])]) };
   const supabase = await createClient();
@@ -45,7 +46,7 @@ export type AssistantStats = {
 };
 
 /** Ringkasan "asisten pribadi": dipakai Home dan Laporan Harian. */
-export async function getAssistantStats(): Promise<AssistantStats> {
+async function getAssistantStatsRaw(): Promise<AssistantStats> {
   const today = todayJakarta();
   const [items, works, dreams, hb] = await Promise.all([
     isDemoMode ? Promise.resolve(demoDaily) : getDailyRange(todayJakarta(-29), today),
@@ -106,9 +107,15 @@ export async function getAssistantStats(): Promise<AssistantStats> {
   };
 }
 
-export async function getSyukurToday(): Promise<boolean> {
+async function getSyukurTodayRaw(): Promise<boolean> {
   if (isDemoMode) return false;
   const supabase = await createClient();
   const { data } = await supabase.from("gratitude_entries").select("entry_date").eq("entry_date", todayJakarta()).maybeSingle();
   return !!data;
 }
+
+// Satu kali per permintaan (halaman memanggilnya dari beberapa komponen).
+export const getWorks = cache(getWorksRaw);
+export const getHabitsToday = cache(getHabitsTodayRaw);
+export const getAssistantStats = cache(getAssistantStatsRaw);
+export const getSyukurToday = cache(getSyukurTodayRaw);

@@ -1,4 +1,5 @@
 import "server-only";
+import { getMe } from "./me";
 import { cache } from "react";
 import { isDemoMode } from "./supabase/config";
 import { createClient } from "./supabase/server";
@@ -55,12 +56,8 @@ export const getSettings = cache(async (): Promise<Record<string, unknown>> => {
 /** Paket & peran pengguna yang sedang login. */
 export const getAccount = cache(async (): Promise<{ role: Role; plan: PlanKey; expiresAt: string | null }> => {
   if (isDemoMode) return { role: "super_admin", plan: "free", expiresAt: null };
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { user, row: data } = await getMe();
   if (!user) return { role: "member", plan: "free", expiresAt: null };
-  const { data } = await supabase.from("profiles").select("role, plan, plan_expires_at").eq("id", user.id).maybeSingle();
   const expired = data?.plan_expires_at ? new Date(data.plan_expires_at) < new Date() : false;
   return {
     role: (data?.role as Role) ?? "member",

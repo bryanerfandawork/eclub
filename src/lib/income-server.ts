@@ -1,4 +1,5 @@
 import "server-only";
+import { cache } from "react";
 import { isDemoMode } from "./supabase/config";
 import { createClient } from "./supabase/server";
 import { catInfo } from "./finance";
@@ -24,7 +25,7 @@ const DEMO: IncomeProfile = {
   plans: [{ name: "Jualan frozen food", target: 1_500_000 }],
 };
 
-export async function getIncomeProfile(): Promise<IncomeProfile | null> {
+async function getIncomeProfileRaw(): Promise<IncomeProfile | null> {
   if (isDemoMode) return DEMO;
   const supabase = await createClient();
   const { data } = await supabase.from("income_profiles").select("*").maybeSingle();
@@ -51,3 +52,6 @@ export async function getFinanceHint(): Promise<{ out: { label: string; amount: 
   }
   return { out: [...by.entries()].map(([label, amount]) => ({ label, amount })).sort((a, b) => b.amount - a.amount).slice(0, 6), income };
 }
+
+// Satu kali per permintaan (halaman memanggilnya dari beberapa komponen).
+export const getIncomeProfile = cache(getIncomeProfileRaw);

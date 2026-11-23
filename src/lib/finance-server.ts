@@ -1,4 +1,5 @@
 import "server-only";
+import { cache } from "react";
 import { isDemoMode } from "./supabase/config";
 import { createClient } from "./supabase/server";
 import { todayJakarta } from "./format";
@@ -28,7 +29,7 @@ function demoTxs(): Tx[] {
   return rows.map((r, i) => ({ ...r, id: `demo-${i}` }));
 }
 
-export async function getFinance(month: string): Promise<FinanceData> {
+async function getFinanceRaw(month: string): Promise<FinanceData> {
   const { from, to } = monthRange(month);
   if (isDemoMode) {
     const all = demoTxs();
@@ -71,7 +72,7 @@ const DEMO_POCKETS = (bal: Record<Wallet, number>): Pocket[] => [
 ];
 
 /** Kantong aktif + saldonya. Pengguna baru otomatis mendapat 2 kantong bawaan. Kosong bila SQL 022 belum dijalankan. */
-export async function getPockets(): Promise<Pocket[]> {
+async function getPocketsRaw(): Promise<Pocket[]> {
   if (isDemoMode) return DEMO_POCKETS((await getFinance(todayJakarta().slice(0, 7))).balances);
   const supabase = await createClient();
   const first = await supabase.from("fin_pockets").select("id, wallet, name, type, provider").eq("archived", false).order("created_at");
@@ -90,7 +91,7 @@ export async function getPockets(): Promise<Pocket[]> {
 }
 
 /** Tabungan mimpi per kantong (SQL 023). Map kosong bila tabel belum ada. */
-export async function getDreamFunds(): Promise<Map<string, Earmark[]>> {
+async function getDreamFundsRaw(): Promise<Map<string, Earmark[]>> {
   const out = new Map<string, Earmark[]>();
   if (isDemoMode) return out;
   const supabase = await createClient();
@@ -108,7 +109,7 @@ export async function getDreamFunds(): Promise<Map<string, Earmark[]>> {
 }
 
 /** Sudah lapor keuangan hari ini? (ada transaksi hari ini atau menandai "tidak ada transaksi"). */
-export async function getFinToday(): Promise<{ reported: boolean; noTx: boolean; in: number; out: number; count: number }> {
+async function getFinTodayRaw(): Promise<{ reported: boolean; noTx: boolean; in: number; out: number; count: number }> {
   const today = todayJakarta();
   if (isDemoMode) return { reported: true, noTx: false, in: 2_450_000, out: 45_000, count: 2 };
   const supabase = await createClient();
@@ -162,3 +163,9 @@ export async function getMonthly(w: Wallet): Promise<{ month: string; income: nu
     return { month: m, income: s.income, expense: s.expense };
   });
 }
+
+// Satu kali per permintaan (halaman memanggilnya dari beberapa komponen).
+export const getFinance = cache(getFinanceRaw);
+export const getPockets = cache(getPocketsRaw);
+export const getFinToday = cache(getFinTodayRaw);
+export const getDreamFunds = cache(getDreamFundsRaw);

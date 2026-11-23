@@ -1,4 +1,5 @@
 import "server-only";
+import { cache } from "react";
 import { isDemoMode } from "../supabase/config";
 import { createClient } from "../supabase/server";
 import { getAccount, getSettings, isAdmin } from "../plans";
@@ -6,7 +7,7 @@ import { scoreDisc, type DiscResult } from "./score";
 
 export const DISC_KEY = "disc";
 
-export async function getDiscResult(): Promise<{ result: DiscResult; created_at: string } | null> {
+async function getDiscResultRaw(): Promise<{ result: DiscResult; created_at: string } | null> {
   if (isDemoMode) return { result: scoreDisc({ most: Array(24).fill(1), least: Array(24).fill(2) }), created_at: new Date().toISOString() };
   const supabase = await createClient();
   const { data } = await supabase
@@ -33,3 +34,6 @@ export async function discPrice(): Promise<number> {
   const s = await getSettings();
   return Number(s.disc_report_price) || 29000;
 }
+
+// Satu kali per permintaan (halaman memanggilnya dari beberapa komponen).
+export const getDiscResult = cache(getDiscResultRaw);

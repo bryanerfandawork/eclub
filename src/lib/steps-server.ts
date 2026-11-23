@@ -1,4 +1,5 @@
 import "server-only";
+import { cache } from "react";
 import { isDemoMode } from "./supabase/config";
 import { createClient } from "./supabase/server";
 import { getAssessmentResults, getDreams, getProfile, getProgressStats } from "./data";
@@ -17,8 +18,23 @@ export type JourneyStep = Omit<Step, "items"> & { items: JourneyItem[]; done: nu
 export type Journey = { steps: JourneyStep[]; next: (JourneyItem & { step: number }) | null; current: number; pct: number; setupDone: boolean };
 
 /** Status setiap isian perjalanan (dipakai Home, halaman Perjalanan, dan tombol Lanjut). */
-export async function getDoneMap(): Promise<Record<string, boolean>> {
-  const [profile, dreams, stats, disc, ew, placed, income, review] = await Promise.all([
+/** Hitungan baris untuk status perjalanan (dimulai bersamaan dengan pengambilan data lain). */
+async function countRows() {
+  const supabase = await createClient();
+  return Promise.all([
+      supabase.from("fin_transactions").select("id", { count: "exact", head: true }).gte("tx_date", todayJakarta(-30)),
+      supabase.from("habits").select("id", { count: "exact", head: true }).eq("archived", false),
+      supabase.from("gratitude_entries").select("id", { count: "exact", head: true }).gte("entry_date", todayJakarta(-6)),
+      supabase.from("works").select("id", { count: "exact", head: true }).eq("archived", false),
+      supabase.from("fin_products").select("id", { count: "exact", head: true }),
+      // Target Harian: tombol "Jadikan aksi harian" membuat rencana "Jual ..."; atau produk HPP tersimpan.
+      supabase.from("daily_actions").select("id", { count: "exact", head: true }).ilike("title", "Jual %"),
+  ]);
+}
+
+async function getDoneMapRaw(): Promise<Record<string, boolean>> {
+  const counts = isDemoMode ? null : countRows();
+  const [profile, dreams, stats, disc, ew, placed, income, review, rekapAck, ritmeAck] = await Promise.all([
     getProfile(),
     getDreams(),
     getProgressStats(),
@@ -27,8 +43,9 @@ export async function getDoneMap(): Promise<Record<string, boolean>> {
     getAssessmentResults(PLACEMENT_KEY, 1),
     getIncomeProfile().catch(() => null),
     getAssessmentResults(REVIEW_KEY, 1),
+    getAssessmentResults(REKAP_KEY, 1),
+    getAssessmentResults(RITME_KEY, 1),
   ]);
-  const [rekapAck, ritmeAck] = await Promise.all([getAssessmentResults(REKAP_KEY, 1), getAssessmentResults(RITME_KEY, 1)]);
   let finance = false;
   let habit = false;
   let work = false;
@@ -40,16 +57,7 @@ export async function getDoneMap(): Promise<Record<string, boolean>> {
     work = true;
     target = true;
   } else {
-    const supabase = await createClient();
-    const [f, h, g, w, tp, td] = await Promise.all([
-      supabase.from("fin_transactions").select("id", { count: "exact", head: true }).gte("tx_date", todayJakarta(-30)),
-      supabase.from("habits").select("id", { count: "exact", head: true }).eq("archived", false),
-      supabase.from("gratitude_entries").select("id", { count: "exact", head: true }).gte("entry_date", todayJakarta(-6)),
-      supabase.from("works").select("id", { count: "exact", head: true }).eq("archived", false),
-      supabase.from("fin_products").select("id", { count: "exact", head: true }),
-      // Target Harian: tombol "Jadikan aksi harian" membuat rencana "Jual ..."; atau produk HPP tersimpan.
-      supabase.from("daily_actions").select("id", { count: "exact", head: true }).ilike("title", "Jual %"),
-    ]);
+    const [f, h, g, w, tp, td] = await counts!;
     target = (tp.count ?? 0) > 0 || (td.count ?? 0) > 0;
     finance = (f.count ?? 0) > 0;
     habit = (h.count ?? 0) > 0;
@@ -89,7 +97,7 @@ export async function getDoneMap(): Promise<Record<string, boolean>> {
   return done;
 }
 
-export async function getJourney(): Promise<Journey> {
+async function getJourneyRaw(): Promise<Journey> {
   const done = await getDoneMap();
   const steps: JourneyStep[] = STEPS.map((s) => {
     const items = s.items.map((i) => ({ ...i, done: !!done[i.key] }));
@@ -110,3 +118,7 @@ export async function getJourney(): Promise<Journey> {
   const firstOpen = steps.find((s) => !s.complete);
   return { steps, next, current: firstOpen ? firstOpen.no : 5, pct, setupDone: !firstOpen };
 }
+
+// Satu kali per permintaan (halaman memanggilnya dari beberapa komponen).
+export const getDoneMap = cache(getDoneMapRaw);
+export const getJourney = cache(getJourneyRaw);

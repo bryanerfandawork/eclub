@@ -6,29 +6,22 @@ import { createClient } from "./supabase/server";
 import { demoActions, demoDaily, demoDreams, demoLifePlan, demoProfile, demoWheel } from "./demo";
 import type { DailyAction, Dream, DreamAction, LifePlan, Profile, WheelAssessment } from "./types";
 import { todayJakarta } from "./format";
+import { getMe } from "./me";
 
 export const getProfile = cache(async (): Promise<Profile & { email: string }> => {
   if (isDemoMode) return { ...demoProfile, email: "demo@eclub.id" };
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { user, row: data } = await getMe();
   if (!user) redirect("/masuk");
-  const { data } = await supabase
-    .from("profiles")
-    .select("id, full_name, segment, success_definition")
-    .eq("id", user.id)
-    .maybeSingle();
   return {
     id: user.id,
-    full_name: data?.full_name ?? (user.user_metadata?.full_name as string | undefined) ?? null,
+    full_name: data?.full_name ?? user.full_name ?? null,
     segment: data?.segment ?? null,
     success_definition: data?.success_definition ?? null,
     email: user.email ?? "",
   };
 });
 
-export async function getDreams(): Promise<Dream[]> {
+async function getDreamsRaw(): Promise<Dream[]> {
   if (isDemoMode) return demoDreams;
   const supabase = await createClient();
   const { data } = await supabase.from("dreams").select("*").order("created_at", { ascending: false });
@@ -51,7 +44,7 @@ export async function getDream(id: string): Promise<{ dream: Dream; actions: Dre
   return { dream: normalizeDream(dream), actions: (actions ?? []) as DreamAction[] };
 }
 
-export async function getOpenActions(limit = 5): Promise<(DreamAction & { dream_title: string })[]> {
+async function getOpenActionsRaw(limit = 5): Promise<(DreamAction & { dream_title: string })[]> {
   if (isDemoMode) {
     return demoActions
       .filter((a) => !a.done)
@@ -92,7 +85,7 @@ export async function getWheelHistory(limit = 6): Promise<WheelAssessment[]> {
 }
 
 /** Aksi harian dalam rentang tanggal (inklusif), terbaru dulu. */
-export async function getDailyRange(from: string, to: string): Promise<DailyAction[]> {
+async function getDailyRangeRaw(from: string, to: string): Promise<DailyAction[]> {
   if (isDemoMode) return demoDaily.filter((a) => a.action_date >= from && a.action_date <= to);
   const supabase = await createClient();
   const { data } = await supabase
@@ -105,7 +98,7 @@ export async function getDailyRange(from: string, to: string): Promise<DailyActi
   return (data ?? []) as DailyAction[];
 }
 
-export async function getProgressStats() {
+async function getProgressStatsRaw() {
   const today = todayJakarta();
   const [daily, dreams] = await Promise.all([getDailyRange(todayJakarta(-29), today), getDreams()]);
   let dreamActionsDone = 0;
@@ -144,7 +137,7 @@ export async function getLifePlan(): Promise<LifePlan | null> {
 
 export type AssessmentResult = { id: string; scores: Record<string, number>; created_at: string };
 
-export async function getAssessmentResults(key: string, limit = 5): Promise<AssessmentResult[]> {
+async function getAssessmentResultsRaw(key: string, limit = 5): Promise<AssessmentResult[]> {
   if (isDemoMode) return [];
   const supabase = await createClient();
   const { data } = await supabase
@@ -155,3 +148,10 @@ export async function getAssessmentResults(key: string, limit = 5): Promise<Asse
     .limit(limit);
   return (data ?? []) as AssessmentResult[];
 }
+
+// Satu kali per permintaan (halaman memanggilnya dari beberapa komponen).
+export const getDreams = cache(getDreamsRaw);
+export const getProgressStats = cache(getProgressStatsRaw);
+export const getDailyRange = cache(getDailyRangeRaw);
+export const getAssessmentResults = cache(getAssessmentResultsRaw);
+export const getOpenActions = cache(getOpenActionsRaw);

@@ -8,21 +8,24 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { aiConfigured } from "@/lib/ai";
+import { getMe } from "@/lib/me";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const [profile, account] = await Promise.all([getProfile(), getAccount()]);
-  // Catat "terakhir aktif" (dibatasi tiap 10 menit di database). Abaikan bila SQL 018 belum dijalankan.
-  if (!isDemoMode) await (await createClient()).rpc("touch_last_seen").then(() => null, () => null);
-  // Data diri wajib (WA, tanggal lahir, domisili) sebelum memakai fitur apa pun. Admin dikecualikan.
-  if (!isDemoMode && !isAdmin(account.role)) {
+  if (!isDemoMode) {
     const supabase = await createClient();
-    const { data: b } = await supabase.from("profiles").select("whatsapp, birth_date, regency").eq("id", profile.id).maybeSingle();
-    if (b && (!b.whatsapp || !b.birth_date || !b.regency)) redirect("/lengkapi");
+    const b = (await getMe()).row;
+    const checkPush = !isAdmin(account.role) && !!b && !(await cookies()).get("eclub_push_skip");
+    // Semua dijalankan bersamaan supaya halaman cepat terbuka.
+    const [, push] = await Promise.all([
+      // Catat "terakhir aktif" (dibatasi tiap 10 menit di database). Abaikan bila SQL 018 belum dijalankan.
+      supabase.rpc("touch_last_seen").then(() => null, () => null),
+      checkPush ? supabase.from("push_subscriptions").select("id", { count: "exact", head: true }).eq("user_id", profile.id) : Promise.resolve(null),
+    ]);
+    // Data diri wajib (WA, tanggal lahir, domisili) sebelum memakai fitur apa pun. Admin dikecualikan.
+    if (!isAdmin(account.role) && b && (!b.whatsapp || !b.birth_date || !b.regency)) redirect("/lengkapi");
     // Notifikasi HP wajib diaktifkan, kecuali perangkat tidak mendukung / izin diblokir (cookie dari halaman aktivasi).
-    if (b && !(await cookies()).get("eclub_push_skip")) {
-      const { count, error } = await supabase.from("push_subscriptions").select("id", { count: "exact", head: true }).eq("user_id", profile.id);
-      if (!error && !count) redirect("/aktifkan-notifikasi");
-    }
+    if (push && !push.error && !push.count) redirect("/aktifkan-notifikasi");
   }
   return (
     <AppShell name={profile.full_name || "Sahabat EClub"} email={profile.email} demo={isDemoMode} plan={account.plan} admin={isAdmin(account.role)} ai={isDemoMode || aiConfigured()}>
