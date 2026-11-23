@@ -81,14 +81,18 @@ export async function GET(request: Request) {
   const logsOf = new Map<string, number>();
   const dreamTitle = new Map<string, string>();
   const workDream = new Map<string, string | null>();
+  const finDone = new Set<string>();
   for (let i = 0; i < evening.length; i += 200) {
     const ids = evening.slice(i, i + 200);
-    const [d, h, l, w] = await Promise.all([
+    const [d, h, l, w, ft, fc] = await Promise.all([
       admin.from("daily_actions").select("*").in("user_id", ids).gte("action_date", sunday ? todayJakarta(-6) : today).lte("action_date", today),
       admin.from("habits").select("user_id").in("user_id", ids).eq("archived", false),
       admin.from("habit_logs").select("user_id").in("user_id", ids).eq("log_date", today),
       admin.from("works").select("id, dream_id").in("user_id", ids),
+      admin.from("fin_transactions").select("user_id").in("user_id", ids).eq("tx_date", today),
+      admin.from("fin_checks").select("user_id").in("user_id", ids).eq("check_date", today),
     ]);
+    for (const r of [...(ft.data ?? []), ...(fc.data ?? [])]) finDone.add(r.user_id as string);
     rows.push(...((d.data ?? []) as Row[]));
     for (const r of h.data ?? []) habitsOf.set(r.user_id as string, (habitsOf.get(r.user_id as string) ?? 0) + 1);
     for (const r of l.data ?? []) logsOf.set(r.user_id as string, (logsOf.get(r.user_id as string) ?? 0) + 1);
@@ -116,6 +120,7 @@ export async function GET(request: Request) {
     const todays = mine.filter((r) => r.action_date === today && st(r) !== "closed");
     const open = todays.filter((r) => st(r) === "open");
     const habitLeft = Math.max(0, (habitsOf.get(id) ?? 0) - (logsOf.get(id) ?? 0));
+    const finLeft = !finDone.has(id);
     let msg: { title: string; body: string; url: string; tag: string } | null = null;
     if (sunday) {
       // Rapor Mingguan: % rencana selesai + mimpi yang paling maju.
@@ -139,12 +144,13 @@ export async function GET(request: Request) {
     } else if (open.length) {
       msg = {
         title: `Masih ada ${open.length} rencana hari ini ⏳`,
-        body: `"${short(open[0].title)}"${open.length > 1 ? ` dan ${open.length - 1} lainnya` : ""}. Tandai selesai, lanjut besok, atau tutup.`,
+        body: `"${short(open[0].title)}"${open.length > 1 ? ` dan ${open.length - 1} lainnya` : ""}. Tandai selesai, lanjut besok, atau tutup.${finLeft ? " Jangan lupa lapor keuangan." : ""}`,
         url: "/today",
         tag: "evening",
       };
-    } else if (todays.length && habitLeft) {
-      msg = { title: "Rencana beres, tinggal kebiasaan ✅", body: `${habitLeft} kebiasaan belum dicentang hari ini. 30 detik saja.`, url: "/today", tag: "evening" };
+    } else if (todays.length && (habitLeft || finLeft)) {
+      const left = [habitLeft ? `${habitLeft} kebiasaan belum dicentang` : "", finLeft ? "keuangan hari ini belum dilaporkan" : ""].filter(Boolean).join(" dan ");
+      msg = { title: "Rencana beres, tinggal sedikit lagi ✅", body: `${left[0].toUpperCase()}${left.slice(1)}. 1 menit saja.`, url: "/today", tag: "evening" };
     } else if (!todays.length) {
       generic.push(id);
     }

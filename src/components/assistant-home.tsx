@@ -1,5 +1,7 @@
 import Link from "next/link";
-import { ArrowRight, Bot, CalendarCheck2, Clock, Repeat } from "lucide-react";
+import { ArrowRight, Bot, CalendarCheck2, Clock, Repeat, Wallet } from "lucide-react";
+import { getFinance, getFinToday } from "@/lib/finance-server";
+import { rupiah } from "@/lib/format";
 import { AssistantPanel } from "./assistant-panel";
 import { getAssistantStats, getWorks, statusOf } from "@/lib/assistant";
 import { getDailyRange } from "@/lib/data";
@@ -10,7 +12,13 @@ import { isDemoMode } from "@/lib/supabase/config";
 /** Home: asisten pribadi (ringkasan laporan harian + statistik). */
 export async function AssistantHome({ streak }: { streak: number }) {
   const today = todayJakarta();
-  const [stats, works, items] = await Promise.all([getAssistantStats(), getWorks(), isDemoMode ? Promise.resolve(demoDaily) : getDailyRange(today, today)]);
+  const [stats, works, items, fin, finToday] = await Promise.all([
+    getAssistantStats(),
+    getWorks(),
+    isDemoMode ? Promise.resolve(demoDaily) : getDailyRange(today, today),
+    getFinance(today.slice(0, 7)),
+    getFinToday(),
+  ]);
   const open = items.filter((a) => a.action_date === today && statusOf(a) === "open").slice(0, 4);
   const workName = (id?: string | null) => works.find((w) => w.id === id)?.name;
   const h = new Date().toLocaleString("en-US", { hour: "numeric", hour12: false, timeZone: "Asia/Jakarta" });
@@ -18,16 +26,18 @@ export async function AssistantHome({ streak }: { streak: number }) {
   const tiles = [
     { icon: Repeat, label: "Kebiasaan", v: `${stats.habits.doneToday}/${stats.habits.count}` },
     { icon: CalendarCheck2, label: "Rencana hari ini", v: `${stats.today.done}/${stats.today.total}` },
+    { icon: Wallet, label: "Lapor keuangan", v: finToday.reported ? "✓" : "–" },
     { icon: Clock, label: "Tertunda", v: String(stats.overdue.length) },
   ];
+  const finMsg = finToday.reported ? "" : " Jangan lupa lapor keuangan hari ini.";
   const msg =
-    stats.today.total === 0
+    (stats.today.total === 0
       ? "Belum ada rencana aksi hari ini. Tulis 1 sampai 3 hal terpenting, kaitkan ke pekerjaan dan mimpi Anda."
       : stats.today.open === 0
         ? "Semua rencana hari ini selesai. Luar biasa! Tutup hari dengan menulis syukur."
         : evening
           ? `Masih ada ${stats.today.open} rencana yang belum dilaporkan. Tandai selesai, lanjut besok, atau tutup.`
-          : `${stats.today.open} rencana menunggu Anda hari ini. Satu per satu saja.`;
+          : `${stats.today.open} rencana menunggu Anda hari ini. Satu per satu saja.`) + finMsg;
   return (
     <section className="grid gap-5 lg:grid-cols-5 lg:gap-6">
       <div className="card p-5 lg:col-span-3 lg:p-6">
@@ -41,11 +51,19 @@ export async function AssistantHome({ streak }: { streak: number }) {
           </div>
         </div>
         <p className="mt-3 text-sm text-ink">{msg}</p>
-        <div className="mt-4 grid grid-cols-3 gap-2">
+        <div className="mt-4 grid grid-cols-2 gap-2">
+          {(["personal", "business"] as const).map((w) => (
+            <Link key={w} href={`/keuangan?w=${w}`} className="rounded-xl border border-line p-3 hover:border-gold">
+              <p className="text-xs text-muted">{w === "personal" ? "🙂 Saldo pribadi" : "🏪 Saldo usaha"}</p>
+              <p className={`mt-0.5 truncate text-lg font-bold ${fin.balances[w] < 0 ? "text-danger" : "text-heading"}`}>{rupiah(fin.balances[w])}</p>
+            </Link>
+          ))}
+        </div>
+        <div className="mt-2 grid grid-cols-4 gap-2">
           {tiles.map((t) => (
-            <div key={t.label} className="rounded-xl bg-paper p-3">
+            <div key={t.label} className="rounded-xl bg-paper p-2.5">
               <t.icon className="h-4 w-4 text-gold" />
-              <p className="mt-1 text-xl font-bold text-heading">{t.v}</p>
+              <p className="mt-1 text-lg font-bold text-heading">{t.v}</p>
               <p className="text-[11px] leading-tight text-muted">{t.label}</p>
             </div>
           ))}

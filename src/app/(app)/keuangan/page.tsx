@@ -1,10 +1,13 @@
 import Link from "next/link";
-import { ChevronLeft, ChevronRight, ShieldCheck } from "lucide-react";
+import { BarChart3, ChevronLeft, ChevronRight, Download, Lock, Settings2, ShieldCheck } from "lucide-react";
+import { PocketBadge } from "@/components/finance/pocket-badge";
+import { getAccount, isAdmin } from "@/lib/plans";
+import { compactRupiah } from "@/lib/format";
 import { deleteTx } from "@/app/actions/finance";
 import { CatatButton, DeleteTx, QuickAdd } from "@/components/finance/quick-add";
 import { PageHeader } from "@/components/ui";
 import { catInfo, effect, WALLET_LABEL, type Tx, type Wallet } from "@/lib/finance";
-import { getFinance, monthSummary } from "@/lib/finance-server";
+import { getFinance, getMonthly, monthSummary } from "@/lib/finance-server";
 import { rupiah, todayJakarta } from "@/lib/format";
 
 export const metadata = { title: "Keuangan" };
@@ -28,7 +31,12 @@ export default async function KeuanganPage({ searchParams }: { searchParams: Pro
   const w: Wallet = sp.w === "business" ? "business" : "personal";
   const thisMonth = todayJakarta().slice(0, 7);
   const month = /^\d{4}-\d{2}$/.test(sp.m ?? "") && sp.m! <= thisMonth ? sp.m! : thisMonth;
-  const { balances, txs, hasAny } = await getFinance(month);
+  const [{ balances, txs, hasAny, pockets }, acc] = await Promise.all([getFinance(month), getAccount()]);
+  const plus = acc.plan === "plus" || isAdmin(acc.role);
+  const monthly = plus ? await getMonthly(w) : [];
+  const maxM = Math.max(1, ...monthly.flatMap((x) => [x.income, x.expense]));
+  const myPockets = pockets.filter((p) => p.wallet === w);
+  const pname = (id?: string | null) => pockets.find((p) => p.id === id)?.name;
   const mine = txs.filter((t) => t.wallet === w || t.to_wallet === w);
   const s = monthSummary(txs, w);
   const net = s.income - s.expense;
@@ -40,7 +48,11 @@ export default async function KeuanganPage({ searchParams }: { searchParams: Pro
 
   return (
     <>
-      <PageHeader eyebrow="Keuangan" title="Uang Anda, rapi & terpisah" desc="Pribadi dan usaha punya dompet sendiri, jadi tidak tercampur lagi." />
+      <PageHeader
+        eyebrow="Keuangan"
+        title="Uang Anda, rapi & terpisah"
+        desc="Pribadi dan usaha punya dompet sendiri. Di dalamnya ada kantong: uang tunai, rekening bank, atau e-wallet. Lapor setiap hari, cukup 1 menit."
+      />
 
       {/* Dua dompet */}
       <div className="grid grid-cols-2 gap-3">
@@ -63,6 +75,28 @@ export default async function KeuanganPage({ searchParams }: { searchParams: Pro
           );
         })}
       </div>
+
+      {myPockets.length > 0 && (
+        <section className="mt-3 rounded-2xl border border-line bg-white p-3">
+          <div className="mb-2 flex items-center justify-between px-1">
+            <p className="text-xs font-semibold text-muted">Kantong {WALLET_LABEL[w]}</p>
+            <Link href="/keuangan/kantong" className="flex items-center gap-1 text-xs font-semibold text-brand">
+              <Settings2 className="h-3.5 w-3.5" /> Kelola kantong
+            </Link>
+          </div>
+          <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
+            {myPockets.map((p) => (
+              <div key={p.id} className="flex min-w-[150px] items-center gap-2.5 rounded-xl bg-paper p-2.5">
+                <PocketBadge type={p.type} provider={p.provider} size={34} />
+                <span className="min-w-0">
+                  <span className="block truncate text-xs font-semibold text-heading">{p.name}</span>
+                  <span className={`block text-sm font-bold ${p.balance < 0 ? "text-danger" : "text-heading"}`}>{rupiah(p.balance)}</span>
+                </span>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       {w === "business" && (
         <div className="mt-3 grid grid-cols-2 gap-3">
@@ -170,6 +204,44 @@ export default async function KeuanganPage({ searchParams }: { searchParams: Pro
               </section>
             )}
 
+            {/* Grafik 6 bulan (Plus) */}
+            {plus ? (
+              <section className="card p-5">
+                <div className="flex items-center justify-between">
+                  <h3 className="flex items-center gap-2 font-bold text-heading">
+                    <BarChart3 className="h-4 w-4 text-brand" /> 6 bulan terakhir
+                  </h3>
+                  <a href={`/api/keuangan/export?m=${month}`} className="flex items-center gap-1 text-xs font-semibold text-brand">
+                    <Download className="h-3.5 w-3.5" /> Ekspor Excel
+                  </a>
+                </div>
+                <div className="mt-4 flex h-32 items-end gap-2">
+                  {monthly.map((x) => (
+                    <div key={x.month} className="flex flex-1 flex-col items-center gap-1">
+                      <div className="flex h-24 w-full items-end justify-center gap-0.5">
+                        <span className="w-1/3 rounded-t bg-success/70" style={{ height: `${Math.max(2, (x.income / maxM) * 100)}%` }} title={`Masuk ${rupiah(x.income)}`} />
+                        <span className="w-1/3 rounded-t bg-brand/70" style={{ height: `${Math.max(2, (x.expense / maxM) * 100)}%` }} title={`Keluar ${rupiah(x.expense)}`} />
+                      </div>
+                      <span className="text-[10px] text-muted">{new Date(x.month + "-01T00:00:00").toLocaleDateString("id-ID", { month: "short" })}</span>
+                    </div>
+                  ))}
+                </div>
+                <p className="mt-2 flex gap-3 text-[11px] text-muted">
+                  <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-success/70" /> Masuk</span>
+                  <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-brand/70" /> Keluar</span>
+                  <span className="ml-auto">Rata-rata sisa {compactRupiah(Math.round(monthly.reduce((n, x) => n + x.income - x.expense, 0) / Math.max(1, monthly.length)))}/bln</span>
+                </p>
+              </section>
+            ) : (
+              <Link href="/paket" className="card flex items-center gap-3 p-4 hover:border-gold">
+                <Lock className="h-5 w-5 shrink-0 text-gold" />
+                <span className="flex-1 text-sm">
+                  <b className="block text-heading">Grafik 6 bulan, ekspor Excel & kantong tanpa batas</b>
+                  <span className="text-muted">Khusus member Plus</span>
+                </span>
+              </Link>
+            )}
+
             {/* Kategori terbesar */}
             {s.top.length > 0 && (
               <section className="card p-5">
@@ -225,12 +297,18 @@ export default async function KeuanganPage({ searchParams }: { searchParams: Pro
                             <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-paper text-xl">{c.emoji}</span>
                             <span className="min-w-0 flex-1">
                               <span className="block truncate text-sm font-semibold text-heading">{c.label}</span>
-                              {t.note && <span className="block truncate text-xs text-muted">{t.note}</span>}
+                              <span className="block truncate text-xs text-muted">
+                                {[t.kind === "transfer" && t.to_pocket_id ? `${pname(t.pocket_id) ?? "?"} → ${pname(t.to_pocket_id) ?? "?"}` : pname(t.pocket_id), t.note].filter(Boolean).join(" · ")}
+                              </span>
                             </span>
-                            <span className={`text-sm font-bold whitespace-nowrap ${v >= 0 ? "text-success" : "text-ink"}`}>
-                              {v >= 0 ? "+" : "−"}
-                              {rupiah(Math.abs(v))}
-                            </span>
+                            {t.kind === "transfer" && t.wallet === t.to_wallet ? (
+                              <span className="text-sm font-bold whitespace-nowrap text-muted">⇄ {rupiah(t.amount)}</span>
+                            ) : (
+                              <span className={`text-sm font-bold whitespace-nowrap ${v >= 0 ? "text-success" : "text-ink"}`}>
+                                {v >= 0 ? "+" : "−"}
+                                {rupiah(Math.abs(v))}
+                              </span>
+                            )}
                             <DeleteTx id={t.id} action={deleteTx} />
                           </li>
                         );
@@ -248,7 +326,7 @@ export default async function KeuanganPage({ searchParams }: { searchParams: Pro
         <ShieldCheck className="h-3.5 w-3.5" /> Catatan keuangan hanya bisa dilihat oleh Anda.
       </p>
       <div className="h-16 lg:hidden" />
-      <QuickAdd defaultWallet={w} />
+      <QuickAdd defaultWallet={w} pockets={pockets} plus={plus} />
     </>
   );
 }

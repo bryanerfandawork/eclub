@@ -4,7 +4,9 @@ import { useActionState, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Plus, X, ArrowRight } from "lucide-react";
 import { saveTx } from "@/app/actions/finance";
-import { CATEGORIES, TRANSFERS, WALLET_LABEL, type TxKind, type Wallet } from "@/lib/finance";
+import { CATEGORIES, MOVE, TRANSFERS, WALLET_LABEL, type TxKind, type Wallet } from "@/lib/finance";
+import type { Pocket } from "@/lib/pockets";
+import { PocketBadge } from "./pocket-badge";
 import { SubmitButton } from "@/components/submit-button";
 import type { FormState } from "@/app/actions/auth";
 
@@ -28,7 +30,7 @@ function jakarta(offset: number) {
   return new Date(Date.now() + offset * 86_400_000).toLocaleDateString("en-CA", { timeZone: "Asia/Jakarta" });
 }
 
-export function QuickAdd({ defaultWallet }: { defaultWallet: Wallet }) {
+export function QuickAdd({ defaultWallet, pockets = [], plus = false, fab = true }: { defaultWallet: Wallet; pockets?: Pocket[]; plus?: boolean; fab?: boolean }) {
   const [open, setOpen] = useState(false);
   const [preset, setPreset] = useState<QuickPreset>({});
   const [n, setN] = useState(0); // reset form setiap kali dibuka
@@ -52,18 +54,18 @@ export function QuickAdd({ defaultWallet }: { defaultWallet: Wallet }) {
 
   return (
     <>
-      <button
+      {fab && <button
         type="button"
         onClick={() => openQuickAdd({})}
         className="fixed bottom-24 left-1/2 z-30 flex -translate-x-1/2 items-center gap-2 rounded-full bg-brand px-6 py-3.5 font-semibold text-white shadow-lift transition hover:bg-brand-soft active:scale-95 lg:right-28 lg:bottom-8 lg:left-auto lg:translate-x-0 print:hidden"
       >
         <Plus className="h-5 w-5 text-gold" strokeWidth={2.5} /> Catat
-      </button>
+      </button>}
       {open &&
         createPortal(
           <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 backdrop-blur-[2px] sm:items-center" onClick={() => setOpen(false)}>
             <div onClick={(e) => e.stopPropagation()} className="max-h-[92dvh] w-full max-w-lg animate-rise overflow-y-auto rounded-t-3xl bg-white p-5 pb-8 shadow-lift sm:rounded-3xl sm:p-6">
-              <Sheet key={n} preset={preset} defaultWallet={defaultWallet} onDone={() => setOpen(false)} />
+              <Sheet key={n} preset={preset} defaultWallet={defaultWallet} pockets={pockets} plus={plus} onDone={() => setOpen(false)} />
             </div>
           </div>,
           document.body,
@@ -78,7 +80,28 @@ const KINDS: { k: TxKind; label: string }[] = [
   { k: "transfer", label: "Pindah dana" },
 ];
 
-function Sheet({ preset, defaultWallet, onDone }: { preset: QuickPreset; defaultWallet: Wallet; onDone: () => void }) {
+function PocketPick({ label, list, value, onChange, always = false }: { label: string; list: Pocket[]; value: string; onChange: (id: string) => void; always?: boolean }) {
+  if (list.length < (always ? 1 : 2)) return null;
+  return (
+    <div className="mt-3">
+      <p className="mb-1.5 text-xs font-medium text-muted">{label}</p>
+      <div className="flex flex-wrap gap-2">
+        {list.map((p) => (
+          <button
+            key={p.id}
+            type="button"
+            onClick={() => onChange(p.id)}
+            className={`flex items-center gap-2 rounded-full border py-1 pr-3 pl-1 text-sm font-semibold transition ${value === p.id ? "border-brand bg-brand/5 text-heading" : "border-line text-ink hover:bg-paper"}`}
+          >
+            <PocketBadge type={p.type} provider={p.provider} size={26} /> {p.name}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function Sheet({ preset, defaultWallet, pockets, plus, onDone }: { preset: QuickPreset; defaultWallet: Wallet; pockets: Pocket[]; plus: boolean; onDone: () => void }) {
   const [kind, setKind] = useState<TxKind>(preset.kind ?? "out");
   const [wallet, setWallet] = useState<Wallet>(preset.wallet ?? defaultWallet);
   const [category, setCategory] = useState(preset.category ?? "");
@@ -87,6 +110,10 @@ function Sheet({ preset, defaultWallet, onDone }: { preset: QuickPreset; default
   const [custom, setCustom] = useState(jakarta(0));
   const [note, setNote] = useState(false);
   const [state, action] = useActionState<FormState, FormData>(saveTx, {});
+  const first = (w: Wallet) => pockets.find((p) => p.wallet === w)?.id ?? "";
+  const [pocket, setPocket] = useState(first(preset.wallet ?? defaultWallet));
+  const [fromP, setFromP] = useState("");
+  const [toP, setToP] = useState("");
   const amountRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -125,6 +152,14 @@ function Sheet({ preset, defaultWallet, onDone }: { preset: QuickPreset; default
       <input type="hidden" name="wallet" value={wallet} />
       <input type="hidden" name="category" value={category} />
       <input type="hidden" name="tx_date" value={date} />
+      {kind === "transfer" ? (
+        <>
+          <input type="hidden" name="pocket_id" value={fromP} />
+          <input type="hidden" name="to_pocket_id" value={toP} />
+        </>
+      ) : (
+        <input type="hidden" name="pocket_id" value={pocket} />
+      )}
 
       <div className="grid grid-cols-3 gap-1 rounded-2xl bg-paper p-1">
         {KINDS.map((x) => (
@@ -152,6 +187,7 @@ function Sheet({ preset, defaultWallet, onDone }: { preset: QuickPreset; default
               onClick={() => {
                 setWallet(w);
                 setCategory("");
+                setPocket(first(w));
               }}
               className={`rounded-full border px-3.5 py-1.5 font-semibold transition ${wallet === w ? "border-brand bg-brand text-white" : "border-line text-ink hover:bg-paper"}`}
             >
@@ -160,6 +196,7 @@ function Sheet({ preset, defaultWallet, onDone }: { preset: QuickPreset; default
           ))}
         </div>
       )}
+      {kind !== "transfer" && <PocketPick label="Kantong:" list={pockets.filter((p) => p.wallet === wallet)} value={pocket} onChange={setPocket} />}
 
       <label className="mt-5 block">
         <span className="text-xs font-medium text-muted">Nominal</span>
@@ -187,7 +224,11 @@ function Sheet({ preset, defaultWallet, onDone }: { preset: QuickPreset; default
             <button
               key={t.key}
               type="button"
-              onClick={() => setCategory(t.key)}
+              onClick={() => {
+                setCategory(t.key);
+                setFromP(first(t.from));
+                setToP(first(t.to));
+              }}
               className={`flex w-full items-center gap-3 rounded-2xl border p-3.5 text-left transition ${category === t.key ? "border-brand bg-brand/5" : "border-line hover:bg-paper"}`}
             >
               <span className="text-2xl">{t.emoji}</span>
@@ -202,6 +243,37 @@ function Sheet({ preset, defaultWallet, onDone }: { preset: QuickPreset; default
               </span>
             </button>
           ))}
+          {pockets.length > 0 && (
+            <button
+              type="button"
+              disabled={!plus}
+              onClick={() => {
+                setCategory(MOVE.key);
+                setFromP(pockets[0]?.id ?? "");
+                setToP(pockets[1]?.id ?? "");
+              }}
+              className={`flex w-full items-center gap-3 rounded-2xl border p-3.5 text-left transition disabled:opacity-60 ${category === MOVE.key ? "border-brand bg-brand/5" : "border-line hover:bg-paper"}`}
+            >
+              <span className="text-2xl">{MOVE.emoji}</span>
+              <span className="flex-1">
+                <span className="flex items-center gap-1.5 font-semibold text-heading">
+                  {MOVE.label} {!plus && <span className="rounded-full bg-gold-soft px-2 py-0.5 text-[10px] font-bold text-brand">PLUS</span>}
+                </span>
+                <span className="block text-xs text-muted">{MOVE.hint}</span>
+              </span>
+            </button>
+          )}
+          {(() => {
+            const tr = TRANSFERS.find((t) => t.key === category);
+            const from = category === MOVE.key ? pockets : pockets.filter((p) => p.wallet === tr?.from);
+            const to = category === MOVE.key ? pockets.filter((p) => p.id !== fromP) : pockets.filter((p) => p.wallet === tr?.to);
+            return (
+              <>
+                <PocketPick label="Dari kantong:" list={from} value={fromP} onChange={(id) => { setFromP(id); if (id === toP) setToP(pockets.find((p) => p.id !== id)?.id ?? ""); }} always={category === MOVE.key} />
+                <PocketPick label="Ke kantong:" list={to} value={toP} onChange={setToP} always={category === MOVE.key} />
+              </>
+            );
+          })()}
         </div>
       ) : (
         <div className="mt-5">

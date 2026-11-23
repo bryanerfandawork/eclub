@@ -1,7 +1,12 @@
 import Link from "next/link";
-import { ArrowRight, CalendarCheck2, CheckCircle2, Circle, Clock, Heart, Repeat, Settings2, Trophy, X } from "lucide-react";
+import { ArrowRight, CalendarCheck2, Wallet as WalletIcon, CheckCircle2, Circle, Clock, Heart, Repeat, Settings2, Trophy, X } from "lucide-react";
 import { closeDaily, followupDaily, toggleDaily } from "@/app/actions/growth";
 import { toggleHabit } from "@/app/actions/habits";
+import { markNoTx } from "@/app/actions/finance";
+import { CatatButton, QuickAdd } from "@/components/finance/quick-add";
+import { getFinance, getFinToday } from "@/lib/finance-server";
+import { getAccount, getLimit, isAdmin } from "@/lib/plans";
+import { rupiah } from "@/lib/format";
 import { PendingButton } from "@/components/pending-button";
 import { AssistantPanel } from "@/components/assistant-panel";
 import { AddPlanForm } from "@/components/plan-form";
@@ -10,7 +15,6 @@ import { daysBetween, getAssistantStats, getHabitsToday, getWorks, originOf, sta
 import { getDailyRange, getDreams, getProgressStats } from "@/lib/data";
 import { demoDaily } from "@/lib/demo";
 import { tanggalPanjang, todayJakarta } from "@/lib/format";
-import { getLimit } from "@/lib/plans";
 import { isDemoMode } from "@/lib/supabase/config";
 import type { DailyAction } from "@/lib/types";
 
@@ -30,6 +34,8 @@ export default async function TodayPage() {
     getProgressStats(),
     getLimit("daily_action"),
   ]);
+  const [fin, finToday, acc] = await Promise.all([getFinance(today.slice(0, 7)), getFinToday(), getAccount()]);
+  const plus = acc.plan === "plus" || isAdmin(acc.role);
   const dreams = allDreams.filter((d) => d.status === "active");
   const dreamTitle = (id?: string | null) => allDreams.find((d) => d.id === id)?.title;
   const workOf = (id?: string | null) => works.find((w) => w.id === id);
@@ -140,6 +146,39 @@ export default async function TodayPage() {
             )}
           </section>
 
+          <section className={`card p-5 lg:p-6 ${finToday.reported ? "" : "border-gold/50"}`}>
+            <div className="flex items-center justify-between">
+              <h2 className="flex items-center gap-2 font-bold text-heading">
+                <WalletIcon className="h-5 w-5 text-success" /> Laporan keuangan hari ini
+              </h2>
+              <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${finToday.reported ? "bg-success/10 text-success" : "bg-gold-soft text-brand"}`}>{finToday.reported ? "✓ Sudah lapor" : "Belum lapor"}</span>
+            </div>
+            <div className="mt-3 grid grid-cols-2 gap-2">
+              {(["personal", "business"] as const).map((w) => (
+                <Link key={w} href={`/keuangan?w=${w}`} className="rounded-xl bg-paper p-3 hover:bg-gold-soft/50">
+                  <p className="text-xs text-muted">{w === "personal" ? "🙂 Saldo pribadi" : "🏪 Saldo usaha"}</p>
+                  <p className={`mt-0.5 font-bold ${fin.balances[w] < 0 ? "text-danger" : "text-heading"}`}>{rupiah(fin.balances[w])}</p>
+                </Link>
+              ))}
+            </div>
+            <p className="mt-3 text-sm text-muted">
+              {finToday.count > 0
+                ? `Hari ini: ${finToday.count} catatan · masuk ${rupiah(finToday.in)} · keluar ${rupiah(finToday.out)}.`
+                : finToday.noTx
+                  ? "Anda menandai hari ini tanpa transaksi."
+                  : "Catat setiap uang masuk dan keluar hari ini, dari kantong mana. Tidak ada transaksi? Tandai saja."}
+            </p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <CatatButton className="btn-primary flex-1 py-2.5">+ Catat transaksi</CatatButton>
+              {finToday.count === 0 && (
+                <form action={markNoTx} className="flex-1">
+                  {finToday.noTx && <input type="hidden" name="undo" value="1" />}
+                  <PendingButton className="btn-ghost w-full py-2.5">{finToday.noTx ? "Batalkan tanda" : "Tidak ada transaksi"}</PendingButton>
+                </form>
+              )}
+            </div>
+          </section>
+
           <section className="card p-5 lg:p-6">
             <div className="flex items-center justify-between">
               <h2 className="flex items-center gap-2 font-bold text-heading">
@@ -209,6 +248,7 @@ export default async function TodayPage() {
           </section>
         </aside>
       </div>
+      <QuickAdd defaultWallet="personal" pockets={fin.pockets} plus={plus} fab={false} />
     </>
   );
 }
