@@ -43,7 +43,12 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
   const settings = await getSettings();
   const banks = String(settings.bank_accounts ?? "").trim() || (isDemoMode ? "BCA 1234567890 a.n. PT EClub Indonesia\nMandiri 1230009876543 a.n. PT EClub Indonesia" : "");
   const manual = String(settings.payment_mode ?? "manual") !== "auto";
-  const { accounts, rest: bankNotes } = parseBankAccounts(banks);
+  const parsed = parseBankAccounts(banks);
+  const accounts = parsed.accounts;
+  // Baris terpisah "a.n. Nama" berlaku untuk semua rekening: tampilkan besar di tengah, bukan sebagai catatan kecil.
+  const anLine = parsed.rest.find((l) => /^(a\.?\s?n\.?|atas nama)\s*:?\s+\S/i.test(l));
+  const commonHolder = anLine ? anLine.replace(/^(a\.?\s?n\.?|atas nama)\s*:?\s+/i, "").trim() : "";
+  const bankNotes = parsed.rest.filter((l) => l !== anLine);
   const qris = String(settings.qris_image_url ?? "");
   const qrisDownload = qris ? (qris.includes("/storage/v1/object/public/") ? `${qris}${qris.includes("?") ? "&" : "?"}download=QRIS-EClub.png` : qris) : "";
   const adminWa = String(settings.admin_whatsapp ?? "").replace(/[^\d]/g, "").replace(/^0/, "62");
@@ -141,11 +146,11 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
                 <Landmark className="h-4 w-4 text-gold" /> {qris ? "Atau transfer ke rekening" : "Rekening tujuan"}
               </p>
               {accounts.length > 0 && (() => {
-                const holders = [...new Set(accounts.map((a) => a.holder).filter(Boolean))];
+                const holders = [...new Set(accounts.map((a) => a.holder || commonHolder).filter(Boolean))];
                 return holders.length === 1 ? (
                   <div className="mt-3 rounded-xl border border-gold/50 bg-gold-soft px-4 py-3 text-center">
                     <p className="text-xs font-medium text-muted">{accounts.length > 1 ? "Semua rekening di bawah atas nama" : "Rekening atas nama"}</p>
-                    <p className="mt-0.5 text-xl font-extrabold tracking-wide text-heading">{holders[0]}</p>
+                    <p className="mt-0.5 text-2xl font-extrabold tracking-wide text-heading">{holders[0]}</p>
                     <p className="mt-0.5 text-[11px] text-muted">Pastikan nama ini yang muncul saat Anda transfer.</p>
                   </div>
                 ) : null;
@@ -177,7 +182,7 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
               ) : (
                 <p className="mt-2 rounded-xl bg-paper p-4 text-sm leading-relaxed text-ink">{banks || "Rekening tujuan belum diatur. Silakan hubungi admin EClub."}</p>
               )}
-              {accounts.length > 0 && bankNotes.length > 0 && <p className="mt-2 text-xs leading-relaxed whitespace-pre-line text-muted">{bankNotes.join("\n")}</p>}
+              {accounts.length > 0 && bankNotes.length > 0 && <p className="mt-2 text-center text-sm leading-relaxed whitespace-pre-line text-ink">{bankNotes.join("\n")}</p>}
             </div>
             {manual && adminWa.length > 8 && (
               <a href={`https://wa.me/${adminWa}?text=${waText}`} target="_blank" rel="noopener noreferrer" className="btn w-full bg-[#25D366] py-3 text-white hover:brightness-95">

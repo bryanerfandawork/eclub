@@ -5,6 +5,7 @@ import { useActionState } from "react";
 import { signIn } from "@/app/actions/auth";
 import { SubmitButton } from "@/components/submit-button";
 import { FormMessage } from "@/components/ui";
+import { PasswordInput } from "@/components/password-input";
 
 export function SignInForm({ initialError }: { initialError?: string }) {
   const [state, action] = useActionState(signIn, initialError ? { error: initialError } : undefined);
@@ -19,7 +20,7 @@ export function SignInForm({ initialError }: { initialError?: string }) {
           <label className="label" htmlFor="password">Kata sandi</label>
           <Link href="/lupa-sandi" className="mb-1.5 text-xs font-medium text-muted hover:text-brand">Lupa kata sandi?</Link>
         </div>
-        <input id="password" name="password" type="password" autoComplete="current-password" className="input" required />
+        <PasswordInput id="password" name="password" autoComplete="current-password" className="input" required />
       </div>
       <FormMessage state={state} />
       <SubmitButton className="btn-primary w-full py-3" pendingText="Masuk…">Masuk</SubmitButton>

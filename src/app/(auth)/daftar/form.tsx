@@ -5,6 +5,7 @@ import { MailCheck } from "lucide-react";
 import { signUp } from "@/app/actions/auth";
 import { SubmitButton } from "@/components/submit-button";
 import { FormMessage } from "@/components/ui";
+import { PasswordInput } from "@/components/password-input";
 
 export function SignUpForm() {
   const [state, action] = useActionState(signUp, undefined);
@@ -30,7 +31,7 @@ export function SignUpForm() {
       </div>
       <div>
         <label className="label" htmlFor="password">Kata sandi</label>
-        <input id="password" name="password" type="password" autoComplete="new-password" minLength={8} className="input" placeholder="Minimal 8 karakter" required />
+        <PasswordInput id="password" name="password" autoComplete="new-password" minLength={8} className="input" placeholder="Minimal 8 karakter" required />
       </div>
       <FormMessage state={state} />
       <SubmitButton className="btn-primary w-full py-3" pendingText="Mendaftar…">Buat akun</SubmitButton>
