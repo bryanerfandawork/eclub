@@ -6,7 +6,8 @@ import { Plus, X, ArrowRight } from "lucide-react";
 import { saveTx } from "@/app/actions/finance";
 import { CATEGORIES, MOVE, TRANSFERS, WALLET_LABEL, type TxKind, type Wallet } from "@/lib/finance";
 import Link from "next/link";
-import { earmarked, freeBalance, providerOf, TEASER, type Pocket } from "@/lib/pockets";
+import { earmarked, freeBalance, providerOf, type Pocket, type PocketType } from "@/lib/pockets";
+import { DEFAULT_TEASER } from "@/lib/assistant-config";
 import { PocketBadge } from "./pocket-badge";
 import { SubmitButton } from "@/components/submit-button";
 import type { FormState } from "@/app/actions/auth";
@@ -33,7 +34,7 @@ function jakarta(offset: number) {
 
 export type DreamOpt = { id: string; title: string };
 
-export function QuickAdd({ defaultWallet, pockets = [], plus = false, fab = true, dreams = [] }: { defaultWallet: Wallet; pockets?: Pocket[]; plus?: boolean; fab?: boolean; dreams?: DreamOpt[] }) {
+export function QuickAdd({ defaultWallet, pockets = [], plus = false, fab = true, dreams = [], teaser = DEFAULT_TEASER }: { defaultWallet: Wallet; pockets?: Pocket[]; plus?: boolean; fab?: boolean; dreams?: DreamOpt[]; teaser?: string[] }) {
   const [open, setOpen] = useState(false);
   const [preset, setPreset] = useState<QuickPreset>({});
   const [n, setN] = useState(0); // reset form setiap kali dibuka
@@ -68,7 +69,7 @@ export function QuickAdd({ defaultWallet, pockets = [], plus = false, fab = true
         createPortal(
           <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 backdrop-blur-[2px] sm:items-center" onClick={() => setOpen(false)}>
             <div onClick={(e) => e.stopPropagation()} className="max-h-[92dvh] w-full max-w-lg animate-rise overflow-y-auto rounded-t-3xl bg-white p-5 pb-8 shadow-lift sm:rounded-3xl sm:p-6">
-              <Sheet key={n} preset={preset} defaultWallet={defaultWallet} pockets={pockets} plus={plus} dreams={dreams} onDone={() => setOpen(false)} />
+              <Sheet key={n} preset={preset} defaultWallet={defaultWallet} pockets={pockets} plus={plus} dreams={dreams} teaser={teaser} onDone={() => setOpen(false)} />
             </div>
           </div>,
           document.body,
@@ -107,9 +108,9 @@ function PocketPick({ label, list, value, onChange, always = false }: { label: s
 const rp = (n: number) => `Rp${Math.max(0, n).toLocaleString("id-ID")}`;
 
 /** Deretan kantong di bawah pilihan dompet. Gratis: bank/e-wallet tampil terkunci (pop-up Plus). Plus: kantong sendiri + tambah. */
-function WalletPockets({ wallet, list, value, onChange, plus, onLocked }: { wallet: Wallet; list: Pocket[]; value: string; onChange: (id: string) => void; plus: boolean; onLocked: () => void }) {
+function WalletPockets({ list, value, onChange, plus, onLocked, teaserKeys }: { list: Pocket[]; value: string; onChange: (id: string) => void; plus: boolean; onLocked: () => void; teaserKeys: string[] }) {
   const used = new Set(list.map((p) => p.provider));
-  const teaser = plus ? [] : TEASER[wallet].filter((k) => !used.has(k));
+  const teaser = plus ? [] : teaserKeys.filter((k) => !used.has(k) && providerOf(k));
   return (
     <div className="mt-3 -mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
       {list.length === 0 && (
@@ -145,13 +146,13 @@ function WalletPockets({ wallet, list, value, onChange, plus, onLocked }: { wall
   );
 }
 
-function Upsell({ onClose }: { onClose: () => void }) {
+function Upsell({ onClose, teaser }: { onClose: () => void; teaser: string[] }) {
   return (
     <div className="fixed inset-0 z-[60] flex items-end justify-center bg-black/40 p-3 sm:items-center" onClick={onClose}>
       <div onClick={(e) => e.stopPropagation()} className="w-full max-w-sm animate-rise rounded-3xl bg-white p-5 text-center shadow-lift">
         <div className="flex justify-center gap-1.5">
-          {["bca", "bri", "mandiri", "dana", "shopeepay"].map((k) => (
-            <PocketBadge key={k} type="bank" provider={k} size={34} />
+          {teaser.filter((k) => providerOf(k)).slice(0, 6).map((k) => (
+            <PocketBadge key={k} type={providerOf(k)!.type as PocketType} provider={k} size={34} />
           ))}
         </div>
         <p className="mt-4 text-lg font-bold text-heading">Pisahkan uang per kantong</p>
@@ -169,7 +170,7 @@ function Upsell({ onClose }: { onClose: () => void }) {
   );
 }
 
-function Sheet({ preset, defaultWallet, pockets, plus, dreams, onDone }: { preset: QuickPreset; defaultWallet: Wallet; pockets: Pocket[]; plus: boolean; dreams: DreamOpt[]; onDone: () => void }) {
+function Sheet({ preset, defaultWallet, pockets, plus, dreams, teaser, onDone }: { preset: QuickPreset; defaultWallet: Wallet; pockets: Pocket[]; plus: boolean; dreams: DreamOpt[]; teaser: string[]; onDone: () => void }) {
   const [upsell, setUpsell] = useState(false);
   const [dreamId, setDreamId] = useState(dreams[0]?.id ?? "");
   const [dreamMode, setDreamMode] = useState<"" | "for" | "other">("");
@@ -213,7 +214,7 @@ function Sheet({ preset, defaultWallet, pockets, plus, dreams, onDone }: { prese
 
   return (
     <form action={action}>
-      {upsell && <Upsell onClose={() => setUpsell(false)} />}
+      {upsell && <Upsell onClose={() => setUpsell(false)} teaser={teaser} />}
       <div className="mb-4 flex items-center justify-between">
         <h2 className="text-lg font-bold text-heading">Catat transaksi</h2>
         <button type="button" onClick={onDone} className="grid h-9 w-9 place-items-center rounded-full text-muted hover:bg-paper" aria-label="Tutup">
@@ -272,7 +273,7 @@ function Sheet({ preset, defaultWallet, pockets, plus, dreams, onDone }: { prese
           ))}
         </div>
       )}
-      {kind !== "transfer" && <WalletPockets wallet={wallet} list={pockets.filter((p) => p.wallet === wallet)} value={pocket} onChange={setPocket} plus={plus} onLocked={() => setUpsell(true)} />}
+      {kind !== "transfer" && <WalletPockets teaserKeys={teaser} list={pockets.filter((p) => p.wallet === wallet)} value={pocket} onChange={setPocket} plus={plus} onLocked={() => setUpsell(true)} />}
 
       <label className="mt-5 block">
         <span className="text-xs font-medium text-muted">Nominal</span>

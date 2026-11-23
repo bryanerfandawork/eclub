@@ -140,6 +140,16 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
               <p className="flex items-center gap-2 text-sm font-bold text-heading">
                 <Landmark className="h-4 w-4 text-gold" /> {qris ? "Atau transfer ke rekening" : "Rekening tujuan"}
               </p>
+              {accounts.length > 0 && (() => {
+                const holders = [...new Set(accounts.map((a) => a.holder).filter(Boolean))];
+                return holders.length === 1 ? (
+                  <div className="mt-3 rounded-xl border border-gold/50 bg-gold-soft px-4 py-3 text-center">
+                    <p className="text-xs font-medium text-muted">{accounts.length > 1 ? "Semua rekening di bawah atas nama" : "Rekening atas nama"}</p>
+                    <p className="mt-0.5 text-xl font-extrabold tracking-wide text-heading">{holders[0]}</p>
+                    <p className="mt-0.5 text-[11px] text-muted">Pastikan nama ini yang muncul saat Anda transfer.</p>
+                  </div>
+                ) : null;
+              })()}
               {accounts.length > 0 ? (
                 <ul className="mt-3 space-y-2.5">
                   {accounts.map((a) => (
@@ -150,7 +160,11 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
                         </span>
                         <div className="min-w-0 flex-1">
                           <p className="text-sm font-bold text-heading">{a.bank}</p>
-                          {a.holder && <p className="truncate text-xs text-muted">a.n. {a.holder}</p>}
+                          {a.holder && (
+                            <p className="truncate text-sm text-ink">
+                              a.n. <b className="text-heading">{a.holder}</b>
+                            </p>
+                          )}
                         </div>
                       </div>
                       <div className="mt-2.5 flex items-center justify-between gap-2 rounded-lg bg-paper py-2 pr-2 pl-3">

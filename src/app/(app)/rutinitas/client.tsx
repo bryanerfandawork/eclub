@@ -37,9 +37,7 @@ function Chips({ items, onPick }: { items: string[]; onPick: (v: string) => void
   );
 }
 
-const WORK_IDEAS = ["Usaha / jualan", "Pekerjaan kantor", "Kuliah & tugas", "Latihan olahraga", "Konten media sosial", "Belajar skill baru", "Urusan rumah & keluarga", "Organisasi / komunitas"];
-
-export function AddWork({ existing, dreams }: { existing: string[]; dreams: Dream[] }) {
+export function AddWork({ existing, dreams, ideas }: { existing: string[]; dreams: Dream[]; ideas: string[] }) {
   const [state, action] = useActionState<FormState, FormData>(addWork, {});
   const [name, setName] = useState("");
   const [open, setOpen] = useState(existing.length === 0);
@@ -59,7 +57,7 @@ export function AddWork({ existing, dreams }: { existing: string[]; dreams: Drea
       className="mt-4 space-y-3 rounded-2xl bg-paper p-4"
     >
       <p className="text-xs font-medium text-muted">Contoh (ketuk untuk memakai):</p>
-      <Chips items={WORK_IDEAS.filter((n) => !existing.includes(n))} onPick={setName} />
+      <Chips items={ideas.filter((n) => !existing.includes(n))} onPick={setName} />
       <input name="name" value={name} onChange={(e) => setName(e.target.value)} className="input" placeholder="Misal: Usaha katering, Latihan sepak bola" maxLength={60} />
       <DreamSelect dreams={dreams} />
       <SubmitButton className="btn-primary w-full" pendingText="Menyimpan…">
@@ -70,19 +68,9 @@ export function AddWork({ existing, dreams }: { existing: string[]; dreams: Drea
   );
 }
 
-const HABIT_IDEAS: [string, string][] = [
-  ["🙏", "Ibadah tepat waktu"],
-  ["📖", "Baca 10 halaman"],
-  ["🏃", "Olahraga 15 menit"],
-  ["💧", "Minum 8 gelas air"],
-  ["💰", "Catat keuangan"],
-  ["📞", "Follow-up 5 pelanggan"],
-  ["📱", "Posting konten jualan"],
-  ["😴", "Tidur sebelum jam 11"],
-];
 const EMOJIS = ["✅", "🙏", "📖", "🏃", "💧", "💰", "📞", "📱", "😴", "🧘", "🥗", "✍️"];
 
-export function AddHabit({ existing, dreams }: { existing: string[]; dreams: Dream[] }) {
+export function AddHabit({ existing, dreams, ideas }: { existing: string[]; dreams: Dream[]; ideas: [string, string][] }) {
   const [state, action] = useActionState<FormState, FormData>(addHabit, {});
   const [name, setName] = useState("");
   const [emoji, setEmoji] = useState("✅");
@@ -104,7 +92,7 @@ export function AddHabit({ existing, dreams }: { existing: string[]; dreams: Dre
     >
       <p className="text-xs font-medium text-muted">Ide cepat (ketuk untuk memakai):</p>
       <div className="flex flex-wrap gap-2">
-        {HABIT_IDEAS.filter(([, n]) => !existing.includes(n)).map(([e, n]) => (
+        {ideas.filter(([, n]) => !existing.includes(n)).map(([e, n]) => (
           <button
             key={n}
             type="button"

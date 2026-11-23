@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { BarChart3, ChevronLeft, ChevronRight, Download, Lock, Settings2, ShieldCheck } from "lucide-react";
 import { PocketBadge } from "@/components/finance/pocket-badge";
-import { getAccount, isAdmin } from "@/lib/plans";
+import { getAccount, getSettings, isAdmin } from "@/lib/plans";
+import { assistantConfig } from "@/lib/assistant-config";
 import { compactRupiah } from "@/lib/format";
 import { deleteTx } from "@/app/actions/finance";
 import { CatatButton, DeleteTx, QuickAdd } from "@/components/finance/quick-add";
@@ -329,7 +330,7 @@ export default async function KeuanganPage({ searchParams }: { searchParams: Pro
         <ShieldCheck className="h-3.5 w-3.5" /> Catatan keuangan hanya bisa dilihat oleh Anda.
       </p>
       <div className="h-16 lg:hidden" />
-      <QuickAdd defaultWallet={w} pockets={pockets} plus={plus} dreams={dreams.filter((d) => d.status === "active").map((d) => ({ id: d.id, title: d.title }))} />
+      <QuickAdd defaultWallet={w} pockets={pockets} plus={plus} teaser={assistantConfig(await getSettings()).teaser} dreams={dreams.filter((d) => d.status === "active").map((d) => ({ id: d.id, title: d.title }))} />
     </>
   );
 }

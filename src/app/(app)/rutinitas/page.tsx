@@ -6,11 +6,14 @@ import { PageHeader } from "@/components/ui";
 import { getHabitsToday, getWorks } from "@/lib/assistant";
 import { getDreams } from "@/lib/data";
 import { AddHabit, AddWork } from "./client";
+import { getSettings } from "@/lib/plans";
+import { assistantConfig } from "@/lib/assistant-config";
 
 export const metadata = { title: "Rutinitas Harian" };
 
 export default async function RutinitasPage() {
-  const [works, { habits }, all] = await Promise.all([getWorks(), getHabitsToday(), getDreams()]);
+  const [works, { habits }, all, settings] = await Promise.all([getWorks(), getHabitsToday(), getDreams(), getSettings()]);
+  const cfg = assistantConfig(settings);
   const dreams = all.filter((d) => d.status === "active").map((d) => ({ id: d.id, title: d.title }));
   const dreamTitle = (id?: string | null) => dreams.find((d) => d.id === id)?.title;
 
@@ -46,7 +49,7 @@ export default async function RutinitasPage() {
               </li>
             ))}
           </ul>
-          <AddWork existing={works.map((w) => w.name)} dreams={dreams} />
+          <AddWork existing={works.map((w) => w.name)} dreams={dreams} ideas={cfg.workIdeas} />
         </section>
 
         <section className="card p-5 lg:p-6">
@@ -71,7 +74,7 @@ export default async function RutinitasPage() {
               </li>
             ))}
           </ul>
-          <AddHabit existing={habits.map((h) => h.name)} dreams={dreams} />
+          <AddHabit existing={habits.map((h) => h.name)} dreams={dreams} ideas={cfg.habitIdeas} />
         </section>
       </div>
 

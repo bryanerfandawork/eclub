@@ -8,8 +8,6 @@ export type Pocket = { id: string; wallet: Wallet; name: string; type: PocketTyp
 export const earmarked = (p: Pocket) => (p.earmarks ?? []).reduce((n, e) => n + e.amount, 0);
 export const freeBalance = (p: Pocket) => p.balance - earmarked(p);
 
-/** Kantong contoh yang dipamerkan (terkunci) untuk member gratis. */
-export const TEASER: Record<Wallet, string[]> = { personal: ["bca", "bri", "mandiri", "dana", "shopeepay"], business: ["bca", "bri", "mandiri", "shopeepay"] };
 
 /**
  * Penanda bank & e-wallet: lencana warna + singkatan (bukan logo resmi, agar aman dari sisi merek dagang

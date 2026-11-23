@@ -208,3 +208,22 @@ export async function adminSaveNudgeSettings(_: FormState, formData: FormData): 
   revalidatePath("/admin/notifikasi");
   return { message: "Pengaturan notifikasi malam tersimpan." };
 }
+
+/** Admin > Pengaturan: isi asisten harian & keuangan (kantong contoh, ide pekerjaan/kebiasaan, sorotan landing page). */
+export async function adminSaveAssistant(_: FormState, formData: FormData): Promise<FormState> {
+  if (isDemoMode) return { error: DEMO_MSG };
+  const supabase = await createClient();
+  const text = (k: string, max: number) => String(formData.get(k) ?? "").replace(/\r/g, "").trim().slice(0, max);
+  const settings: [string, unknown][] = [
+    ["pocket_teaser", formData.getAll("pocket_teaser").map(String).filter((k) => /^[a-z0-9]{2,20}$/.test(k)).join(",")],
+    ["work_ideas", text("work_ideas", 1500)],
+    ["habit_ideas", text("habit_ideas", 1500)],
+    ["landing_highlights", text("landing_highlights", 3000)],
+  ];
+  for (const [skey, svalue] of settings) {
+    const { error } = await supabase.rpc("admin_set_setting", { skey, svalue });
+    if (error) return { error: "Gagal menyimpan: " + error.message };
+  }
+  revalidatePath("/", "layout");
+  return { message: "Tersimpan. Perubahan langsung tampil di aplikasi dan halaman depan." };
+}

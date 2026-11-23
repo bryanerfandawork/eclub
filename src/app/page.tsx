@@ -38,6 +38,9 @@ import { getFeatures, getSettings } from "@/lib/plans";
 import { listTestimonials } from "@/lib/testimonials";
 import { rupiah } from "@/lib/format";
 import { SEGMENTS } from "@/lib/types";
+import { assistantConfig } from "@/lib/assistant-config";
+import { PROVIDERS } from "@/lib/pockets";
+import { PocketBadge } from "@/components/finance/pocket-badge";
 
 export const dynamic = "force-dynamic";
 
@@ -45,7 +48,7 @@ const FEATURES: { icon: typeof Heart; title: string; desc: string; tag?: string 
   { icon: Radar, title: "Cek Posisi SEF", desc: "Jawab beberapa pertanyaan singkat, lalu lihat Anda sedang di tahap mana dan apa langkah paling tepat berikutnya.", tag: "Mulai di sini" },
   { icon: Repeat, title: "Peta Income", desc: "Petakan penghasilan aktif, masif, dan pasif Anda, lalu hitung jarak ke mimpi. Cocok untuk karyawan, pelajar, freelancer, maupun pemilik usaha." },
   { icon: Crosshair, title: "Target Jualan Harian", desc: "Mimpi Rp60 juta dalam 5 tahun? Sistem menghitung tabungan per hari dan berapa produk yang harus terjual setiap hari." },
-  { icon: Wallet, title: "Keuangan & HPP", desc: "Hitung HPP dan harga jual tiap produk, catat pemasukan dan pengeluaran, lalu lihat untung per produk dan laba rugi bulanan." },
+  { icon: Wallet, title: "Kantong & Tabungan Mimpi", desc: "Uang pribadi dan usaha terpisah per kantong (tunai, bank, e-wallet). Sisihkan uang untuk mimpi, lengkap dengan HPP dan laba rugi bulanan.", tag: "Baru" },
   { icon: Gem, title: "Dream Planner", desc: "Ubah mimpi menjadi angka, tanggal, dan tabungan yang jelas. Lihat progresnya bergerak setiap kali Anda menabung." },
   { icon: CalendarCheck2, title: "Asisten Harian", desc: "Pekerjaan rutin dan kebiasaan Anda terhubung ke mimpi. Setiap hari laporkan rencana aksi: selesai, lanjut besok, atau tutup. Malam hari diingatkan, Minggu dapat Rapor Mingguan.", tag: "Baru" },
   { icon: Heart, title: "Potensi Diri & Tes Gaya Diri", desc: "Kenali bekal Anda: minat, bakat, passion, Personal SWOT, Peta Aset, Tes Gaya Diri, dan 8 Wheel Entrepreneur." },
@@ -67,6 +70,7 @@ const PAINS = [
 const FAQ = [
   { q: "Apakah EClub hanya untuk pengusaha?", a: "Tidak. EClub untuk siapa saja yang ingin bertumbuh: pelajar, karyawan, profesional, freelancer, maupun pemilik bisnis. Setiap orang punya definisi sukses dan kendaraan yang berbeda." },
   { q: "Apakah versi gratis benar-benar bisa dipakai?", a: "Ya, gratis selamanya: seluruh Perjalanan 5 Langkah, Cek Posisi, Peta Income, Target Jualan Harian, kalkulator HPP untuk 3 produk, catatan keuangan, Dream Planner, Asisten Harian (3 rencana aksi baru per hari, kebiasaan tidak dihitung), jurnal syukur, komunitas, dan Tes Gaya Diri (hasil dasar). Plus membuka rencana aksi tanpa batas, laporan lengkap, ide income personal, kelas Plus, dan harga mentoring khusus." },
+  { q: "Apakah uang saya disimpan di EClub?", a: "Tidak. EClub hanya mencatat: uang Anda tetap di dompet, rekening, atau e-wallet Anda sendiri. Kantong dan tabungan mimpi membantu Anda tahu persis berapa uang di setiap tempat dan untuk apa." },
   { q: "Bagaimana cara kerja affiliate?", a: "Setiap member Plus otomatis punya link dan kode kupon pribadi. Teman yang memakai kupon mendapat potongan, dan Anda mendapat bagi hasil dari setiap transaksinya. Saldo bisa dicairkan setiap kelipatan Rp100.000." },
   { q: "Apakah EClub bisa mengisi pelatihan di kantor atau komunitas kami?", a: "Bisa. Kami menerima in-house training, workshop, undangan pembicara, dan kemitraan. Isi formulir di bagian Kolaborasi, tim kami akan menghubungi lewat WhatsApp." },
   { q: "Apakah data saya aman?", a: "Data tersimpan terenkripsi dan setiap akun hanya bisa mengakses datanya sendiri. Tim admin tidak bisa membaca isi mimpi, jawaban tes, atau catatan pribadi Anda." },
@@ -100,11 +104,11 @@ function PhoneMockup() {
             </div>
           </div>
           <div className="rounded-2xl border border-line bg-white p-3">
-            <p className="text-[11px] font-bold text-heading">Laporan hari ini</p>
+            <p className="text-[11px] font-bold text-heading">Ritual harian · 1/3</p>
             {[
-              ["Ibadah tepat waktu", true],
-              ["Hubungi 3 calon pelanggan", false],
-              ["Kerjakan tugas kuliah bab 2", false],
+              ["Lapor keuangan", true],
+              ["Rencana & kebiasaan", false],
+              ["Syukur harian", false],
             ].map(([t, done]) => (
               <p key={String(t)} className="mt-2 flex items-center gap-2 text-[11px]">
                 {done ? <CheckCircle2 className="h-3.5 w-3.5 text-success" /> : <Circle className="h-3.5 w-3.5 text-line" />}
@@ -136,6 +140,7 @@ export default async function Home() {
   const save = monthly && yearly ? Math.round((1 - yearly / (monthly * 12)) * 100) : 0;
   const perMonth = yearly ? Math.round(yearly / 12 / 100) * 100 : 0;
   const rate = Number(settings.affiliate_rate) || 20;
+  const highlights = assistantConfig(settings).highlights;
   const couponOff = Number(settings.coupon_discount) || 10;
   type PubEvent = { id: string; title: string; speaker: string | null; starts_at: string; price: number; plus_price: number; regency: string | null; location: string | null };
   let events: PubEvent[] = [];
@@ -237,6 +242,31 @@ export default async function Home() {
               </p>
             </div>
           ))}
+        </div>
+      </section>
+
+      {/* Asisten harian (bisa diubah di Admin > Pengaturan) */}
+      <section id="asisten" className="mx-auto max-w-6xl scroll-mt-20 px-5 pt-20 lg:px-10 lg:pt-28">
+        <div className="mx-auto max-w-2xl text-center">
+          <p className="eyebrow">Setelah peta tersusun</p>
+          <h2 className="mt-3 text-3xl font-bold tracking-tight text-heading sm:text-4xl">EClub jadi asisten pribadi Anda, setiap hari</h2>
+          <p className="mt-4 text-[17px] leading-relaxed text-muted">Mimpi tidak tercapai dalam sehari, tapi dibangun dari kebiasaan kecil setiap hari. Cukup 3 menit: keuangan, rencana aksi, dan syukur.</p>
+        </div>
+        <div className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {highlights.map((h) => (
+            <div key={h.title} className="card flex flex-col p-6">
+              <span className="grid h-12 w-12 place-items-center rounded-2xl bg-gold-soft text-2xl">{h.emoji}</span>
+              <h3 className="mt-4 text-lg font-bold text-heading">{h.title}</h3>
+              <p className="mt-1.5 flex-1 text-sm leading-relaxed text-muted">{h.desc}</p>
+            </div>
+          ))}
+        </div>
+        <div className="mt-6 flex flex-wrap items-center justify-center gap-2 text-xs text-muted">
+          <span>Kantong yang bisa Anda pisahkan:</span>
+          {["cash", ...PROVIDERS.filter((p) => ["bca", "bri", "mandiri", "bni", "bsi", "gopay", "ovo", "dana", "shopeepay"].includes(p.key)).map((p) => p.key)].map((k) => (
+            <PocketBadge key={k} type="cash" provider={k === "cash" ? null : k} size={28} />
+          ))}
+          <span>dan lainnya</span>
         </div>
       </section>
 
@@ -406,6 +436,7 @@ export default async function Home() {
                   "Target Jualan Harian dari mimpi Anda",
                   "Kalkulator HPP (3 produk) & catatan keuangan",
                   "Dream Planner & Asisten Harian (3 rencana/hari)",
+                  "Kantong tunai pribadi & usaha + tabung untuk mimpi",
                   "Tes Gaya Diri (hasil dasar) & 8 Wheel",
                   "Komunitas member & kelas gratis",
                 ].map((p) => (
@@ -434,6 +465,7 @@ export default async function Home() {
                 {[
                   "Semua fitur Free, dengan batas lebih besar",
                   "Rencana aksi harian tanpa batas",
+                  "Kantong bank & e-wallet tanpa batas, grafik & ekspor Excel",
                   "Produk HPP tanpa batas & laporan laba rugi",
                   "Laporan lengkap Gaya Diri + rekomendasi karier",
                   "Rekomendasi ide income personal",

@@ -5,7 +5,8 @@ import { toggleHabit } from "@/app/actions/habits";
 import { markNoTx } from "@/app/actions/finance";
 import { CatatButton, QuickAdd } from "@/components/finance/quick-add";
 import { getFinance, getFinToday } from "@/lib/finance-server";
-import { getAccount, getLimit, isAdmin } from "@/lib/plans";
+import { getAccount, getLimit, getSettings, isAdmin } from "@/lib/plans";
+import { assistantConfig } from "@/lib/assistant-config";
 import { rupiah } from "@/lib/format";
 import { PendingButton } from "@/components/pending-button";
 import { AssistantPanel } from "@/components/assistant-panel";
@@ -248,7 +249,7 @@ export default async function TodayPage() {
           </section>
         </aside>
       </div>
-      <QuickAdd defaultWallet="personal" pockets={fin.pockets} plus={plus} fab={false} dreams={dreams.map((d) => ({ id: d.id, title: d.title }))} />
+      <QuickAdd defaultWallet="personal" pockets={fin.pockets} plus={plus} teaser={assistantConfig(await getSettings()).teaser} fab={false} dreams={dreams.map((d) => ({ id: d.id, title: d.title }))} />
     </>
   );
 }
