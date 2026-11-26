@@ -24,8 +24,8 @@ import { regencyName } from "@/lib/regions";
 import { getIncomeProfile } from "@/lib/income-server";
 import { summarize } from "@/lib/income";
 import { TrendingUp } from "lucide-react";
-import { FolderKanban } from "lucide-react";
-import { getMyTeamTasks, getTeamState } from "@/lib/team";
+import { getTeamState } from "@/lib/team";
+import { TeamCard } from "@/components/team/team-card";
 import { WorkHome } from "@/components/team/work-home";
 
 export const metadata = { title: "Dashboard" };
@@ -36,8 +36,6 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   // Member dari undangan tim yang belum menulis mimpi: Home sederhana (target harian & pekerjaan saja).
   const team = await getTeamState();
   if (team.simple) return <WorkHome />;
-  const teamToday = team.workspaces ? (await getMyTeamTasks(today, todayJakarta(1))).filter((t) => t.plan_date <= today) : [];
-  const teamLeft = teamToday.filter((t) => t.status === "open").length;
   // Semua data diambil bersamaan (bukan satu per satu) supaya Home cepat terbuka.
   const [profile, dreams, actions, stats, ew, , disc, fin, vapid, events, account, share, income, journey, me] = await Promise.all([
     getProfile(),
@@ -87,18 +85,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
 
       <AssistantHome streak={stats.streak} hero={journey.setupDone} />
 
-      {teamToday.length > 0 && (
-        <Link href="/today" className="flex items-center gap-4 rounded-2xl border border-line bg-white p-4 transition hover:border-gold">
-          <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-brand/10 text-brand">
-            <FolderKanban className="h-5 w-5" />
-          </span>
-          <span className="min-w-0 flex-1 text-sm">
-            <b className="block text-heading">Pekerjaan Tim hari ini</b>
-            <span className="text-muted">{teamLeft ? `${teamLeft} dari ${teamToday.length} tugas belum selesai` : `Semua ${teamToday.length} tugas selesai ✓`}</span>
-          </span>
-          <ArrowRight className="h-5 w-5 shrink-0 text-brand" />
-        </Link>
-      )}
+      <TeamCard />
 
       <PushToggle publicKey={vapid} variant="card" />
 

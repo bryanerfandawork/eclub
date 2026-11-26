@@ -16,7 +16,7 @@ export type Workspace = {
   archived: boolean;
   created_at: string;
 };
-export type MyWorkspace = Workspace & { role: WsRole; open: number; mine: number };
+export type MyWorkspace = Workspace & { role: WsRole; open: number; mine: number; late: number };
 export type Person = { user_id: string; full_name: string | null; username: string | null; role: WsRole; status: "invited" | "active"; joined_at: string | null };
 export type TeamTask = {
   id: string;
@@ -32,7 +32,22 @@ export type TeamTask = {
   done_at: string | null;
   created_at: string;
   updated_at: string;
+  /** Kolom SQL 025 (opsional supaya tetap jalan sebelum SQL dijalankan). */
+  section_id?: string | null;
+  goal_id?: string | null;
+  important?: boolean;
+  archived?: boolean;
+  result_state?: "saved" | "skipped" | null;
+  result_amount?: number | null;
 };
+export type Section = { id: string; name: string; sort: number };
+export type Goal = { id: string; title: string; target_value: number | null; current_value: number; unit: string | null; due_date: string | null; status: "active" | "achieved" | "dropped" };
+
+/** Perlu tindakan: belum selesai padahal jadwal atau tenggatnya sudah lewat. */
+export const isLate = (t: Pick<TeamTask, "status" | "plan_date" | "due_date">, today: string) => t.status === "open" && (t.plan_date < today || (!!t.due_date && t.due_date < today));
+export const jktDay = (iso: string | null) => (iso ? new Date(iso).toLocaleDateString("en-CA", { timeZone: "Asia/Jakarta" }) : "");
+/** Urutan tampil: penting dulu, lalu tanggal. */
+export const byPriority = (a: TeamTask, b: TeamTask) => Number(!!b.important) - Number(!!a.important) || a.plan_date.localeCompare(b.plan_date) || a.created_at.localeCompare(b.created_at);
 export type TaskComment = { id: string; task_id: string; user_id: string; body: string; created_at: string };
 export type Invite = { workspace_id: string; name: string; kind: string; inviter: string; created_at: string };
 export type Notice = { id: string; title: string; body: string | null; url: string | null; read_at: string | null; created_at: string };
@@ -93,14 +108,16 @@ export const getMyWorkspaces = cache(async (): Promise<MyWorkspace[]> => {
     .eq("user_id", user.id)
     .eq("status", "active");
   if (error || !data) return [];
-  const list = (data as unknown as { role: WsRole; workspaces: Workspace | null }[]).filter((r) => r.workspaces).map((r) => ({ ...(r.workspaces as Workspace), role: r.role, open: 0, mine: 0 }));
+  const list = (data as unknown as { role: WsRole; workspaces: Workspace | null }[]).filter((r) => r.workspaces).map((r) => ({ ...(r.workspaces as Workspace), role: r.role, open: 0, mine: 0, late: 0 }));
   if (!list.length) return [];
-  const { data: tasks } = await supabase.from("ws_tasks").select("workspace_id, assignee_id").eq("status", "open").in("workspace_id", list.map((w) => w.id));
-  for (const t of (tasks ?? []) as { workspace_id: string; assignee_id: string | null }[]) {
+  const { data: tasks } = await supabase.from("ws_tasks").select("*").eq("status", "open").in("workspace_id", list.map((w) => w.id)).limit(2000);
+  const today = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Jakarta" });
+  for (const t of (tasks ?? []) as TeamTask[]) {
     const w = list.find((x) => x.id === t.workspace_id);
-    if (!w) continue;
+    if (!w || t.archived) continue;
     w.open++;
     if (t.assignee_id === user.id) w.mine++;
+    if (isLate(t, today)) w.late++;
   }
   return list.sort((a, b) => Number(a.archived) - Number(b.archived) || a.name.localeCompare(b.name));
 });
@@ -117,10 +134,12 @@ export async function getWorkspace(id: string) {
   const { user } = await getMe();
   if (!user) return null;
   const supabase = await createClient();
-  const [{ data: ws }, { data: people }, { data: tasks }] = await Promise.all([
+  const [{ data: ws }, { data: people }, { data: tasks }, sec, gl] = await Promise.all([
     supabase.from("workspaces").select("*").eq("id", id).maybeSingle(),
     supabase.rpc("ws_people", { p_ws: id }),
-    supabase.from("ws_tasks").select("*").eq("workspace_id", id).order("plan_date").order("created_at").limit(500),
+    supabase.from("ws_tasks").select("*").eq("workspace_id", id).order("plan_date").order("created_at").limit(1000),
+    supabase.from("ws_sections").select("id, name, sort").eq("workspace_id", id).eq("archived", false).order("sort").order("created_at"),
+    supabase.from("ws_goals").select("id, title, target_value, current_value, unit, due_date, status").eq("workspace_id", id).neq("status", "dropped").order("created_at"),
   ]);
   if (!ws) return null;
   const ppl = (people ?? []) as Person[];
@@ -129,7 +148,16 @@ export async function getWorkspace(id: string) {
   const { data: cc } = await supabase.from("ws_comments").select("task_id").eq("workspace_id", id).limit(2000);
   const comments: Record<string, number> = {};
   for (const c of (cc ?? []) as { task_id: string }[]) comments[c.task_id] = (comments[c.task_id] ?? 0) + 1;
-  return { ws: ws as Workspace, people: ppl, role: me.role, me: user.id, tasks: (tasks ?? []) as TeamTask[], comments };
+  return {
+    ws: ws as Workspace & { dream_id?: string | null },
+    people: ppl,
+    role: me.role,
+    me: user.id,
+    tasks: (tasks ?? []) as TeamTask[],
+    comments,
+    sections: sec.error ? null : ((sec.data ?? []) as Section[]),
+    goals: gl.error ? [] : ((gl.data ?? []) as Goal[]).map((g) => ({ ...g, target_value: g.target_value === null ? null : Number(g.target_value), current_value: Number(g.current_value) })),
+  };
 }
 
 export async function getTask(wsId: string, taskId: string) {
@@ -159,7 +187,7 @@ export const getMyTeamTasks = cache(async (today: string, tomorrow: string): Pro
     .order("plan_date")
     .limit(100);
   if (error || !data) return [];
-  const rows = (data as unknown as (TeamTask & { workspaces: { name: string; archived: boolean } | null })[]).filter((t) => t.workspaces && !t.workspaces.archived);
+  const rows = (data as unknown as (TeamTask & { workspaces: { name: string; archived: boolean } | null })[]).filter((t) => t.workspaces && !t.workspaces.archived && !t.archived);
   const ids = rows.map((r) => r.id);
   const counts: Record<string, number> = {};
   if (ids.length) {
@@ -177,3 +205,37 @@ export async function getNotices(limit = 20): Promise<Notice[]> {
 }
 
 export const personName = (p?: Pick<Person, "full_name" | "username"> | null) => p?.full_name || (p?.username ? `@${p.username}` : "Anggota");
+
+export type Alert = TeamTask & { ws_name: string; who: string };
+
+/**
+ * Untuk pemilik/admin: tugas anggota yang terlambat (jadwal/tenggat lewat, belum selesai) di semua ruang kerja yang ia kelola.
+ * Ditampilkan merah dengan pilihan selesai, jadwal ulang, atau batal.
+ */
+export const getManagedAlerts = cache(async (today: string): Promise<Alert[]> => {
+  if (isDemoMode) return [];
+  const { user } = await getMe();
+  if (!user) return [];
+  const supabase = await createClient();
+  const { data: mine, error } = await supabase.from("workspace_members").select("workspace_id, role, workspaces(name, archived)").eq("user_id", user.id).eq("status", "active").in("role", ["owner", "admin"]);
+  if (error || !mine?.length) return [];
+  const ws = (mine as unknown as { workspace_id: string; workspaces: { name: string; archived: boolean } | null }[]).filter((m) => m.workspaces && !m.workspaces.archived);
+  if (!ws.length) return [];
+  const ids = ws.map((w) => w.workspace_id);
+  const { data: tasks } = await supabase
+    .from("ws_tasks")
+    .select("*")
+    .in("workspace_id", ids)
+    .eq("status", "open")
+    .or(`plan_date.lt.${today},due_date.lt.${today}`)
+    .order("plan_date")
+    .limit(100);
+  const list = ((tasks ?? []) as TeamTask[]).filter((t) => !t.archived);
+  if (!list.length) return [];
+  const people = await Promise.all([...new Set(list.map((t) => t.workspace_id))].map(async (w) => ({ w, p: ((await supabase.rpc("ws_people", { p_ws: w })).data ?? []) as Person[] })));
+  return list.map((t) => ({
+    ...t,
+    ws_name: ws.find((w) => w.workspace_id === t.workspace_id)?.workspaces?.name ?? "Tim",
+    who: t.assignee_id ? personName(people.find((x) => x.w === t.workspace_id)?.p.find((p) => p.user_id === t.assignee_id)) : "Belum ditentukan",
+  }));
+});

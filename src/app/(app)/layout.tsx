@@ -29,7 +29,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     if (push && !push.error && !push.count) redirect("/aktifkan-notifikasi");
   }
   return (
-    <AppShell name={profile.full_name || "Sahabat EClub"} email={profile.email} demo={isDemoMode} plan={account.plan} admin={isAdmin(account.role)} ai={isDemoMode || aiConfigured()} team={team.ready && (team.workspaces + team.invites > 0 || account.plan === "plus" || isAdmin(account.role))} simple={team.simple} unread={team.unread}>
+    <AppShell name={profile.full_name || "Sahabat EClub"} email={profile.email} demo={isDemoMode} plan={account.plan} admin={isAdmin(account.role)} ai={isDemoMode || aiConfigured()} team={team.ready && (team.workspaces + team.invites > 0 || account.plan === "plus" || isAdmin(account.role))} simple={team.simple} unread={team.unread} teamNav={team.workspaces + team.invites > 0}>
       {children}
     </AppShell>
   );

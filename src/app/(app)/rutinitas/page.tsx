@@ -8,6 +8,7 @@ import { getDreams } from "@/lib/data";
 import { AddHabit, AddWork } from "./client";
 import { getSettings } from "@/lib/plans";
 import { assistantConfig } from "@/lib/assistant-config";
+import { TeamCard } from "@/components/team/team-card";
 
 export const metadata = { title: "Rutinitas Harian" };
 
@@ -24,6 +25,9 @@ export default async function RutinitasPage() {
         title="Apa yang Anda jalani setiap hari?"
         desc="Tulis pekerjaan atau aktivitas rutin Anda dan kebiasaan baik yang ingin dibangun. Kaitkan masing-masing ke mimpi, supaya setiap hari terasa ada artinya."
       />
+      <div className="mb-5">
+        <TeamCard variant="compact" />
+      </div>
       <div className="grid gap-5 lg:grid-cols-2 lg:gap-6">
         <section className="card p-5 lg:p-6">
           <h2 className="flex items-center gap-2 font-bold text-heading">

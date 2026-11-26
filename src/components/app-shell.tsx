@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useState } from "react";
 import {
   Bell,
+  FolderKanban,
   Crown,
   LayoutGrid,
   LogOut,
@@ -39,6 +40,7 @@ export function AppShell({
   team = false,
   simple = false,
   unread = 0,
+  teamNav = false,
 }: {
   children: React.ReactNode;
   name: string;
@@ -53,9 +55,11 @@ export function AppShell({
   simple?: boolean;
   /** Pemberitahuan tim yang belum dibaca. */
   unread?: number;
+  /** Sudah tergabung di ruang kerja: menu bawah HP menampilkan "Tim" (menggantikan Learn). */
+  teamNav?: boolean;
 }) {
   const groups = (simple ? simpleSidebarNav : sidebarNav).map((g) => ({ ...g, items: g.items.filter((i) => !i.team || team) }));
-  const bottom = simple ? simpleMobileNav : mobileNav;
+  const bottom = simple ? simpleMobileNav : teamNav ? mobileNav.map((i) => (i.href === "/learn" ? { label: "Tim", href: "/tim", icon: FolderKanban } : i)) : mobileNav;
   // Member dari undangan tim: Laporan Harian tampil sebagai daftar kerja biasa dulu, tanpa penunjuk 5 langkah.
   const pathname = usePathname();
   const hideSteps = simple && pathname.startsWith("/today");

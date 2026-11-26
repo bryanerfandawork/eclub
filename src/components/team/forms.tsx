@@ -2,12 +2,85 @@
 
 import { useActionState, useEffect, useRef, useState } from "react";
 import { Send, UserPlus } from "lucide-react";
-import { addComment, addTask, createWorkspace, inviteByUsername, joinByCode, setUsername, updateTask, updateWorkspace } from "@/app/actions/team";
+import { addComment, addGoal, addSection, addTask, createWorkspace, inviteByUsername, joinByCode, saveTaskResult, setUsername, updateTask, updateWorkspace } from "@/app/actions/team";
+import { rupiah } from "@/lib/format";
 import { SubmitButton } from "@/components/submit-button";
 import { FormMessage } from "@/components/ui";
 import type { FormState } from "@/app/actions/auth";
 
 type Opt = { id: string; name: string };
+type Person = { id: string; name: string; pending?: boolean };
+
+function DreamSelect({ dreams, value }: { dreams: Opt[]; value?: string | null }) {
+  return (
+    <label className="block">
+      <span className="label">Pekerjaan ini mendukung mimpi apa?</span>
+      <select name="dream_id" defaultValue={value ?? ""} className="input">
+        <option value="">Tidak dikaitkan ke mimpi (tidak apa-apa)</option>
+        {dreams.map((d) => (
+          <option key={d.id} value={d.id}>
+            ✨ {d.name}
+          </option>
+        ))}
+      </select>
+      <span className="mt-1 block text-xs text-muted">Hanya Anda yang melihat mimpi ini, bukan anggota tim.</span>
+    </label>
+  );
+}
+
+/** Pilihan bagian, target, penanggung jawab & tanda penting, dipakai di form tambah & ubah tugas. */
+function TaskFields({ people, sections, goals, me, d }: { people: Person[]; sections: Opt[] | null; goals: Opt[]; me?: string; d?: { assignee_id: string | null; section_id?: string | null; goal_id?: string | null; important?: boolean } }) {
+  return (
+    <>
+      <div className="grid gap-2 sm:grid-cols-2">
+        <label className="block">
+          <span className="text-xs text-muted">Dikerjakan oleh</span>
+          <select name="assignee" className="input text-sm" defaultValue={d ? (d.assignee_id ?? "") : (people.find((p) => p.id !== me)?.id ?? me ?? "")}>
+            {people.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.name}
+                {p.id === me ? " (saya)" : ""}
+                {p.pending ? " · belum menerima undangan" : ""}
+              </option>
+            ))}
+            <option value="">Belum ditentukan</option>
+          </select>
+        </label>
+        {sections !== null && (
+          <label className="block">
+            <span className="text-xs text-muted">Bagian</span>
+            <select name="section_id" className="input text-sm" defaultValue={d?.section_id ?? ""}>
+              <option value="">Umum</option>
+              {sections.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.name}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
+      </div>
+      {sections !== null && (
+        <div className="flex flex-wrap items-center gap-3">
+          {goals.length > 0 && (
+            <select name="goal_id" className="input max-w-xs flex-1 text-sm" defaultValue={d?.goal_id ?? ""}>
+              <option value="">Target: tidak dikaitkan</option>
+              {goals.map((g) => (
+                <option key={g.id} value={g.id}>
+                  🎯 {g.name}
+                </option>
+              ))}
+            </select>
+          )}
+          <input type="hidden" name="important_field" value="1" />
+          <label className="flex items-center gap-2 text-sm font-semibold text-heading">
+            <input type="checkbox" name="important" defaultChecked={d?.important} className="h-4 w-4 accent-[#8B2220]" /> Penting
+          </label>
+        </div>
+      )}
+    </>
+  );
+}
 
 /** Reset form setelah berhasil. */
 function useResetOnSuccess(state: FormState) {
@@ -18,7 +91,7 @@ function useResetOnSuccess(state: FormState) {
   return ref;
 }
 
-export function CreateWorkspaceForm() {
+export function CreateWorkspaceForm({ dreams }: { dreams: Opt[] }) {
   const [state, action] = useActionState<FormState, FormData>(createWorkspace, undefined);
   const [kind, setKind] = useState<"company" | "project">("company");
   return (
@@ -45,13 +118,14 @@ export function CreateWorkspaceForm() {
         </label>
       )}
       <textarea name="description" rows={2} className="input text-sm" placeholder="Keterangan singkat (opsional)" maxLength={300} />
+      <DreamSelect dreams={dreams} />
       <SubmitButton className="btn-primary w-full">Buat ruang kerja</SubmitButton>
       <FormMessage state={state} />
     </form>
   );
 }
 
-export function WorkspaceSettingsForm({ id, name, kind, end, description }: { id: string; name: string; kind: "company" | "project"; end: string | null; description: string | null }) {
+export function WorkspaceSettingsForm({ id, name, kind, end, description, dreams, dreamId }: { id: string; name: string; kind: "company" | "project"; end: string | null; description: string | null; dreams: Opt[]; dreamId: string | null }) {
   const [state, action] = useActionState<FormState, FormData>(updateWorkspace, undefined);
   const [k, setK] = useState(kind);
   return (
@@ -80,6 +154,7 @@ export function WorkspaceSettingsForm({ id, name, kind, end, description }: { id
         <span className="label">Keterangan</span>
         <textarea name="description" rows={2} defaultValue={description ?? ""} className="input text-sm" maxLength={300} />
       </label>
+      <DreamSelect dreams={dreams} value={dreamId} />
       <SubmitButton>Simpan</SubmitButton>
       <FormMessage state={state} />
     </form>
@@ -106,32 +181,22 @@ export function InviteForm({ ws }: { ws: string }) {
   );
 }
 
-export function AddTaskForm({ ws, people, me, today }: { ws: string; people: Opt[]; me: string; today: string }) {
+export function AddTaskForm({ ws, people, me, today, sections, goals }: { ws: string; people: Person[]; me: string; today: string; sections: Opt[] | null; goals: Opt[] }) {
   const [state, action] = useActionState<FormState, FormData>(addTask, undefined);
   const ref = useResetOnSuccess(state);
   const [more, setMore] = useState(false);
   return (
     <form ref={ref} action={action} className="space-y-2 rounded-2xl bg-paper p-3.5">
       <input type="hidden" name="ws" value={ws} />
-      <input name="title" className="input" placeholder="Tugas baru, mis. Kirim penawaran ke 5 klien" maxLength={160} required />
-      <div className="grid gap-2 sm:grid-cols-3">
+      <input name="title" className="input" placeholder="Tugas baru, mis. Membuat konten Instagram" maxLength={160} required />
+      <TaskFields people={people} sections={sections} goals={goals} me={me} />
+      <div className="grid grid-cols-2 gap-2">
         <label className="block">
-          <span className="text-xs text-muted">Dikerjakan oleh</span>
-          <select name="assignee" className="input text-sm" defaultValue={people.find((p) => p.id !== me)?.id ?? me}>
-            {people.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.id === me ? `${p.name} (saya)` : p.name}
-              </option>
-            ))}
-            <option value="">Belum ditentukan</option>
-          </select>
-        </label>
-        <label className="block">
-          <span className="text-xs text-muted">Muncul di harian mulai</span>
+          <span className="text-xs text-muted">Mulai dikerjakan</span>
           <input type="date" name="plan_date" defaultValue={today} min={today} className="input text-sm" />
         </label>
         <label className="block">
-          <span className="text-xs text-muted">Tenggat (opsional)</span>
+          <span className="text-xs text-muted">Deadline (opsional)</span>
           <input type="date" name="due_date" min={today} className="input text-sm" />
         </label>
       </div>
@@ -152,10 +217,14 @@ export function EditTaskForm({
   ws,
   task,
   people,
+  sections,
+  goals,
 }: {
   ws: string;
-  task: { id: string; title: string; description: string | null; assignee_id: string | null; plan_date: string; due_date: string | null };
-  people: Opt[];
+  task: { id: string; title: string; description: string | null; assignee_id: string | null; plan_date: string; due_date: string | null; section_id?: string | null; goal_id?: string | null; important?: boolean };
+  people: Person[];
+  sections: Opt[] | null;
+  goals: Opt[];
 }) {
   const [state, action] = useActionState<FormState, FormData>(updateTask, undefined);
   return (
@@ -170,24 +239,14 @@ export function EditTaskForm({
         <span className="label">Detail</span>
         <textarea name="description" rows={3} defaultValue={task.description ?? ""} className="input text-sm" maxLength={2000} />
       </label>
-      <div className="grid gap-3 sm:grid-cols-3">
+      <TaskFields people={people} sections={sections} goals={goals} d={task} />
+      <div className="grid grid-cols-2 gap-2">
         <label className="block">
-          <span className="label">Dikerjakan oleh</span>
-          <select name="assignee" defaultValue={task.assignee_id ?? ""} className="input text-sm">
-            {people.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.name}
-              </option>
-            ))}
-            <option value="">Belum ditentukan</option>
-          </select>
-        </label>
-        <label className="block">
-          <span className="label">Muncul di harian</span>
+          <span className="text-xs text-muted">Jadwal dikerjakan</span>
           <input type="date" name="plan_date" defaultValue={task.plan_date} className="input text-sm" required />
         </label>
         <label className="block">
-          <span className="label">Tenggat</span>
+          <span className="text-xs text-muted">Deadline</span>
           <input type="date" name="due_date" defaultValue={task.due_date ?? ""} className="input text-sm" />
         </label>
       </div>
@@ -243,6 +302,135 @@ export function UsernameForm({ current }: { current: string | null }) {
           <input name="username" defaultValue={current ?? ""} className="input pl-7" autoCapitalize="none" autoCorrect="off" minLength={3} maxLength={20} pattern="[a-zA-Z0-9_.]{3,20}" required />
         </div>
         <SubmitButton className="btn-primary shrink-0">Simpan</SubmitButton>
+      </div>
+      <FormMessage state={state} />
+    </form>
+  );
+}
+
+const SECTION_IDEAS = ["Marketing", "Produksi", "Penjualan", "Keuangan", "Operasional", "SDM", "Pelayanan", "Konten"];
+
+/** Tambah bagian / divisi. Bisa ketuk saran, atau tulis beberapa sekaligus dipisah koma. */
+export function SectionForm({ ws, existing }: { ws: string; existing: string[] }) {
+  const [state, action] = useActionState<FormState, FormData>(addSection, undefined);
+  const ref = useResetOnSuccess(state);
+  const [val, setVal] = useState("");
+  useEffect(() => {
+    if (state?.message) setVal("");
+  }, [state]);
+  const ideas = SECTION_IDEAS.filter((i) => !existing.some((e) => e.toLowerCase() === i.toLowerCase()));
+  return (
+    <form ref={ref} action={action} className="space-y-2">
+      <input type="hidden" name="ws" value={ws} />
+      <div className="flex gap-2">
+        <input name="name" value={val} onChange={(e) => setVal(e.target.value)} className="input" placeholder="Nama bagian, mis. Marketing" maxLength={200} required />
+        <SubmitButton className="btn-primary shrink-0" pendingText="">
+          Tambah
+        </SubmitButton>
+      </div>
+      {ideas.length > 0 && (
+        <div className="flex flex-wrap gap-1.5">
+          {ideas.map((i) => (
+            <button
+              key={i}
+              type="button"
+              onClick={() => setVal((v) => (v.split(",").map((x) => x.trim()).includes(i) ? v : v.trim() ? `${v.replace(/,\s*$/, "")}, ${i}` : i))}
+              className="rounded-full border border-line bg-white px-2.5 py-1 text-xs font-semibold text-heading hover:border-gold"
+            >
+              + {i}
+            </button>
+          ))}
+        </div>
+      )}
+      <FormMessage state={state} />
+    </form>
+  );
+}
+
+export function GoalForm({ ws }: { ws: string }) {
+  const [state, action] = useActionState<FormState, FormData>(addGoal, undefined);
+  const ref = useResetOnSuccess(state);
+  return (
+    <form ref={ref} action={action} className="space-y-2 rounded-2xl bg-paper p-3.5">
+      <input type="hidden" name="ws" value={ws} />
+      <input name="title" className="input" placeholder="Target, mis. Omzet Desember / 100 pelanggan baru" maxLength={120} required />
+      <div className="grid grid-cols-3 gap-2">
+        <input name="target" inputMode="decimal" className="input text-sm" placeholder="Angka target" />
+        <input name="unit" className="input text-sm" placeholder="Satuan (Rp, pcs…)" maxLength={20} />
+        <input type="date" name="due_date" className="input text-sm" aria-label="Batas waktu" />
+      </div>
+      <SubmitButton className="btn-primary w-full">Tambah target</SubmitButton>
+      <FormMessage state={state} />
+    </form>
+  );
+}
+
+type PocketOpt = { id: string; name: string; wallet: string };
+
+/** Pemilik: setelah tugas selesai, ada hasil yang mau ditabung untuk mimpi? */
+export function ResultForm({ ws, task, pockets, dreams, dreamId }: { ws: string; task: string; pockets: PocketOpt[]; dreams: Opt[]; dreamId: string | null }) {
+  const [state, action] = useActionState<FormState, FormData>(saveTaskResult, undefined);
+  const [open, setOpen] = useState(false);
+  const [amount, setAmount] = useState("");
+  if (state?.message) return <p className="rounded-xl bg-success/10 px-3.5 py-2.5 text-sm text-success">{state.message}</p>;
+  if (!open)
+    return (
+      <div className="flex flex-wrap gap-2">
+        <button type="button" onClick={() => setOpen(true)} className="btn-primary px-4 py-2 text-sm">
+          Ya, tabung untuk mimpi
+        </button>
+        <form action={action}>
+          <input type="hidden" name="ws" value={ws} />
+          <input type="hidden" name="id" value={task} />
+          <input type="hidden" name="skip" value="1" />
+          <SubmitButton className="btn-ghost px-4 py-2 text-sm" pendingText="…">
+            Tidak, lewati
+          </SubmitButton>
+        </form>
+      </div>
+    );
+  if (!pockets.length || !dreams.length)
+    return <p className="text-sm text-muted">{!dreams.length ? "Tulis mimpi Anda dulu di My Dreams, lalu kembali ke sini." : "Buat kantong keuangan dulu di menu Keuangan."}</p>;
+  return (
+    <form action={action} className="space-y-2">
+      <input type="hidden" name="ws" value={ws} />
+      <input type="hidden" name="id" value={task} />
+      <label className="block">
+        <span className="text-xs text-muted">Nominal yang ditabung</span>
+        <input name="amount" inputMode="numeric" value={amount} onChange={(e) => setAmount(e.target.value.replace(/[^\d]/g, ""))} className="input" placeholder="mis. 500000" required />
+        {Number(amount) > 0 && <span className="mt-0.5 block text-xs text-muted">{rupiah(Number(amount))}</span>}
+      </label>
+      <div className="grid gap-2 sm:grid-cols-2">
+        <label className="block">
+          <span className="text-xs text-muted">Disimpan di kantong / rekening</span>
+          <select name="pocket_id" className="input text-sm" defaultValue={pockets[0].id}>
+            {pockets.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.wallet === "business" ? "🏪" : "🙂"} {p.name}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="block">
+          <span className="text-xs text-muted">Untuk mimpi</span>
+          <select name="dream_id" className="input text-sm" defaultValue={dreamId ?? dreams[0].id}>
+            {dreams.map((d) => (
+              <option key={d.id} value={d.id}>
+                ✨ {d.name}
+              </option>
+            ))}
+          </select>
+        </label>
+      </div>
+      <label className="flex items-start gap-2 text-sm text-ink">
+        <input type="checkbox" name="as_income" defaultChecked className="mt-0.5 h-4 w-4 accent-[#8B2220]" />
+        <span>Catat juga sebagai uang masuk di kantong ini (hapus centang kalau uangnya sudah pernah dicatat).</span>
+      </label>
+      <div className="flex gap-2">
+        <SubmitButton className="btn-primary flex-1">Simpan</SubmitButton>
+        <button type="button" onClick={() => setOpen(false)} className="btn-ghost">
+          Batal
+        </button>
       </div>
       <FormMessage state={state} />
     </form>

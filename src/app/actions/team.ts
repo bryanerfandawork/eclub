@@ -48,10 +48,10 @@ export async function createWorkspace(_: FormState, f: FormData): Promise<FormSt
   if (!name) return { error: "Tulis nama perusahaan atau project-nya." };
   if (kind === "project" && end && !isDate(end)) return { error: "Tanggal selesai tidak valid." };
   const { supabase } = await me();
-  const { data, error } = await supabase.rpc("ws_create", { p_name: name, p_kind: kind, p_end: end || null, p_desc: str(f, "description", 300) || null, p_dream: null });
+  const { data, error } = await supabase.rpc("ws_create", { p_name: name, p_kind: kind, p_end: end || null, p_desc: str(f, "description", 300) || null, p_dream: isId(str(f, "dream_id")) ? str(f, "dream_id") : null });
   if (error || !data) return { error: dbError(error, "Gagal membuat ruang kerja. Coba lagi.") };
   refresh();
-  redirect(`/tim/${data}?baru=1`);
+  redirect(`/tim/${data}?tab=anggota&baru=1`);
 }
 
 export async function updateWorkspace(_: FormState, f: FormData): Promise<FormState> {
@@ -64,7 +64,7 @@ export async function updateWorkspace(_: FormState, f: FormData): Promise<FormSt
   const kind = str(f, "kind") === "project" ? "project" : "company";
   const { error } = await supabase
     .from("workspaces")
-    .update({ name, kind, description: str(f, "description", 300) || null, end_date: kind === "project" && isDate(end) ? end : null })
+    .update({ name, kind, description: str(f, "description", 300) || null, end_date: kind === "project" && isDate(end) ? end : null, dream_id: isId(str(f, "dream_id")) ? str(f, "dream_id") : null })
     .eq("id", id);
   if (error) return { error: dbError(error, "Gagal menyimpan.") };
   refresh(id);
@@ -155,6 +155,15 @@ export async function removeMember(f: FormData) {
 
 /* ---------------- Tugas ---------------- */
 
+/** Kolom tugas dari SQL 025 (bagian, penting, target). Hanya dikirim bila ada di form. */
+function extra(f: FormData) {
+  const o: Record<string, unknown> = {};
+  if (f.has("section_id")) o.section_id = isId(str(f, "section_id")) ? str(f, "section_id") : null;
+  if (f.has("goal_id")) o.goal_id = isId(str(f, "goal_id")) ? str(f, "goal_id") : null;
+  if (f.has("important_field")) o.important = f.get("important") === "on";
+  return o;
+}
+
 export async function addTask(_: FormState, f: FormData): Promise<FormState> {
   if (isDemoMode) return { error: DEMO };
   const ws = str(f, "ws");
@@ -167,7 +176,7 @@ export async function addTask(_: FormState, f: FormData): Promise<FormState> {
   const { supabase, uid } = await me();
   const { data, error } = await supabase
     .from("ws_tasks")
-    .insert({ workspace_id: ws, title, description: str(f, "description", 2000) || null, assignee_id: isId(assignee) ? assignee : null, created_by: uid, plan_date: plan, due_date: due || null })
+    .insert({ workspace_id: ws, title, description: str(f, "description", 2000) || null, assignee_id: isId(assignee) ? assignee : null, created_by: uid, plan_date: plan, due_date: due || null, ...extra(f) })
     .select("id")
     .single();
   if (error || !data) {
@@ -196,7 +205,7 @@ export async function updateTask(_: FormState, f: FormData): Promise<FormState> 
   const { data: before } = await supabase.from("ws_tasks").select("assignee_id").eq("id", id).maybeSingle();
   const { error } = await supabase
     .from("ws_tasks")
-    .update({ title, description: str(f, "description", 2000) || null, assignee_id: isId(assignee) ? assignee : null, plan_date: plan, due_date: due || null })
+    .update({ title, description: str(f, "description", 2000) || null, assignee_id: isId(assignee) ? assignee : null, plan_date: plan, due_date: due || null, ...extra(f) })
     .eq("id", id);
   if (error) return { error: dbError(error, "Gagal menyimpan.") };
   if (isId(assignee) && before?.assignee_id !== assignee) {
@@ -304,4 +313,149 @@ export async function setUsername(_: FormState, f: FormData): Promise<FormState>
   revalidatePath("/profile");
   revalidatePath("/tim");
   return { message: `Username Anda sekarang @${data}` };
+}
+
+/* ---------------- Putaran 2: bagian, jadwal ulang, arsip, hasil, target ---------------- */
+
+export async function addSection(_: FormState, f: FormData): Promise<FormState> {
+  if (isDemoMode) return { error: DEMO };
+  const ws = str(f, "ws");
+  const names = String(f.get("name") ?? "")
+    .split(",")
+    .map((n) => n.trim().slice(0, 40))
+    .filter(Boolean)
+    .slice(0, 10);
+  if (!names.length) return { error: "Tulis nama bagiannya, mis. Marketing." };
+  const { supabase } = await me();
+  const { count } = await supabase.from("ws_sections").select("id", { count: "exact", head: true }).eq("workspace_id", ws).eq("archived", false);
+  if ((count ?? 0) + names.length > 20) return { error: "Maksimal 20 bagian per ruang kerja." };
+  const { error } = await supabase.from("ws_sections").insert(names.map((name, i) => ({ workspace_id: ws, name, sort: (count ?? 0) + i })));
+  if (error) return { error: error.code === "42P01" ? "Fitur bagian aktif setelah SQL 025 dijalankan." : dbError(error, "Gagal menyimpan bagian.") };
+  refresh(ws);
+  return { message: "Bagian ditambahkan ✓" };
+}
+
+export async function renameSection(f: FormData) {
+  if (isDemoMode) return;
+  const ws = str(f, "ws");
+  const name = str(f, "name", 40);
+  if (!name) return;
+  const { supabase } = await me();
+  await supabase.from("ws_sections").update({ name }).eq("id", str(f, "id"));
+  refresh(ws);
+}
+
+/** Hapus bagian: tugasnya tetap ada, pindah ke "Umum". */
+export async function deleteSection(f: FormData) {
+  if (isDemoMode) return;
+  const ws = str(f, "ws");
+  const { supabase } = await me();
+  await supabase.from("ws_sections").delete().eq("id", str(f, "id"));
+  refresh(ws);
+}
+
+/** Jadwal ulang (pemilik/admin): tugas pindah ke tanggal baru, penanggung jawab diberi tahu. */
+export async function rescheduleTask(f: FormData) {
+  if (isDemoMode) return;
+  const id = str(f, "id");
+  const date = str(f, "date");
+  if (!isDate(date)) return;
+  const { supabase, uid } = await me();
+  const { data: t } = await supabase.from("ws_tasks").select("workspace_id, title, due_date, assignee_id, followups").eq("id", id).maybeSingle();
+  if (!t) return;
+  const patch: Record<string, unknown> = { status: "open", plan_date: date, followups: (t.followups ?? 0) + 1 };
+  if (t.due_date && t.due_date < date) patch.due_date = date;
+  const { error } = await supabase.from("ws_tasks").update(patch).eq("id", id);
+  if (!error) await notifyTeam(t.workspace_id, [t.assignee_id], uid, "📅 Tugas dijadwal ulang", `${t.title} → ${date.split("-").reverse().join("/")}`, `/tim/${t.workspace_id}/tugas/${id}`);
+  refresh(t.workspace_id);
+  revalidatePath(`/tim/${t.workspace_id}/tugas/${id}`);
+}
+
+/** Arsipkan / kembalikan satu tugas. Statusnya tetap tersimpan dan tetap dihitung di progres. */
+export async function archiveTask(f: FormData) {
+  if (isDemoMode) return;
+  const ws = str(f, "ws");
+  const { supabase } = await me();
+  await supabase.from("ws_tasks").update({ archived: f.get("restore") !== "1" }).eq("id", str(f, "id"));
+  refresh(ws);
+}
+
+/** Arsipkan semua tugas yang sudah selesai / ditutup supaya daftar tetap rapi. */
+export async function archiveFinished(f: FormData) {
+  if (isDemoMode) return;
+  const ws = str(f, "ws");
+  const { supabase } = await me();
+  await supabase.from("ws_tasks").update({ archived: true }).eq("workspace_id", ws).in("status", ["done", "closed"]).eq("archived", false);
+  refresh(ws);
+}
+
+/**
+ * Pemilik: hasil tugas ini menambah tabungan mimpi? Uang dicatat masuk ke kantong pilihan (opsional sebagai pemasukan)
+ * lalu ditandai untuk mimpi, sehingga tabungan mimpi bertambah. Atau "tidak".
+ */
+export async function saveTaskResult(_: FormState, f: FormData): Promise<FormState> {
+  if (isDemoMode) return { error: DEMO };
+  const id = str(f, "id");
+  const ws = str(f, "ws");
+  const { supabase } = await me();
+  if (f.get("skip") === "1") {
+    const { error } = await supabase.from("ws_tasks").update({ result_state: "skipped" }).eq("id", id);
+    if (error) return { error: dbError(error, "Gagal menyimpan.") };
+    refresh(ws);
+    revalidatePath(`/tim/${ws}/tugas/${id}`);
+    return { message: "Oke, dicatat tanpa tabungan." };
+  }
+  const amount = Number(String(f.get("amount") ?? "").replace(/[^\d]/g, ""));
+  const pocketId = str(f, "pocket_id");
+  const dreamId = str(f, "dream_id");
+  if (!amount || amount <= 0) return { error: "Isi nominal yang ditabung." };
+  const [{ data: pocket }, { data: dream }, { data: task }] = await Promise.all([
+    supabase.from("fin_pockets").select("id, wallet").eq("id", pocketId).eq("archived", false).maybeSingle(),
+    supabase.from("dreams").select("id, saved_amount").eq("id", dreamId).maybeSingle(),
+    supabase.from("ws_tasks").select("title").eq("id", id).maybeSingle(),
+  ]);
+  if (!pocket) return { error: "Pilih kantong / rekening tempat uangnya disimpan." };
+  if (!dream) return { error: "Pilih mimpi yang ingin ditabung." };
+  let txId: string | null = null;
+  if (f.get("as_income") === "on") {
+    const { data: tx, error } = await supabase
+      .from("fin_transactions")
+      .insert({ kind: "in", wallet: pocket.wallet, pocket_id: pocket.id, category: pocket.wallet === "business" ? "penjualan" : "sampingan", amount, note: `Hasil tugas: ${task?.title ?? ""}`.slice(0, 200) })
+      .select("id")
+      .single();
+    if (error) return { error: "Gagal mencatat pemasukan. Pastikan SQL keuangan sudah dijalankan." };
+    txId = tx?.id ?? null;
+  }
+  const { error: fe } = await supabase.from("fin_dream_funds").insert({ dream_id: dream.id, pocket_id: pocket.id, amount, kind: "save", tx_id: txId });
+  if (fe) return { error: "Gagal menyimpan tabungan. Pastikan SQL 023 sudah dijalankan." };
+  await supabase.from("dreams").update({ saved_amount: Number(dream.saved_amount) + amount }).eq("id", dream.id);
+  await supabase.from("ws_tasks").update({ result_state: "saved", result_amount: amount }).eq("id", id);
+  for (const p of ["/keuangan", "/keuangan/kantong", "/goals", `/goals/${dream.id}`, `/tim/${ws}/tugas/${id}`]) revalidatePath(p);
+  refresh(ws);
+  return { message: "Tersimpan ✓ Tabungan mimpi Anda bertambah." };
+}
+
+export async function addGoal(_: FormState, f: FormData): Promise<FormState> {
+  if (isDemoMode) return { error: DEMO };
+  const ws = str(f, "ws");
+  const title = str(f, "title", 120);
+  const target = Number(String(f.get("target") ?? "").replace(/[^\d.]/g, "")) || null;
+  const due = str(f, "due_date");
+  if (!title) return { error: "Tulis targetnya, mis. Omzet bulan Maret." };
+  const { supabase } = await me();
+  const { error } = await supabase.from("ws_goals").insert({ workspace_id: ws, title, target_value: target, unit: str(f, "unit", 20) || null, due_date: isDate(due) ? due : null });
+  if (error) return { error: error.code === "42501" ? "Hanya pemilik/admin tim yang bisa menambah target." : dbError(error, "Gagal menyimpan target.") };
+  refresh(ws);
+  return { message: "Target ditambahkan ✓" };
+}
+
+export async function updateGoal(f: FormData) {
+  if (isDemoMode) return;
+  const ws = str(f, "ws");
+  const { supabase } = await me();
+  const patch: Record<string, unknown> = {};
+  if (f.has("current")) patch.current_value = Number(String(f.get("current") ?? "").replace(/[^\d.]/g, "")) || 0;
+  if (f.has("status")) patch.status = ["active", "achieved", "dropped"].includes(str(f, "status")) ? str(f, "status") : "active";
+  await supabase.from("ws_goals").update(patch).eq("id", str(f, "id"));
+  refresh(ws);
 }
