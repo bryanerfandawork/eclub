@@ -39,7 +39,17 @@ export type TeamTask = {
   archived?: boolean;
   result_state?: "saved" | "skipped" | null;
   result_amount?: number | null;
+  /** Kolom SQL 026. */
+  started_at?: string | null;
+  repeat?: "daily" | "weekly" | "monthly" | null;
 };
+export type TaskItem = { id: string; task_id: string; title: string; done: boolean; sort: number };
+export type TeamMessage = { id: string; user_id: string; body: string; created_at: string };
+/** Nama tingkat ke-2: Project → Tahapan, Perusahaan → Area kerja. */
+export const levelName = (kind: "company" | "project") => (kind === "project" ? "Tahapan" : "Area kerja");
+export const REPEAT_LABEL = { daily: "Setiap hari", weekly: "Setiap minggu", monthly: "Setiap bulan" } as const;
+/** Kolom papan: Belum mulai → Dikerjakan → Selesai. */
+export const boardCol = (t: Pick<TeamTask, "status" | "started_at">) => (t.status === "done" ? "done" : t.status === "closed" ? "closed" : t.started_at ? "doing" : "todo");
 export type Section = { id: string; name: string; sort: number };
 export type Goal = { id: string; title: string; target_value: number | null; current_value: number; unit: string | null; due_date: string | null; status: "active" | "achieved" | "dropped" };
 
@@ -145,9 +155,18 @@ export async function getWorkspace(id: string) {
   const ppl = (people ?? []) as Person[];
   const me = ppl.find((p) => p.user_id === user.id && p.status === "active");
   if (!me) return null;
-  const { data: cc } = await supabase.from("ws_comments").select("task_id").eq("workspace_id", id).limit(2000);
+  const [{ data: cc }, it] = await Promise.all([
+    supabase.from("ws_comments").select("task_id").eq("workspace_id", id).limit(3000),
+    supabase.from("ws_task_items").select("task_id, done").eq("workspace_id", id).limit(5000),
+  ]);
   const comments: Record<string, number> = {};
   for (const c of (cc ?? []) as { task_id: string }[]) comments[c.task_id] = (comments[c.task_id] ?? 0) + 1;
+  const items: Record<string, { done: number; total: number }> = {};
+  for (const i of (it.error ? [] : (it.data ?? [])) as { task_id: string; done: boolean }[]) {
+    const x = (items[i.task_id] ??= { done: 0, total: 0 });
+    x.total++;
+    if (i.done) x.done++;
+  }
   return {
     ws: ws as Workspace & { dream_id?: string | null },
     people: ppl,
@@ -155,6 +174,8 @@ export async function getWorkspace(id: string) {
     me: user.id,
     tasks: (tasks ?? []) as TeamTask[],
     comments,
+    items,
+    checklist: !it.error,
     sections: sec.error ? null : ((sec.data ?? []) as Section[]),
     goals: gl.error ? [] : ((gl.data ?? []) as Goal[]).map((g) => ({ ...g, target_value: g.target_value === null ? null : Number(g.target_value), current_value: Number(g.current_value) })),
   };
@@ -166,8 +187,11 @@ export async function getTask(wsId: string, taskId: string) {
   const task = base.tasks.find((t) => t.id === taskId);
   if (!task) return null;
   const supabase = await createClient();
-  const { data } = await supabase.from("ws_comments").select("*").eq("task_id", taskId).order("created_at").limit(300);
-  return { ...base, task, list: (data ?? []) as TaskComment[] };
+  const [{ data }, it] = await Promise.all([
+    supabase.from("ws_comments").select("*").eq("task_id", taskId).order("created_at").limit(300),
+    supabase.from("ws_task_items").select("*").eq("task_id", taskId).order("sort").order("created_at"),
+  ]);
+  return { ...base, task, list: (data ?? []) as TaskComment[], taskItems: it.error ? null : ((it.data ?? []) as TaskItem[]) };
 }
 
 export type MyTeamTask = TeamTask & { ws_name: string; comments: number };
@@ -239,3 +263,11 @@ export const getManagedAlerts = cache(async (today: string): Promise<Alert[]> =>
     who: t.assignee_id ? personName(people.find((x) => x.w === t.workspace_id)?.p.find((p) => p.user_id === t.assignee_id)) : "Belum ditentukan",
   }));
 });
+
+/** Diskusi tim (SQL 026). null = belum aktif. */
+export async function getMessages(ws: string): Promise<TeamMessage[] | null> {
+  if (isDemoMode) return [];
+  const supabase = await createClient();
+  const { data, error } = await supabase.from("ws_messages").select("id, user_id, body, created_at").eq("workspace_id", ws).order("created_at", { ascending: false }).limit(100);
+  return error ? null : ((data ?? []) as TeamMessage[]).reverse();
+}

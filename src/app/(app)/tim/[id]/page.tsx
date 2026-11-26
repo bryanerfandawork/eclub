@@ -8,6 +8,9 @@ import { ShareRef } from "@/components/share-ref";
 import { TaskRow } from "@/components/team/task-row";
 import { NeedsAction } from "@/components/team/needs-action";
 import { AddTaskForm, GoalForm, InviteForm, SectionForm, WorkspaceSettingsForm } from "@/components/team/forms";
+import { getMessages, levelName, boardCol } from "@/lib/team";
+import { MessageForm } from "@/components/team/forms";
+import { deleteMessage, setTaskStatus } from "@/app/actions/team";
 import { KIND_LABEL, ROLE_LABEL, byPriority, canManage, getWorkspace, isLate, jktDay, personName, type TeamTask } from "@/lib/team";
 import { getDreams } from "@/lib/data";
 import { SITE } from "@/lib/share";
@@ -19,6 +22,7 @@ export const metadata = { title: "Ruang Kerja" };
 const TABS = [
   ["anggota", "Anggota"],
   ["tugas", "Tugas"],
+  ["diskusi", "Diskusi"],
   ["progres", "Progres"],
   ["pengaturan", "Pengaturan"],
 ] as const;
@@ -38,12 +42,14 @@ export default async function WorkspacePage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ tab?: string; lihat?: string; baru?: string; gabung?: string; p?: string }>;
+  searchParams: Promise<{ tab?: string; lihat?: string; baru?: string; gabung?: string; p?: string; v?: string }>;
 }) {
   const [{ id }, sp] = await Promise.all([params, searchParams]);
   const data = await getWorkspace(id);
   if (!data) notFound();
-  const { ws, people, role, me, tasks, comments, sections, goals } = data;
+  const { ws, people, role, me, tasks, comments, sections, goals, items } = data;
+  const L = levelName(ws.kind);
+  const board = sp.v === "papan";
   const today = todayJakarta();
   const tomorrow = todayJakarta(1);
   const manage = canManage(role);
@@ -61,11 +67,11 @@ export default async function WorkspacePage({
   const ownerDreams = owner ? (await getDreams()).filter((d) => d.status === "active") : [];
   const dreamTitle = ws.dream_id ? ownerDreams.find((d) => d.id === ws.dream_id)?.title : undefined;
 
-  // Langkah awal untuk pemilik: undang anggota → buat bagian → buat tugas.
+  // Langkah awal untuk pemilik: undang anggota → buat poin → isi pekerjaan.
   const setup = [
     { done: others.length > 0, label: "Undang anggota tim", href: `/tim/${id}?tab=anggota` },
-    { done: (sections?.length ?? 0) > 0, label: "Buat bagian (Marketing, Produksi, …)", href: `/tim/${id}?tab=tugas#bagian`, hide: sections === null },
-    { done: tasks.length > 0, label: "Bagi tugas pertama", href: `/tim/${id}?tab=tugas` },
+    { done: (sections?.length ?? 0) > 0, label: ws.kind === "project" ? "Buat tahapan (milestone)" : "Buat area kerja", href: `/tim/${id}?tab=tugas#tahapan`, hide: sections === null },
+    { done: tasks.length > 0, label: "Isi tugas + deadline", href: `/tim/${id}?tab=tugas` },
   ].filter((s) => !s.hide);
   const setupLeft = manage && setup.some((s) => !s.done);
 
@@ -80,7 +86,7 @@ export default async function WorkspacePage({
   const sectionOpts = sections?.map((s) => ({ id: s.id, name: s.name })) ?? null;
   const goalOpts = goals.filter((g) => g.status === "active").map((g) => ({ id: g.id, name: g.title }));
   const row = (t: TeamTask, withSection = false) => (
-    <TaskRow key={t.id} t={t} today={today} canAct={manage || t.assignee_id === me} who={nameOf(t.assignee_id)} comments={comments[t.id] ?? 0} section={withSection ? secName(t.section_id) : undefined} />
+    <TaskRow key={t.id} t={t} today={today} canAct={manage || t.assignee_id === me} who={nameOf(t.assignee_id)} comments={comments[t.id] ?? 0} section={withSection ? secName(t.section_id) : undefined} items={items[t.id]} />
   );
 
   return (
@@ -228,7 +234,22 @@ export default async function WorkspacePage({
         </div>
       )}
 
-      {tab === "tugas" && (
+      {tab === "tugas" && sections !== null && (
+        <div className="mb-4 inline-flex rounded-xl bg-white p-1 text-sm shadow-soft">
+          <Link href={`/tim/${id}?tab=tugas`} className={`rounded-lg px-3 py-1.5 font-semibold ${!board ? "bg-heading text-white" : "text-muted"}`}>
+            ☰ Daftar per {L.toLowerCase()}
+          </Link>
+          <Link href={`/tim/${id}?tab=tugas&v=papan`} className={`rounded-lg px-3 py-1.5 font-semibold ${board ? "bg-heading text-white" : "text-muted"}`}>
+            ▦ Papan
+          </Link>
+        </div>
+      )}
+
+      {tab === "tugas" && board && sections !== null && <Board />}
+
+      {tab === "diskusi" && <Discussion />}
+
+      {tab === "tugas" && !(board && sections !== null) && (
         <div className="grid gap-5 lg:grid-cols-5 lg:gap-6">
           <div className="space-y-5 lg:col-span-3">
             <div className="flex flex-wrap gap-2 text-sm">
@@ -245,10 +266,10 @@ export default async function WorkspacePage({
               ))}
             </div>
 
-            {manage && !ws.archived && view !== "arsip" && (
+            {manage && !ws.archived && view !== "arsip" && sections === null && (
               <section className="card p-5 lg:p-6">
-                <h2 className="mb-3 font-bold text-heading">Bagi tugas</h2>
-                <AddTaskForm ws={id} me={me} today={today} people={pickPeople} sections={sectionOpts} goals={goalOpts} />
+                <h2 className="mb-1 font-bold text-heading">Bagi tugas</h2>
+                <AddTaskForm ws={id} me={me} today={today} people={pickPeople} sections={null} goals={goalOpts} />
               </section>
             )}
 
@@ -277,9 +298,17 @@ export default async function WorkspacePage({
               </section>
             ) : (
               <>
-                {[...(sections ?? []), { id: "", name: sections?.length ? "Umum" : "Semua tugas", sort: 999 }].map((sec) => {
+                {sections !== null && sections.length === 0 && (
+                  <section className="rounded-2xl border border-dashed border-gold/60 bg-gold-soft/40 p-5 text-sm text-heading">
+                    <b className="block">Mulai dari {L.toLowerCase()}</b>
+                    <span className="mt-1 block text-muted">
+                      Susunannya: <b>{ws.name}</b> → {L.toLowerCase()} (mis. {ws.kind === "project" ? "Melengkapi dokumen" : "Pengerjaan orderan"}) → tugas (mis. {ws.kind === "project" ? "Mendaftarkan NIB" : "Press pin orderan 50 pcs"}) lengkap dengan siapa yang mengerjakan dan deadline-nya.
+                    </span>
+                  </section>
+                )}
+                {[...(sections ?? []), { id: "", name: sections === null ? "Semua tugas" : `Tanpa ${L.toLowerCase()}`, sort: 999 }].map((sec) => {
                   const inSec = live.filter((t) => (t.section_id && secName(t.section_id) ? t.section_id : "") === sec.id && (view !== "saya" || t.assignee_id === me));
-                  if (!inSec.length && (sec.id === "" ? (sections?.length ?? 0) > 0 : view === "saya")) return null;
+                  if (!inSec.length && (sec.id === "" ? sections !== null : view === "saya")) return null;
                   const open = inSec.filter((t) => t.status === "open").sort(byPriority);
                   const fin = inSec.filter((t) => t.status !== "open").sort((a, b) => (b.done_at ?? b.updated_at).localeCompare(a.done_at ?? a.updated_at));
                   const doneN = inSec.filter((t) => t.status === "done").length;
@@ -288,10 +317,10 @@ export default async function WorkspacePage({
                     <section key={sec.id || "umum"} className="card p-5 lg:p-6">
                       <div className="flex items-center justify-between gap-2">
                         <h2 className="font-bold text-heading">
-                          {sec.id ? "📂 " : ""}
+                          {sec.id ? "📌 " : ""}
                           {sec.name}
                         </h2>
-                        <span className="text-xs font-medium text-muted">
+                        <span className="shrink-0 text-xs font-medium text-muted">
                           {doneN}/{countable} selesai
                         </span>
                       </div>
@@ -301,7 +330,7 @@ export default async function WorkspacePage({
                         </div>
                       )}
                       {inSec.length === 0 ? (
-                        <p className="mt-2 text-sm text-muted">{manage ? "Belum ada tugas. Pilih bagian ini saat menambah tugas di atas." : "Belum ada tugas."}</p>
+                        <p className="mt-2 text-sm text-muted">Belum ada tugas di sini.</p>
                       ) : (
                         <ul className="mt-1 divide-y divide-line">
                           {open.map((t) => row(t))}
@@ -309,9 +338,45 @@ export default async function WorkspacePage({
                         </ul>
                       )}
                       {fin.length > 10 && <p className="mt-2 text-xs text-muted">+{fin.length - 10} tugas selesai lainnya. Arsipkan supaya daftar rapi.</p>}
+                      {manage && !ws.archived && sec.id && view !== "saya" && (
+                        <>
+                          <AddTaskForm ws={id} me={me} today={today} people={pickPeople} sections={sectionOpts} goals={goalOpts} section={sec.id} collapsed level={L} />
+                          <details className="mt-2 text-xs">
+                            <summary className="cursor-pointer text-muted hover:text-heading">Ubah / hapus {L.toLowerCase()}</summary>
+                            <div className="mt-2 flex items-center gap-1.5">
+                              <form action={renameSection} className="flex flex-1 gap-1.5">
+                                <input type="hidden" name="ws" value={id} />
+                                <input type="hidden" name="id" value={sec.id} />
+                                <input name="name" defaultValue={sec.name} maxLength={40} className="input h-9 py-1 text-sm" aria-label="Nama" />
+                                <PendingButton className="rounded-lg border border-line px-2 text-xs font-semibold text-muted hover:text-heading">Simpan</PendingButton>
+                              </form>
+                              <form action={deleteSection}>
+                                <input type="hidden" name="ws" value={id} />
+                                <input type="hidden" name="id" value={sec.id} />
+                                <PendingButton className="grid h-9 w-9 place-items-center rounded-lg text-muted hover:text-danger" title="Hapus (tugasnya tetap ada)">
+                                  <Trash2 className="h-4 w-4" />
+                                </PendingButton>
+                              </form>
+                            </div>
+                          </details>
+                        </>
+                      )}
                     </section>
                   );
                 })}
+                {manage && !ws.archived && sections !== null && view !== "saya" && (
+                  <section id="tahapan" className="card scroll-mt-24 border-dashed p-5">
+                    <h2 className="font-bold text-heading">
+                      + {L} {sections.length ? "baru" : "pertama"}
+                    </h2>
+                    <p className="mt-0.5 mb-3 text-xs text-muted">
+                      {ws.kind === "project"
+                        ? "Tahapan = langkah besar (milestone) project ini. Di dalam setiap tahapan, isi tugas: siapa yang mengerjakan dan deadline-nya."
+                        : "Area kerja = jenis pekerjaan yang terus berjalan di perusahaan, mis. pengerjaan orderan atau promosi. Di dalamnya isi tugas, termasuk tugas rutin yang berulang."}
+                    </p>
+                    <SectionForm ws={id} existing={sections.map((x) => x.name)} kind={ws.kind} />
+                  </section>
+                )}
                 {manage && live.some((t) => t.status !== "open") && (
                   <form action={archiveFinished}>
                     <input type="hidden" name="ws" value={id} />
@@ -330,36 +395,8 @@ export default async function WorkspacePage({
                 ⚠️ {late.length} tugas terlambat perlu tindakan <span>›</span>
               </Link>
             )}
-            {manage && sections !== null && (
-              <section id="bagian" className="card scroll-mt-24 p-5">
-                <h2 className="font-bold text-heading">Bagian / divisi</h2>
-                <p className="mt-0.5 mb-3 text-xs text-muted">Kelompokkan tugas per bagian, mis. Marketing, Produksi, Keuangan. Boleh dilewati kalau timnya kecil.</p>
-                {sections.length > 0 && (
-                  <ul className="mb-3 space-y-1.5">
-                    {sections.map((s) => (
-                      <li key={s.id} className="flex items-center gap-1.5">
-                        <form action={renameSection} className="flex flex-1 gap-1.5">
-                          <input type="hidden" name="ws" value={id} />
-                          <input type="hidden" name="id" value={s.id} />
-                          <input name="name" defaultValue={s.name} maxLength={40} className="input h-9 py-1 text-sm" aria-label="Nama bagian" />
-                          <PendingButton className="rounded-lg border border-line px-2 text-xs font-semibold text-muted hover:text-heading">Simpan</PendingButton>
-                        </form>
-                        <form action={deleteSection}>
-                          <input type="hidden" name="ws" value={id} />
-                          <input type="hidden" name="id" value={s.id} />
-                          <PendingButton className="grid h-9 w-9 place-items-center rounded-lg text-muted hover:text-danger" title="Hapus bagian (tugasnya pindah ke Umum)">
-                            <Trash2 className="h-4 w-4" />
-                          </PendingButton>
-                        </form>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-                <SectionForm ws={id} existing={sections.map((s) => s.name)} />
-              </section>
-            )}
             <section className="rounded-2xl border border-line bg-white p-5 text-sm text-muted">
-              <b className="text-heading">Cara kerjanya:</b> tugas muncul di Laporan Harian orang yang mengerjakan mulai tanggal yang dipilih. Ia menandai selesai atau &quot;lanjut besok&quot;, dan pemberi tugas langsung dapat notifikasi. Yang terlambat ditandai merah. Klik tugas untuk berdiskusi.
+              <b className="text-heading">Cara kerjanya:</b> {ws.kind === "project" ? "Project" : "Perusahaan"} → {L.toLowerCase()} → tugas → checklist. Tugas muncul di Laporan Harian orang yang mengerjakan mulai tanggal yang dipilih. Ia menandai selesai atau &quot;lanjut besok&quot;, dan pemberi tugas langsung dapat notifikasi. Yang terlambat ditandai merah. Klik tugas untuk berdiskusi.
             </section>
           </aside>
         </div>
@@ -391,7 +428,115 @@ export default async function WorkspacePage({
     </>
   );
 
-  /** Tab Progres: rapor periode (minggu/bulan/semua), perlu tindakan, per bagian, per orang, target tim, hasil untuk mimpi. */
+  /** Papan: Belum mulai → Dikerjakan → Selesai. Pindah kolom lewat tombol (nyaman di HP). */
+  function Board() {
+    const mineOnly = view === "saya";
+    const list = live.filter((t) => t.status !== "closed" && (!mineOnly || t.assignee_id === me));
+    const cols = [
+      { k: "todo", title: "Belum mulai", tone: "border-line" },
+      { k: "doing", title: "Dikerjakan", tone: "border-gold/60" },
+      { k: "done", title: "Selesai", tone: "border-success/40" },
+    ] as const;
+    return (
+      <>
+        <div className="mb-3 flex gap-2 text-sm">
+          <Link href={`/tim/${id}?tab=tugas&v=papan`} className={`rounded-full px-3 py-1.5 font-semibold ${!mineOnly ? "bg-heading text-white" : "border border-line bg-white text-muted"}`}>
+            Semua
+          </Link>
+          <Link href={`/tim/${id}?tab=tugas&v=papan&lihat=saya`} className={`rounded-full px-3 py-1.5 font-semibold ${mineOnly ? "bg-heading text-white" : "border border-line bg-white text-muted"}`}>
+            Tugas saya
+          </Link>
+        </div>
+        <div className="-mx-5 flex snap-x gap-3 overflow-x-auto px-5 pb-3 lg:mx-0 lg:grid lg:grid-cols-3 lg:overflow-visible lg:px-0">
+          {cols.map((c) => {
+            const inCol = list
+              .filter((t) => boardCol(t) === c.k)
+              .sort(c.k === "done" ? (a, b) => (b.done_at ?? "").localeCompare(a.done_at ?? "") : byPriority)
+              .slice(0, c.k === "done" ? 15 : 200);
+            return (
+              <section key={c.k} className={`w-[82%] shrink-0 snap-start rounded-2xl border-2 bg-paper p-3 lg:w-auto ${c.tone}`}>
+                <h2 className="mb-2 flex items-center justify-between px-1 text-sm font-bold text-heading">
+                  {c.title} <span className="rounded-full bg-white px-2 text-xs text-muted">{list.filter((t) => boardCol(t) === c.k).length}</span>
+                </h2>
+                <div className="space-y-2">
+                  {inCol.map((t) => {
+                    const it = items[t.id];
+                    const act = manage || t.assignee_id === me;
+                    return (
+                      <div key={t.id} className={`rounded-xl border bg-white p-3 shadow-soft ${isLate(t, today) ? "border-danger/50" : "border-line"}`}>
+                        <Link href={`/tim/${id}/tugas/${t.id}`} className="block">
+                          {secName(t.section_id) && <span className="mb-1 inline-block rounded bg-paper px-1.5 py-0.5 text-[10px] font-semibold text-muted">📌 {secName(t.section_id)}</span>}
+                          <span className={`block text-sm font-semibold ${t.status === "done" ? "text-muted line-through" : "text-heading"}`}>
+                            {t.important && t.status !== "done" && <span className="mr-1 text-danger">●</span>}
+                            {t.title}
+                          </span>
+                          <span className={`mt-1 block text-[11px] ${isLate(t, today) ? "font-semibold text-danger" : "text-muted"}`}>
+                            {[`👤 ${nameOf(t.assignee_id)}`, t.due_date && `⏰ ${tanggalPendek(t.due_date)}`, t.repeat && "🔁", it?.total ? `☑ ${it.done}/${it.total}` : null, comments[t.id] ? `💬 ${comments[t.id]}` : null].filter(Boolean).join(" · ")}
+                          </span>
+                        </Link>
+                        {act && c.k !== "done" && (
+                          <form action={setTaskStatus} className="mt-2">
+                            <input type="hidden" name="id" value={t.id} />
+                            <input type="hidden" name="to" value={c.k === "todo" ? "start" : "done"} />
+                            <PendingButton className={`w-full rounded-lg py-1.5 text-xs font-semibold ${c.k === "todo" ? "border border-line text-heading hover:border-gold" : "bg-success/10 text-success hover:bg-success/20"}`}>
+                              {c.k === "todo" ? "▶ Mulai kerjakan" : "✓ Selesai"}
+                            </PendingButton>
+                          </form>
+                        )}
+                      </div>
+                    );
+                  })}
+                  {inCol.length === 0 && <p className="px-1 py-3 text-center text-xs text-muted">Kosong</p>}
+                </div>
+              </section>
+            );
+          })}
+        </div>
+        {manage && <p className="mt-2 text-xs text-muted">Tambah tugas baru lewat tampilan Daftar, di dalam {L.toLowerCase()}-nya.</p>}
+      </>
+    );
+  }
+
+  /** Diskusi tim: obrolan satu ruang kerja (selain komentar per tugas). */
+  async function Discussion() {
+    const msgs = await getMessages(id);
+    if (msgs === null) return <p className="card p-5 text-sm text-muted">Diskusi tim aktif setelah SQL 026 dijalankan.</p>;
+    const waktu = (iso: string) => new Date(iso).toLocaleString("id-ID", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jakarta" });
+    return (
+      <section className="card mx-auto max-w-3xl p-5 lg:p-6">
+        <h2 className="font-bold text-heading">Diskusi tim</h2>
+        <p className="mt-0.5 text-xs text-muted">Untuk kabar dan koordinasi umum. Bahas tugas tertentu di kolom komentar tugasnya, supaya mudah dicari.</p>
+        <ul className="mt-4 space-y-3">
+          {msgs.map((m) => {
+            const own = m.user_id === me;
+            return (
+              <li key={m.id} className={`flex ${own ? "justify-end" : ""}`}>
+                <div className={`max-w-[85%] rounded-2xl px-3.5 py-2.5 text-sm ${own ? "bg-brand text-white" : "bg-paper text-ink"}`}>
+                  <p className={`text-[11px] font-semibold ${own ? "text-gold" : "text-muted"}`}>
+                    {own ? "Saya" : nameOf(m.user_id)} · {waktu(m.created_at)}
+                  </p>
+                  <p className="mt-0.5 whitespace-pre-line">{m.body}</p>
+                  {(own || manage) && (
+                    <form action={deleteMessage} className="mt-1 text-right">
+                      <input type="hidden" name="ws" value={id} />
+                      <input type="hidden" name="id" value={m.id} />
+                      <PendingButton className={`text-[11px] ${own ? "text-white/70" : "text-muted"} hover:underline`}>Hapus</PendingButton>
+                    </form>
+                  )}
+                </div>
+              </li>
+            );
+          })}
+          {msgs.length === 0 && <li className="text-sm text-muted">Belum ada pesan. Sapa tim Anda di sini 👋</li>}
+        </ul>
+        <div className="mt-4">
+          <MessageForm ws={id} />
+        </div>
+      </section>
+    );
+  }
+
+  /** Tab Progres: rapor periode (minggu/bulan/semua), perlu tindakan, per tahapan, per orang, target tim, hasil untuk mimpi. */
   function Progress() {
     const p = ["bulan", "semua"].includes(sp.p ?? "") ? sp.p! : "minggu";
     const from = periodStart(today, p);
@@ -406,7 +551,7 @@ export default async function WorkspacePage({
     const lateN = inPeriod.filter((t) => isLate(t, today)).length;
     const base = done + open;
     const pct = base ? Math.round((done / base) * 100) : 0;
-    const groups = [...(sections ?? []).map((s) => ({ id: s.id, name: s.name })), { id: "", name: "Umum" }]
+    const groups = [...(sections ?? []).map((s) => ({ id: s.id, name: s.name })), { id: "", name: `Tanpa ${L.toLowerCase()}` }]
       .map((g) => {
         const list = inPeriod.filter((t) => (t.section_id && secName(t.section_id) ? t.section_id : "") === g.id && t.status !== "closed");
         return { ...g, total: list.length, done: list.filter((t) => t.status === "done").length, late: list.filter((t) => isLate(t, today)).length };
@@ -461,7 +606,7 @@ export default async function WorkspacePage({
 
           {groups.length > 0 && (
             <section className="card p-5 lg:p-6">
-              <h2 className="font-bold text-heading">Per bagian</h2>
+              <h2 className="font-bold text-heading">Per {L.toLowerCase()}</h2>
               <ul className="mt-3 space-y-3">
                 {groups.map((g) => (
                   <li key={g.id || "umum"}>
