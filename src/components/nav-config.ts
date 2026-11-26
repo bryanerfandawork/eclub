@@ -7,6 +7,7 @@ import {
   CalendarCheck2,
   CalendarDays,
   Crosshair,
+  FolderKanban,
   Coins,
   PieChart,
   Gem,
@@ -34,6 +35,8 @@ export type NavItem = {
   href: string;
   icon: LucideIcon;
   soon?: boolean;
+  /** Hanya tampil bila member punya / tergabung di ruang kerja tim (atau Plus). */
+  team?: boolean;
 };
 
 export const mobileNav: NavItem[] = [
@@ -50,6 +53,7 @@ export const sidebarNav: { section: string; items: NavItem[] }[] = [
     items: [
       { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
       { label: "Perjalanan 5 Langkah", href: "/journey", icon: Route },
+      { label: "Ruang Kerja Tim", href: "/tim", icon: FolderKanban, team: true },
     ],
   },
   {
@@ -113,5 +117,36 @@ export const sidebarNav: { section: string; items: NavItem[] }[] = [
       { label: "Ajak Teman · Komisi", href: "/affiliate", icon: Gift },
       { label: "Profile & Settings", href: "/profile", icon: User },
     ],
+  },
+];
+
+/** Tampilan sederhana untuk member yang bergabung lewat undangan tim (belum menyusun mimpi). */
+export const simpleMobileNav: NavItem[] = [
+  { label: "Home", href: "/dashboard", icon: Home },
+  { label: "Hari ini", href: "/today", icon: CalendarCheck2 },
+  { label: "Tim", href: "/tim", icon: FolderKanban },
+  { label: "5 Langkah", href: "/journey", icon: Route },
+  { label: "Profile", href: "/profile", icon: User },
+];
+
+export const simpleSidebarNav: { section: string; items: NavItem[] }[] = [
+  {
+    section: "Pekerjaan",
+    items: [
+      { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+      { label: "Laporan Harian", href: "/today", icon: CalendarCheck2 },
+      { label: "Ruang Kerja Tim", href: "/tim", icon: FolderKanban },
+    ],
+  },
+  {
+    section: "Kenali EClub",
+    items: [
+      { label: "Susun Masa Depan (5 Langkah)", href: "/journey", icon: Route },
+      { label: "Learning Center", href: "/learn", icon: GraduationCap },
+    ],
+  },
+  {
+    section: "Akun",
+    items: [{ label: "Profile & Settings", href: "/profile", icon: User }],
   },
 ];

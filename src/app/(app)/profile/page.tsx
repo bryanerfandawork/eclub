@@ -12,11 +12,13 @@ import { isDemoMode } from "@/lib/supabase/config";
 import { createClient } from "@/lib/supabase/server";
 import { getVapidPublicKey } from "@/lib/push";
 import { PushToggle } from "@/components/push-toggle";
+import { UsernameForm } from "@/components/team/forms";
+import { getTeamState } from "@/lib/team";
 
 export const metadata = { title: "Profil" };
 
 export default async function ProfilePage() {
-  const [profile, account, vapid] = await Promise.all([getProfile(), getAccount(), isDemoMode ? null : getVapidPublicKey()]);
+  const [profile, account, vapid, team] = await Promise.all([getProfile(), getAccount(), isDemoMode ? null : getVapidPublicKey(), getTeamState()]);
   let wa: WaSettings = { whatsapp: null, wa_opt_in: false, wa_daily: true };
   let bio: Bio = { birth_date: null, province: null, regency: null };
   if (!isDemoMode) {
@@ -66,6 +68,7 @@ export default async function ProfilePage() {
         </aside>
         <div className="lg:col-span-2">
           <ProfileForm profile={profile} />
+          {team.ready && <UsernameForm current={team.username} />}
           <PushToggle publicKey={vapid} />
           <WhatsAppForm s={wa} />
           <BioForm bio={bio} />

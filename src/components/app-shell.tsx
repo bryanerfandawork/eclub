@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 import {
+  Bell,
   Crown,
   LayoutGrid,
   LogOut,
@@ -18,7 +19,7 @@ import { Suspense } from "react";
 import { AiChat } from "./ai-chat";
 import { Logo } from "./logo";
 import { StepBar, StepNext } from "./step-bar";
-import { mobileNav, sidebarNav } from "./nav-config";
+import { mobileNav, sidebarNav, simpleMobileNav, simpleSidebarNav } from "./nav-config";
 import { signOut } from "@/app/actions/auth";
 
 function isActive(pathname: string, href: string) {
@@ -35,6 +36,9 @@ export function AppShell({
   plan,
   admin,
   ai = true,
+  team = false,
+  simple = false,
+  unread = 0,
 }: {
   children: React.ReactNode;
   name: string;
@@ -43,8 +47,18 @@ export function AppShell({
   plan: "free" | "plus";
   admin: boolean;
   ai?: boolean;
+  /** Tampilkan menu Ruang Kerja Tim. */
+  team?: boolean;
+  /** Menu sederhana (member dari undangan tim). */
+  simple?: boolean;
+  /** Pemberitahuan tim yang belum dibaca. */
+  unread?: number;
 }) {
+  const groups = (simple ? simpleSidebarNav : sidebarNav).map((g) => ({ ...g, items: g.items.filter((i) => !i.team || team) }));
+  const bottom = simple ? simpleMobileNav : mobileNav;
+  // Member dari undangan tim: Laporan Harian tampil sebagai daftar kerja biasa dulu, tanpa penunjuk 5 langkah.
   const pathname = usePathname();
+  const hideSteps = simple && pathname.startsWith("/today");
   const [aiOpen, setAiOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const initials = name
@@ -67,7 +81,7 @@ export function AppShell({
           </Link>
         </div>
         <nav className="flex-1 overflow-y-auto px-3 pb-4">
-          {sidebarNav.map((group) => (
+          {groups.map((group) => (
             <div key={group.section} className="mt-4">
               <p className="px-3 pb-1.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-muted/80">
                 {group.section}
@@ -87,6 +101,9 @@ export function AppShell({
                       strokeWidth={1.8}
                     />
                     <span className="flex-1">{item.label}</span>
+                    {item.href === "/tim" && unread > 0 && (
+                      <span className="rounded-full bg-gold px-2 py-0.5 text-[10px] font-bold text-heading">{unread}</span>
+                    )}
                     {item.soon && (
                       <span className="rounded-full bg-paper px-2 py-0.5 text-[10px] font-semibold text-muted">
                         Segera
@@ -173,6 +190,12 @@ export function AppShell({
           <Logo />
         </Link>
         <div className="flex items-center gap-2">
+          {team && !simple && (
+            <Link href="/tim" className="relative grid h-9 w-9 place-items-center rounded-full border border-line bg-white text-heading" aria-label="Ruang Kerja Tim">
+              <Bell className="h-4 w-4 text-brand" />
+              {unread > 0 && <span className="absolute -top-0.5 -right-0.5 grid h-4 min-w-4 place-items-center rounded-full bg-gold px-1 text-[10px] font-bold text-heading">{unread}</span>}
+            </Link>
+          )}
           <button
             type="button"
             onClick={() => setMenuOpen(true)}
@@ -204,7 +227,7 @@ export function AppShell({
               <X className="h-5 w-5" />
             </button>
           </div>
-          {sidebarNav.map((group) => (
+          {groups.map((group) => (
             <div key={group.section} className="mt-6">
               <p className="eyebrow mb-2">{group.section}</p>
               <div className="grid grid-cols-3 gap-2.5">
@@ -266,9 +289,9 @@ export function AppShell({
       )}
 
       <main className="mx-auto w-full max-w-6xl px-5 pt-6 pb-32 lg:px-10 lg:pt-10 lg:pb-16 print:p-0">
-        <StepBar />
+        {!hideSteps && <StepBar />}
         {children}
-        <StepNext />
+        {!hideSteps && <StepNext />}
       </main>
 
       {/* AI Companion (disembunyikan dari member bila kunci AI belum dipasang; admin tetap melihat) */}
@@ -288,7 +311,7 @@ export function AppShell({
       {/* Bottom nav mobile */}
       <nav className="print:hidden pb-safe fixed inset-x-0 bottom-0 z-40 border-t border-line bg-white/95 backdrop-blur-xl lg:hidden">
         <ul className="mx-auto grid max-w-md grid-cols-5 px-2 pt-1.5">
-          {mobileNav.map((item) => {
+          {bottom.map((item) => {
             const active = isActive(pathname, item.href);
             const Icon = item.icon;
             return (

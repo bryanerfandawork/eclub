@@ -88,6 +88,8 @@ export async function saveFeatures(_: FormState, formData: FormData): Promise<Fo
     ["affiliate_hold_days", Math.min(60, Math.max(0, Number(String(formData.get("affiliate_hold_days") ?? "").replace(/[^\d]/g, "")) || 7))],
     ["affiliate_months", Math.min(120, Math.max(1, Number(String(formData.get("affiliate_months") ?? "").replace(/[^\d]/g, "")) || 12))],
     ["renewal_days", String(formData.get("renewal_days") ?? "7,3,1").replace(/[^\d,]/g, "").slice(0, 30) || "7,3,1"],
+    ["team_max_monthly", Math.min(500, Math.max(1, Number(String(formData.get("team_max_monthly") ?? "").replace(/[^\d]/g, "")) || 5))],
+    ["team_max_yearly", Math.min(500, Math.max(1, Number(String(formData.get("team_max_yearly") ?? "").replace(/[^\d]/g, "")) || 15))],
     ["wa_daily_max", Math.min(70, Math.max(1, Number(String(formData.get("wa_daily_max") ?? "").replace(/[^\d]/g, "")) || 40))],
     ["birthday_promo", String(formData.get("birthday_promo") ?? "").trim().slice(0, 300)],
     ["payment_mode", formData.get("payment_mode") === "auto" ? "auto" : "manual"],
