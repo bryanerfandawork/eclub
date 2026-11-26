@@ -18,7 +18,8 @@ import { demoDaily } from "@/lib/demo";
 import { tanggalPanjang, todayJakarta } from "@/lib/format";
 import { isDemoMode } from "@/lib/supabase/config";
 import type { DailyAction } from "@/lib/types";
-import { getMyTeamTasks, getTeamState } from "@/lib/team";
+import { getManagedAlerts, getMyTeamTasks, getTeamState } from "@/lib/team";
+import { NeedsAction } from "@/components/team/needs-action";
 import { TaskRow } from "@/components/team/task-row";
 import { FolderKanban } from "lucide-react";
 
@@ -38,7 +39,8 @@ export default async function TodayPage() {
     getProgressStats(),
     getLimit("daily_action"),
   ]);
-  const [fin, finToday, acc, teamTasks, team] = await Promise.all([getFinance(today.slice(0, 7)), getFinToday(), getAccount(), getMyTeamTasks(today, tomorrow), getTeamState()]);
+  const [fin, finToday, acc, teamTasks, team] = await Promise.all([getFinance(today.slice(0, 7)), getFinToday(), getAccount(), getMyTeamTasks(today, tomorrow), getTeamState(), ]);
+  const alerts = await getManagedAlerts(today);
   const simple = team.simple;
   const teamNow = teamTasks.filter((t) => t.plan_date <= today);
   const teamTomorrow = teamTasks.filter((t) => t.plan_date > today && t.status === "open");
@@ -106,7 +108,7 @@ export default async function TodayPage() {
   };
 
   // Pekerjaan Tim: tugas dari ruang kerja, terpisah dari rencana pribadi dan tidak dihitung di batas paket gratis.
-  const teamSection = (teamTasks.length > 0 || simple) && (
+  const teamSection = (teamTasks.length > 0 || simple || team.workspaces > 0) && (
     <section className="card p-5 lg:p-6">
       <div className="flex items-center justify-between">
         <h2 className="flex items-center gap-2 font-bold text-heading">
@@ -258,6 +260,12 @@ export default async function TodayPage() {
           </section>
 
           {!simple && teamSection}
+
+          {alerts.length > 0 && (
+            <div id="tim-tindakan" className="scroll-mt-24">
+              <NeedsAction items={alerts} today={today} tomorrow={tomorrow} showWs title="Tugas tim yang perlu tindakan" />
+            </div>
+          )}
 
           {overdue.length > 0 && (
             <section className="card border-gold/40 p-5 lg:p-6">

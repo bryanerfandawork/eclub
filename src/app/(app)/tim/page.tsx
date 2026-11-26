@@ -7,6 +7,7 @@ import { CreateWorkspaceForm } from "@/components/team/forms";
 import { getAccount, isAdmin } from "@/lib/plans";
 import { KIND_LABEL, ROLE_LABEL, getMyInvites, getMyWorkspaces, getNotices, getTeamState } from "@/lib/team";
 import { tanggalPendek } from "@/lib/format";
+import { getDreams } from "@/lib/data";
 
 export const metadata = { title: "Ruang Kerja Tim" };
 
@@ -19,7 +20,7 @@ const ago = (iso: string) => {
 };
 
 export default async function TeamPage() {
-  const [state, list, invites, notices, acc] = await Promise.all([getTeamState(), getMyWorkspaces(), getMyInvites(), getNotices(15), getAccount()]);
+  const [state, list, invites, notices, acc, dreams] = await Promise.all([getTeamState(), getMyWorkspaces(), getMyInvites(), getNotices(15), getAccount(), getDreams()]);
   const plus = acc.plan === "plus" || isAdmin(acc.role);
   const active = list.filter((w) => !w.archived);
   const archived = list.filter((w) => w.archived);
@@ -30,7 +31,7 @@ export default async function TeamPage() {
       <PageHeader
         eyebrow="Kerja bareng tim"
         title="Ruang Kerja Tim"
-        desc="Bagi tugas ke tim Anda. Tugas otomatis muncul di Laporan Harian orang yang mengerjakan, lengkap dengan kolom komentar."
+        desc="Atur usaha atau project bersama tim: ruang kerja → bagian (Marketing, Produksi, …) → tugas. Tugas otomatis muncul di Laporan Harian orang yang mengerjakan."
       />
       {!state.ready && (
         <p className="mb-5 rounded-2xl border border-gold/50 bg-gold-soft p-4 text-sm text-heading">Fitur tim sedang disiapkan. Admin perlu menjalankan SQL 024 terlebih dahulu.</p>
@@ -89,6 +90,7 @@ export default async function TeamPage() {
                     <b className="mt-1.5 block text-heading">{w.name}</b>
                     <span className="mt-1 text-sm text-muted">
                       {w.open} tugas berjalan{w.mine ? ` · ${w.mine} untuk saya` : ""}
+                      {w.late > 0 && (w.role !== "member" ? <b className="text-danger"> · {w.late} terlambat</b> : null)}
                       {w.kind === "project" && w.end_date ? ` · selesai ${tanggalPendek(w.end_date)}` : ""}
                     </span>
                     <span className="mt-auto inline-flex items-center gap-1 pt-3 text-sm font-semibold text-brand">
@@ -119,7 +121,7 @@ export default async function TeamPage() {
             </h2>
             {plus ? (
               <div className="mt-3">
-                <CreateWorkspaceForm />
+                <CreateWorkspaceForm dreams={dreams.filter((d) => d.status === "active").map((d) => ({ id: d.id, name: d.title }))} />
               </div>
             ) : (
               <div className="mt-2 text-sm text-muted">

@@ -4,7 +4,7 @@ import { setTaskStatus } from "@/app/actions/team";
 import { PendingButton } from "@/components/pending-button";
 import { daysBetween } from "@/lib/assistant";
 import { tanggalPendek as tanggal } from "@/lib/format";
-import type { TeamTask } from "@/lib/team";
+import { isLate, type TeamTask } from "@/lib/team";
 
 /** Satu baris tugas tim: centang selesai, lanjut besok, dan buka detail (komentar). */
 export function TaskRow({
@@ -14,6 +14,7 @@ export function TaskRow({
   label,
   who,
   comments = 0,
+  section,
 }: {
   t: TeamTask;
   today: string;
@@ -24,11 +25,15 @@ export function TaskRow({
   /** Nama penanggung jawab (tampilan ruang kerja). */
   who?: string;
   comments?: number;
+  /** Nama bagian (tampilan lintas bagian). */
+  section?: string;
 }) {
   const done = t.status === "done";
   const late = t.status === "open" && t.plan_date < today ? daysBetween(t.plan_date, today) : 0;
   const dueLate = t.status === "open" && t.due_date && t.due_date < today;
+  const red = isLate(t, today);
   const meta = [
+    section && `📂 ${section}`,
     label && `🏢 ${label}`,
     who && `👤 ${who}`,
     t.plan_date > today && t.status === "open" && `mulai ${tanggal(t.plan_date)}`,
@@ -37,7 +42,7 @@ export function TaskRow({
     t.followups > 0 && `dilanjutkan ${t.followups}x`,
   ].filter(Boolean);
   return (
-    <li className="flex flex-wrap items-center gap-x-3 gap-y-2 py-3">
+    <li className={`flex flex-wrap items-center gap-x-3 gap-y-2 py-3 ${red ? "-mx-2 rounded-xl bg-danger/5 px-2" : ""}`}>
       {canAct && t.status !== "closed" ? (
         <form action={setTaskStatus} className="shrink-0">
           <input type="hidden" name="id" value={t.id} />
@@ -52,8 +57,12 @@ export function TaskRow({
         </span>
       )}
       <Link href={`/tim/${t.workspace_id}/tugas/${t.id}`} className="min-w-0 flex-1">
-        <span className={`block text-[15px] ${done || t.status === "closed" ? "text-muted line-through" : "text-ink"}`}>{t.title}</span>
-        {meta.length > 0 && <span className={`block text-xs ${dueLate ? "text-danger" : "text-muted"}`}>{meta.join(" · ")}</span>}
+        <span className={`block text-[15px] ${done || t.status === "closed" ? "text-muted line-through" : "text-ink"}`}>
+          {t.important && t.status === "open" && <span className="mr-1.5 rounded bg-danger/10 px-1.5 py-0.5 align-middle text-[10px] font-bold text-danger uppercase">Penting</span>}
+          {t.title}
+          {t.status === "closed" && <span className="ml-1.5 text-xs no-underline">(batal)</span>}
+        </span>
+        {meta.length > 0 && <span className={`block text-xs ${dueLate || red ? "font-medium text-danger" : "text-muted"}`}>{meta.join(" · ")}</span>}
       </Link>
       {comments > 0 && (
         <Link href={`/tim/${t.workspace_id}/tugas/${t.id}`} className="flex items-center gap-1 text-xs font-semibold text-muted hover:text-brand">
