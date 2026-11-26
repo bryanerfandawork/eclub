@@ -22,7 +22,7 @@ export async function TeamCard({ variant = "home" }: { variant?: "home" | "compa
         </span>
         <span className="min-w-0 flex-1 text-sm">
           <b className="block text-heading">Kerja bareng tim?</b>
-          <span className="text-muted">Buat ruang kerja untuk usaha atau project Anda, bagi tugas per bagian, pantau progresnya.</span>
+          <span className="text-muted">Buat ruang kerja untuk usaha atau project Anda, susun tahapan dan tugas, pantau progresnya.</span>
         </span>
         <ArrowRight className="h-5 w-5 shrink-0 text-brand" />
       </Link>

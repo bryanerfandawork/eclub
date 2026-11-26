@@ -2,7 +2,7 @@
 
 import { useActionState, useEffect, useRef, useState } from "react";
 import { Send, UserPlus } from "lucide-react";
-import { addComment, addGoal, addSection, addTask, createWorkspace, inviteByUsername, joinByCode, saveTaskResult, setUsername, updateTask, updateWorkspace } from "@/app/actions/team";
+import { addComment, addGoal, addItem, postMessage, addSection, addTask, createWorkspace, inviteByUsername, joinByCode, saveTaskResult, setUsername, updateTask, updateWorkspace } from "@/app/actions/team";
 import { rupiah } from "@/lib/format";
 import { SubmitButton } from "@/components/submit-button";
 import { FormMessage } from "@/components/ui";
@@ -28,14 +28,38 @@ function DreamSelect({ dreams, value }: { dreams: Opt[]; value?: string | null }
   );
 }
 
-/** Pilihan bagian, target, penanggung jawab & tanda penting, dipakai di form tambah & ubah tugas. */
-function TaskFields({ people, sections, goals, me, d }: { people: Person[]; sections: Opt[] | null; goals: Opt[]; me?: string; d?: { assignee_id: string | null; section_id?: string | null; goal_id?: string | null; important?: boolean } }) {
+/** Tahapan/area, penanggung jawab, target, berulang & tanda penting, dipakai di form tambah & ubah tugas. */
+function TaskFields({
+  people,
+  sections,
+  goals,
+  me,
+  d,
+  fixedSection,
+  level = "Tahapan",
+}: {
+  people: Person[];
+  sections: Opt[] | null;
+  goals: Opt[];
+  me?: string;
+  d?: { assignee_id: string | null; section_id?: string | null; goal_id?: string | null; important?: boolean; repeat?: string | null };
+  /** Form di dalam kartu tahapan/area: sudah pasti. */
+  fixedSection?: string;
+  /** "Tahapan" (project) atau "Area kerja" (perusahaan). */
+  level?: string;
+}) {
   return (
     <>
+      {fixedSection && <input type="hidden" name="section_id" value={fixedSection} />}
       <div className="grid gap-2 sm:grid-cols-2">
         <label className="block">
-          <span className="text-xs text-muted">Dikerjakan oleh</span>
-          <select name="assignee" className="input text-sm" defaultValue={d ? (d.assignee_id ?? "") : (people.find((p) => p.id !== me)?.id ?? me ?? "")}>
+          <span className="text-xs text-muted">Dikerjakan oleh *</span>
+          <select name="assignee" className="input text-sm" required defaultValue={d ? (d.assignee_id ?? "") : (people.find((p) => p.id !== me)?.id ?? me ?? "")}>
+            {d && !d.assignee_id && (
+              <option value="" disabled>
+                Pilih orang
+              </option>
+            )}
             {people.map((p) => (
               <option key={p.id} value={p.id}>
                 {p.name}
@@ -43,14 +67,15 @@ function TaskFields({ people, sections, goals, me, d }: { people: Person[]; sect
                 {p.pending ? " · belum menerima undangan" : ""}
               </option>
             ))}
-            <option value="">Belum ditentukan</option>
           </select>
         </label>
-        {sections !== null && (
+        {sections !== null && !fixedSection && (
           <label className="block">
-            <span className="text-xs text-muted">Bagian</span>
-            <select name="section_id" className="input text-sm" defaultValue={d?.section_id ?? ""}>
-              <option value="">Umum</option>
+            <span className="text-xs text-muted">{level} *</span>
+            <select name="section_id" className="input text-sm" required defaultValue={d?.section_id ?? ""}>
+              <option value="" disabled>
+                Pilih {level.toLowerCase()}
+              </option>
               {sections.map((s) => (
                 <option key={s.id} value={s.id}>
                   {s.name}
@@ -72,6 +97,12 @@ function TaskFields({ people, sections, goals, me, d }: { people: Person[]; sect
               ))}
             </select>
           )}
+          <select name="repeat" className="input w-auto text-sm" defaultValue={d?.repeat ?? ""} aria-label="Berulang">
+            <option value="">Sekali saja</option>
+            <option value="daily">🔁 Setiap hari</option>
+            <option value="weekly">🔁 Setiap minggu</option>
+            <option value="monthly">🔁 Setiap bulan</option>
+          </select>
           <input type="hidden" name="important_field" value="1" />
           <label className="flex items-center gap-2 text-sm font-semibold text-heading">
             <input type="checkbox" name="important" defaultChecked={d?.important} className="h-4 w-4 accent-[#8B2220]" /> Penting
@@ -181,23 +212,52 @@ export function InviteForm({ ws }: { ws: string }) {
   );
 }
 
-export function AddTaskForm({ ws, people, me, today, sections, goals }: { ws: string; people: Person[]; me: string; today: string; sections: Opt[] | null; goals: Opt[] }) {
+export function AddTaskForm({
+  ws,
+  people,
+  me,
+  today,
+  sections,
+  goals,
+  section,
+  collapsed = false,
+  level,
+}: {
+  ws: string;
+  people: Person[];
+  me: string;
+  today: string;
+  sections: Opt[] | null;
+  goals: Opt[];
+  /** Tahapan / area tempat tugas ini ditambahkan. */
+  section?: string;
+  /** Tampil sebagai tombol "+ Tambah tugas" dulu. */
+  collapsed?: boolean;
+  level?: string;
+}) {
   const [state, action] = useActionState<FormState, FormData>(addTask, undefined);
   const ref = useResetOnSuccess(state);
   const [more, setMore] = useState(false);
+  const [open, setOpen] = useState(!collapsed);
+  if (!open)
+    return (
+      <button type="button" onClick={() => setOpen(true)} className="mt-3 w-full rounded-xl border border-dashed border-line py-2.5 text-sm font-semibold text-muted hover:border-gold hover:text-heading">
+        + Tambah tugas
+      </button>
+    );
   return (
-    <form ref={ref} action={action} className="space-y-2 rounded-2xl bg-paper p-3.5">
+    <form ref={ref} action={action} className="mt-3 space-y-2 rounded-2xl bg-paper p-3.5">
       <input type="hidden" name="ws" value={ws} />
-      <input name="title" className="input" placeholder="Tugas baru, mis. Membuat konten Instagram" maxLength={160} required />
-      <TaskFields people={people} sections={sections} goals={goals} me={me} />
+      <input name="title" className="input" placeholder="Tugas, mis. Mendaftarkan NIB / Press pin order 50 pcs" maxLength={160} required autoFocus={collapsed} />
+      <TaskFields people={people} sections={sections} goals={goals} me={me} fixedSection={section} level={level} />
       <div className="grid grid-cols-2 gap-2">
         <label className="block">
           <span className="text-xs text-muted">Mulai dikerjakan</span>
           <input type="date" name="plan_date" defaultValue={today} min={today} className="input text-sm" />
         </label>
         <label className="block">
-          <span className="text-xs text-muted">Deadline (opsional)</span>
-          <input type="date" name="due_date" min={today} className="input text-sm" />
+          <span className="text-xs text-muted">Deadline *</span>
+          <input type="date" name="due_date" min={today} className="input text-sm" required />
         </label>
       </div>
       {more ? (
@@ -207,7 +267,14 @@ export function AddTaskForm({ ws, people, me, today, sections, goals }: { ws: st
           + Tambah detail
         </button>
       )}
-      <SubmitButton className="btn-primary w-full">Tambah tugas</SubmitButton>
+      <div className="flex gap-2">
+        <SubmitButton className="btn-primary flex-1">Tambah tugas</SubmitButton>
+        {collapsed && (
+          <button type="button" onClick={() => setOpen(false)} className="btn-ghost">
+            Tutup
+          </button>
+        )}
+      </div>
       <FormMessage state={state} />
     </form>
   );
@@ -219,12 +286,14 @@ export function EditTaskForm({
   people,
   sections,
   goals,
+  level,
 }: {
   ws: string;
-  task: { id: string; title: string; description: string | null; assignee_id: string | null; plan_date: string; due_date: string | null; section_id?: string | null; goal_id?: string | null; important?: boolean };
+  task: { id: string; title: string; description: string | null; assignee_id: string | null; plan_date: string; due_date: string | null; section_id?: string | null; goal_id?: string | null; important?: boolean; repeat?: string | null };
   people: Person[];
   sections: Opt[] | null;
   goals: Opt[];
+  level?: string;
 }) {
   const [state, action] = useActionState<FormState, FormData>(updateTask, undefined);
   return (
@@ -239,15 +308,15 @@ export function EditTaskForm({
         <span className="label">Detail</span>
         <textarea name="description" rows={3} defaultValue={task.description ?? ""} className="input text-sm" maxLength={2000} />
       </label>
-      <TaskFields people={people} sections={sections} goals={goals} d={task} />
+      <TaskFields people={people} sections={sections} goals={goals} d={task} level={level} />
       <div className="grid grid-cols-2 gap-2">
         <label className="block">
           <span className="text-xs text-muted">Jadwal dikerjakan</span>
           <input type="date" name="plan_date" defaultValue={task.plan_date} className="input text-sm" required />
         </label>
         <label className="block">
-          <span className="text-xs text-muted">Deadline</span>
-          <input type="date" name="due_date" defaultValue={task.due_date ?? ""} className="input text-sm" />
+          <span className="text-xs text-muted">Deadline *</span>
+          <input type="date" name="due_date" defaultValue={task.due_date ?? ""} className="input text-sm" required />
         </label>
       </div>
       <SubmitButton>Simpan perubahan</SubmitButton>
@@ -308,28 +377,32 @@ export function UsernameForm({ current }: { current: string | null }) {
   );
 }
 
-const SECTION_IDEAS = ["Marketing", "Produksi", "Penjualan", "Keuangan", "Operasional", "SDM", "Pelayanan", "Konten"];
+const TAHAPAN_IDEAS = {
+  project: ["Persiapan", "Melengkapi dokumen", "Pelaksanaan", "Promosi", "Laporan & evaluasi"],
+  company: ["Pengerjaan orderan", "Promosi & konten", "Pengadaan bahan", "Pengiriman", "Administrasi & keuangan", "Rutin harian"],
+} as const;
 
-/** Tambah bagian / divisi. Bisa ketuk saran, atau tulis beberapa sekaligus dipisah koma. */
-export function SectionForm({ ws, existing }: { ws: string; existing: string[] }) {
+/** Tambah tahapan (project) atau area kerja (perusahaan). Bisa ketuk contoh, atau tulis beberapa sekaligus dipisah koma. */
+export function SectionForm({ ws, existing, kind }: { ws: string; existing: string[]; kind: "company" | "project" }) {
   const [state, action] = useActionState<FormState, FormData>(addSection, undefined);
   const ref = useResetOnSuccess(state);
   const [val, setVal] = useState("");
   useEffect(() => {
     if (state?.message) setVal("");
   }, [state]);
-  const ideas = SECTION_IDEAS.filter((i) => !existing.some((e) => e.toLowerCase() === i.toLowerCase()));
+  const ideas = TAHAPAN_IDEAS[kind].filter((i) => !existing.some((e) => e.toLowerCase() === i.toLowerCase()));
   return (
     <form ref={ref} action={action} className="space-y-2">
       <input type="hidden" name="ws" value={ws} />
       <div className="flex gap-2">
-        <input name="name" value={val} onChange={(e) => setVal(e.target.value)} className="input" placeholder="Nama bagian, mis. Marketing" maxLength={200} required />
+        <input name="name" value={val} onChange={(e) => setVal(e.target.value)} className="input" placeholder={kind === "project" ? "Tahapan, mis. Melengkapi dokumen" : "Area kerja, mis. Pengerjaan orderan"} maxLength={200} required />
         <SubmitButton className="btn-primary shrink-0" pendingText="">
           Tambah
         </SubmitButton>
       </div>
       {ideas.length > 0 && (
-        <div className="flex flex-wrap gap-1.5">
+        <div className="flex flex-wrap items-center gap-1.5">
+          <span className="text-xs text-muted">Contoh:</span>
           {ideas.map((i) => (
             <button
               key={i}
@@ -433,6 +506,43 @@ export function ResultForm({ ws, task, pockets, dreams, dreamId }: { ws: string;
         </button>
       </div>
       <FormMessage state={state} />
+    </form>
+  );
+}
+
+/** Tambah langkah checklist (boleh beberapa baris sekaligus). */
+export function ItemForm({ ws, task }: { ws: string; task: string }) {
+  const [state, action] = useActionState<FormState, FormData>(addItem, undefined);
+  const ref = useResetOnSuccess(state);
+  return (
+    <form ref={ref} action={action} className="mt-2 space-y-1">
+      <input type="hidden" name="ws" value={ws} />
+      <input type="hidden" name="task" value={task} />
+      <div className="flex gap-2">
+        <input name="title" className="input h-10 text-sm" placeholder="+ Langkah kecil, mis. Siapkan KTP" maxLength={160} required />
+        <SubmitButton className="btn-ghost shrink-0 px-3 text-sm" pendingText="">
+          Tambah
+        </SubmitButton>
+      </div>
+      {state?.error && <FormMessage state={state} />}
+    </form>
+  );
+}
+
+export function MessageForm({ ws }: { ws: string }) {
+  const [state, action] = useActionState<FormState, FormData>(postMessage, undefined);
+  const ref = useResetOnSuccess(state);
+  return (
+    <form ref={ref} action={action} className="space-y-2">
+      <input type="hidden" name="ws" value={ws} />
+      <div className="flex items-end gap-2">
+        <textarea name="body" rows={2} className="input text-sm" placeholder="Tulis pesan untuk seluruh tim…" maxLength={2000} required />
+        <SubmitButton className="btn-primary shrink-0 px-3" pendingText="">
+          <Send className="h-4 w-4" />
+          <span className="sr-only">Kirim</span>
+        </SubmitButton>
+      </div>
+      {state?.error && <FormMessage state={state} />}
     </form>
   );
 }

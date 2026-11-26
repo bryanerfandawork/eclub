@@ -31,7 +31,7 @@ export default async function TeamPage() {
       <PageHeader
         eyebrow="Kerja bareng tim"
         title="Ruang Kerja Tim"
-        desc="Atur usaha atau project bersama tim: ruang kerja → bagian (Marketing, Produksi, …) → tugas. Tugas otomatis muncul di Laporan Harian orang yang mengerjakan."
+        desc="Atur usaha atau project bersama tim: perusahaan atau project → tahapan → tugas (siapa & deadline) → checklist. Tugas otomatis muncul di Laporan Harian orang yang mengerjakan."
       />
       {!state.ready && (
         <p className="mb-5 rounded-2xl border border-gold/50 bg-gold-soft p-4 text-sm text-heading">Fitur tim sedang disiapkan. Admin perlu menjalankan SQL 024 terlebih dahulu.</p>

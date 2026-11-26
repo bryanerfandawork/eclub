@@ -1,14 +1,14 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, CheckCircle2, MessageCircle, Trash2 } from "lucide-react";
-import { archiveTask, deleteComment, deleteTask, rescheduleTask, setTaskStatus } from "@/app/actions/team";
+import { ArrowLeft, CheckCircle2, ListChecks, MessageCircle, Play, Trash2 } from "lucide-react";
+import { archiveTask, deleteComment, deleteItem, deleteTask, rescheduleTask, setTaskStatus, toggleItem } from "@/app/actions/team";
 import { getDreams } from "@/lib/data";
 import { getPockets } from "@/lib/finance-server";
 import { rupiah } from "@/lib/format";
 import { Sparkles } from "lucide-react";
 import { PendingButton } from "@/components/pending-button";
-import { CommentForm, EditTaskForm, ResultForm } from "@/components/team/forms";
-import { canManage, getTask, isLate, personName } from "@/lib/team";
+import { CommentForm, EditTaskForm, ItemForm, ResultForm } from "@/components/team/forms";
+import { canManage, getTask, isLate, levelName, personName, REPEAT_LABEL } from "@/lib/team";
 import { tanggalPendek, todayJakarta } from "@/lib/format";
 
 export const metadata = { title: "Tugas tim" };
@@ -20,7 +20,8 @@ export default async function TaskPage({ params }: { params: Promise<{ id: strin
   const { id, taskId } = await params;
   const data = await getTask(id, taskId);
   if (!data) notFound();
-  const { ws, task: t, people, role, me, list, sections, goals } = data;
+  const { ws, task: t, people, role, me, list, sections, goals, taskItems } = data;
+  const L = levelName(ws.kind);
   const today = todayJakarta();
   const owner = role === "owner";
   const askResult = owner && t.status === "done" && !t.result_state;
@@ -52,7 +53,9 @@ export default async function TaskPage({ params }: { params: Promise<{ id: strin
             <div className="flex flex-wrap gap-1.5">
               <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${late ? "bg-danger/10 text-danger" : t.status === "done" ? "bg-success/10 text-success" : t.status === "closed" ? "bg-paper text-muted" : "bg-gold-soft text-brand"}`}>{late ? "Terlambat" : STATUS[t.status]}</span>
               {t.important && <span className="rounded-full bg-danger/10 px-2.5 py-1 text-xs font-bold text-danger">Penting</span>}
-              {section && <span className="rounded-full bg-paper px-2.5 py-1 text-xs font-semibold text-heading">📂 {section}</span>}
+              {t.status === "open" && t.started_at && <span className="rounded-full bg-brand/10 px-2.5 py-1 text-xs font-semibold text-brand">▶ Sedang dikerjakan</span>}
+              {section && <span className="rounded-full bg-paper px-2.5 py-1 text-xs font-semibold text-heading">📌 {L}: {section}</span>}
+              {t.repeat && <span className="rounded-full bg-paper px-2.5 py-1 text-xs font-semibold text-heading">🔁 {REPEAT_LABEL[t.repeat as keyof typeof REPEAT_LABEL] ?? t.repeat}</span>}
               {goal && <span className="rounded-full bg-paper px-2.5 py-1 text-xs font-semibold text-heading">🎯 {goal}</span>}
               {t.archived && <span className="rounded-full bg-paper px-2.5 py-1 text-xs font-semibold text-muted">Diarsipkan</span>}
             </div>
@@ -81,6 +84,11 @@ export default async function TaskPage({ params }: { params: Promise<{ id: strin
               <div className="mt-5 flex flex-wrap gap-2 border-t border-line pt-4">
                 {t.status === "open" ? (
                   <>
+                    {!t.started_at && (
+                      <Btn to="start">
+                        <Play className="h-4 w-4" /> Mulai kerjakan
+                      </Btn>
+                    )}
                     <Btn to="done" tone="primary">
                       <CheckCircle2 className="h-4 w-4" /> Tandai selesai
                     </Btn>
@@ -110,6 +118,56 @@ export default async function TaskPage({ params }: { params: Promise<{ id: strin
               </div>
             )}
           </section>
+
+          {taskItems && (
+            <section className="card p-5 lg:p-6">
+              <h2 className="flex items-center gap-2 font-bold text-heading">
+                <ListChecks className="h-5 w-5 text-brand" /> Checklist
+                {taskItems.length > 0 && (
+                  <span className="text-sm font-semibold text-muted">
+                    {taskItems.filter((i) => i.done).length}/{taskItems.length}
+                  </span>
+                )}
+              </h2>
+              {taskItems.length > 0 && (
+                <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-paper">
+                  <div className="h-full bg-success" style={{ width: `${Math.round((taskItems.filter((i) => i.done).length / taskItems.length) * 100)}%` }} />
+                </div>
+              )}
+              <ul className="mt-3 space-y-1.5">
+                {taskItems.map((i) => (
+                  <li key={i.id} className="flex items-center gap-2">
+                    {canAct ? (
+                      <form action={toggleItem}>
+                        <input type="hidden" name="ws" value={id} />
+                        <input type="hidden" name="task" value={t.id} />
+                        <input type="hidden" name="id" value={i.id} />
+                        {i.done && <input type="hidden" name="done" value="1" />}
+                        <PendingButton className={`flex h-6 w-6 items-center justify-center rounded-md border-2 text-xs ${i.done ? "border-success bg-success text-white" : "border-line bg-white"}`} aria-label={i.done ? "Batal centang" : "Centang"}>
+                          {i.done ? "✓" : ""}
+                        </PendingButton>
+                      </form>
+                    ) : (
+                      <span className={`flex h-6 w-6 items-center justify-center rounded-md border-2 text-xs ${i.done ? "border-success bg-success text-white" : "border-line"}`}>{i.done ? "✓" : ""}</span>
+                    )}
+                    <span className={`flex-1 text-sm ${i.done ? "text-muted line-through" : "text-ink"}`}>{i.title}</span>
+                    {canAct && (
+                      <form action={deleteItem}>
+                        <input type="hidden" name="ws" value={id} />
+                        <input type="hidden" name="task" value={t.id} />
+                        <input type="hidden" name="id" value={i.id} />
+                        <PendingButton className="text-xs text-muted hover:text-danger" aria-label="Hapus langkah">
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </PendingButton>
+                      </form>
+                    )}
+                  </li>
+                ))}
+                {taskItems.length === 0 && <li className="text-sm text-muted">Pecah tugas ini jadi langkah-langkah kecil supaya lebih mudah dikerjakan dan dipantau.</li>}
+              </ul>
+              {canAct && <ItemForm ws={id} task={t.id} />}
+            </section>
+          )}
 
           {owner && t.status === "done" && (
             <section id="hasil" className="scroll-mt-24 rounded-2xl border border-gold/50 bg-gold-soft p-5 lg:p-6">
@@ -173,6 +231,7 @@ export default async function TaskPage({ params }: { params: Promise<{ id: strin
                 people={people.map((p) => ({ id: p.user_id, name: p.user_id === me ? `${personName(p)} (saya)` : personName(p), pending: p.status === "invited" }))}
                 sections={sections?.map((x) => ({ id: x.id, name: x.name })) ?? null}
                 goals={goals.filter((g) => g.status === "active").map((g) => ({ id: g.id, name: g.title }))}
+                level={L}
               />
             </section>
             <form action={deleteTask}>

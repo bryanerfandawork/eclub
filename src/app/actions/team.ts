@@ -155,12 +155,21 @@ export async function removeMember(f: FormData) {
 
 /* ---------------- Tugas ---------------- */
 
-/** Kolom tugas dari SQL 025 (bagian, penting, target). Hanya dikirim bila ada di form. */
+/** Pekerjaan wajib punya poin (bila fitur poin aktif), penanggung jawab, dan deadline. */
+function needed(f: FormData, assignee: string, due: string) {
+  if (f.has("section_id") && !isId(str(f, "section_id"))) return "Pilih tahapan untuk tugas ini.";
+  if (!isId(assignee)) return "Pilih siapa yang mengerjakan.";
+  if (!due) return "Isi deadline tugas ini.";
+  return null;
+}
+
+/** Kolom tugas dari SQL 025 (poin, penting, target). Hanya dikirim bila ada di form. */
 function extra(f: FormData) {
   const o: Record<string, unknown> = {};
   if (f.has("section_id")) o.section_id = isId(str(f, "section_id")) ? str(f, "section_id") : null;
   if (f.has("goal_id")) o.goal_id = isId(str(f, "goal_id")) ? str(f, "goal_id") : null;
   if (f.has("important_field")) o.important = f.get("important") === "on";
+  if (f.has("repeat")) o.repeat = ["daily", "weekly", "monthly"].includes(str(f, "repeat")) ? str(f, "repeat") : null;
   return o;
 }
 
@@ -171,8 +180,10 @@ export async function addTask(_: FormState, f: FormData): Promise<FormState> {
   const assignee = str(f, "assignee");
   const plan = str(f, "plan_date") || todayJakarta();
   const due = str(f, "due_date");
-  if (!title) return { error: "Tulis judul tugasnya." };
+  if (!title) return { error: "Tulis nama tugasnya." };
   if (!isDate(plan) || (due && !isDate(due))) return { error: "Tanggal tidak valid." };
+  const need = needed(f, assignee, due);
+  if (need) return { error: need };
   const { supabase, uid } = await me();
   const { data, error } = await supabase
     .from("ws_tasks")
@@ -201,6 +212,8 @@ export async function updateTask(_: FormState, f: FormData): Promise<FormState> 
   const due = str(f, "due_date");
   if (!title) return { error: "Judul wajib diisi." };
   if (!isDate(plan) || (due && !isDate(due))) return { error: "Tanggal tidak valid." };
+  const need = needed(f, assignee, due);
+  if (need) return { error: need };
   const { supabase, uid } = await me();
   const { data: before } = await supabase.from("ws_tasks").select("assignee_id").eq("id", id).maybeSingle();
   const { error } = await supabase
@@ -227,7 +240,9 @@ export async function setTaskStatus(f: FormData) {
   const patch =
     to === "done"
       ? { status: "done" }
-      : to === "open"
+      : to === "start"
+        ? { status: "open", started_at: new Date().toISOString() }
+        : to === "open"
         ? { status: "open" }
         : to === "closed"
           ? { status: "closed" }
@@ -315,7 +330,7 @@ export async function setUsername(_: FormState, f: FormData): Promise<FormState>
   return { message: `Username Anda sekarang @${data}` };
 }
 
-/* ---------------- Putaran 2: bagian, jadwal ulang, arsip, hasil, target ---------------- */
+/* ---------------- Putaran 2: poin, jadwal ulang, arsip, hasil, target ---------------- */
 
 export async function addSection(_: FormState, f: FormData): Promise<FormState> {
   if (isDemoMode) return { error: DEMO };
@@ -325,14 +340,14 @@ export async function addSection(_: FormState, f: FormData): Promise<FormState> 
     .map((n) => n.trim().slice(0, 40))
     .filter(Boolean)
     .slice(0, 10);
-  if (!names.length) return { error: "Tulis nama bagiannya, mis. Marketing." };
+  if (!names.length) return { error: "Tulis nama tahapannya, mis. Melengkapi dokumen." };
   const { supabase } = await me();
   const { count } = await supabase.from("ws_sections").select("id", { count: "exact", head: true }).eq("workspace_id", ws).eq("archived", false);
-  if ((count ?? 0) + names.length > 20) return { error: "Maksimal 20 bagian per ruang kerja." };
+  if ((count ?? 0) + names.length > 30) return { error: "Maksimal 30 tahapan per ruang kerja. Hapus tahapan yang sudah selesai." };
   const { error } = await supabase.from("ws_sections").insert(names.map((name, i) => ({ workspace_id: ws, name, sort: (count ?? 0) + i })));
-  if (error) return { error: error.code === "42P01" ? "Fitur bagian aktif setelah SQL 025 dijalankan." : dbError(error, "Gagal menyimpan bagian.") };
+  if (error) return { error: error.code === "42P01" ? "Fitur tahapan aktif setelah SQL 025 dijalankan." : dbError(error, "Gagal menyimpan tahapan.") };
   refresh(ws);
-  return { message: "Bagian ditambahkan ✓" };
+  return { message: "Tahapan ditambahkan ✓" };
 }
 
 export async function renameSection(f: FormData) {
@@ -345,7 +360,7 @@ export async function renameSection(f: FormData) {
   refresh(ws);
 }
 
-/** Hapus bagian: tugasnya tetap ada, pindah ke "Umum". */
+/** Hapus poin: pekerjaannya tetap ada, pindah ke "Tanpa tahapan". */
 export async function deleteSection(f: FormData) {
   if (isDemoMode) return;
   const ws = str(f, "ws");
@@ -458,4 +473,70 @@ export async function updateGoal(f: FormData) {
   if (f.has("status")) patch.status = ["active", "achieved", "dropped"].includes(str(f, "status")) ? str(f, "status") : "active";
   await supabase.from("ws_goals").update(patch).eq("id", str(f, "id"));
   refresh(ws);
+}
+
+/* ---------------- Putaran 3: checklist & diskusi ---------------- */
+
+export async function addItem(_: FormState, f: FormData): Promise<FormState> {
+  if (isDemoMode) return { error: DEMO };
+  const ws = str(f, "ws");
+  const task = str(f, "task");
+  const titles = String(f.get("title") ?? "")
+    .split("\n")
+    .map((t) => t.trim().slice(0, 160))
+    .filter(Boolean)
+    .slice(0, 20);
+  if (!titles.length) return { error: "Tulis langkahnya dulu." };
+  const { supabase } = await me();
+  const { count } = await supabase.from("ws_task_items").select("id", { count: "exact", head: true }).eq("task_id", task);
+  const { error } = await supabase.from("ws_task_items").insert(titles.map((title, i) => ({ task_id: task, workspace_id: ws, title, sort: (count ?? 0) + i })));
+  if (error) return { error: error.code === "42P01" ? "Checklist aktif setelah SQL 026 dijalankan." : error.code === "42501" ? "Hanya penanggung jawab atau pemilik/admin yang bisa menambah checklist." : dbError(error, "Gagal menyimpan.") };
+  revalidatePath(`/tim/${ws}/tugas/${task}`);
+  revalidatePath(`/tim/${ws}`);
+  return { message: "ok" };
+}
+
+export async function toggleItem(f: FormData) {
+  if (isDemoMode) return;
+  const ws = str(f, "ws");
+  const task = str(f, "task");
+  const { supabase } = await me();
+  await supabase.from("ws_task_items").update({ done: f.get("done") !== "1" }).eq("id", str(f, "id"));
+  revalidatePath(`/tim/${ws}/tugas/${task}`);
+  revalidatePath(`/tim/${ws}`);
+}
+
+export async function deleteItem(f: FormData) {
+  if (isDemoMode) return;
+  const ws = str(f, "ws");
+  const task = str(f, "task");
+  const { supabase } = await me();
+  await supabase.from("ws_task_items").delete().eq("id", str(f, "id"));
+  revalidatePath(`/tim/${ws}/tugas/${task}`);
+}
+
+export async function postMessage(_: FormState, f: FormData): Promise<FormState> {
+  if (isDemoMode) return { error: DEMO };
+  const ws = str(f, "ws");
+  const body = str(f, "body", 2000);
+  if (!body) return { error: "Tulis pesannya dulu." };
+  const { supabase, uid } = await me();
+  const { error } = await supabase.from("ws_messages").insert({ workspace_id: ws, user_id: uid, body });
+  if (error) return { error: error.code === "42P01" ? "Diskusi aktif setelah SQL 026 dijalankan." : dbError(error, "Gagal mengirim.") };
+  const [{ data: w }, { data: p }, { data: m }] = await Promise.all([
+    supabase.from("workspaces").select("name").eq("id", ws).maybeSingle(),
+    supabase.from("profiles").select("full_name").eq("id", uid).maybeSingle(),
+    supabase.from("workspace_members").select("user_id").eq("workspace_id", ws).eq("status", "active"),
+  ]);
+  await notifyTeam(ws, ((m ?? []) as { user_id: string }[]).map((x) => x.user_id), uid, `💬 ${w?.name ?? "Tim"}`, `${p?.full_name ?? "Anggota"}: ${body.slice(0, 140)}`, `/tim/${ws}?tab=diskusi`);
+  revalidatePath(`/tim/${ws}`);
+  return { message: "ok" };
+}
+
+export async function deleteMessage(f: FormData) {
+  if (isDemoMode) return;
+  const ws = str(f, "ws");
+  const { supabase } = await me();
+  await supabase.from("ws_messages").delete().eq("id", str(f, "id"));
+  revalidatePath(`/tim/${ws}`);
 }

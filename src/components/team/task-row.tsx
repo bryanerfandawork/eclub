@@ -15,6 +15,7 @@ export function TaskRow({
   who,
   comments = 0,
   section,
+  items,
 }: {
   t: TeamTask;
   today: string;
@@ -25,15 +26,20 @@ export function TaskRow({
   /** Nama penanggung jawab (tampilan ruang kerja). */
   who?: string;
   comments?: number;
-  /** Nama bagian (tampilan lintas bagian). */
+  /** Nama poin (tampilan lintas poin). */
   section?: string;
+  /** Checklist: selesai / total. */
+  items?: { done: number; total: number };
 }) {
   const done = t.status === "done";
   const late = t.status === "open" && t.plan_date < today ? daysBetween(t.plan_date, today) : 0;
   const dueLate = t.status === "open" && t.due_date && t.due_date < today;
   const red = isLate(t, today);
   const meta = [
-    section && `📂 ${section}`,
+    t.status === "open" && t.started_at && "▶ dikerjakan",
+    section && `📌 ${section}`,
+    t.repeat && "🔁",
+    items && items.total > 0 && `☑ ${items.done}/${items.total}`,
     label && `🏢 ${label}`,
     who && `👤 ${who}`,
     t.plan_date > today && t.status === "open" && `mulai ${tanggal(t.plan_date)}`,
