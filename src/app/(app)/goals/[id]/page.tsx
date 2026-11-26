@@ -4,11 +4,13 @@ import { CalendarDays, CheckCircle2, ChevronLeft, Circle, Trash2 } from "lucide-
 import { deleteAction, deleteDream, setDreamStatus, toggleAction } from "@/app/actions/dreams";
 import { ProgressBar } from "@/components/ui";
 import { getDream } from "@/lib/data";
-import { dreamProgress, monthsUntil, rupiah, tanggal } from "@/lib/format";
+import { dreamProgress, monthsUntil, rupiah, tanggal, todayJakarta } from "@/lib/format";
 import { AddActionForm, AddSavingForm, SetTargetForm } from "./client";
 import { MoreDreams } from "@/components/more-dreams";
 import { getLimit } from "@/lib/plans";
 import { getPockets } from "@/lib/finance-server";
+import { DreamLinks } from "@/components/links/dream-links";
+import { QuickPlan } from "@/components/links/quick-plan";
 
 export default async function DreamDetailPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ pertama?: string }> }) {
   const { id } = await params;
@@ -106,6 +108,7 @@ export default async function DreamDetailPage({ params, searchParams }: { params
                   </button>
                 </form>
                 <span className={`flex-1 text-[15px] ${a.done ? "text-muted line-through" : "text-ink"}`}>{a.title}</span>
+                {!a.done && d.status === "active" && <QuickPlan compact title={a.title} date={todayJakarta()} dreamId={d.id} label="Kerjakan hari ini" />}
                 <form action={deleteAction}>
                   <input type="hidden" name="id" value={a.id} />
                   <button className="rounded-lg p-1.5 text-muted opacity-60 hover:bg-paper hover:text-danger lg:opacity-0 lg:group-hover:opacity-100" aria-label="Hapus langkah">
@@ -117,6 +120,7 @@ export default async function DreamDetailPage({ params, searchParams }: { params
           </ul>
           {actions.length === 0 && <p className="mt-2 text-sm text-muted">Pecah mimpi ini menjadi langkah kecil yang bisa dikerjakan minggu ini.</p>}
           <AddActionForm dreamId={d.id} />
+          {actions.some((a) => !a.done) && <p className="mt-2 text-xs text-muted">Tekan “Kerjakan hari ini” supaya langkah masuk ke Laporan Harian dan diingatkan malam hari.</p>}
         </section>
 
         <aside className="space-y-5 lg:col-span-2">
@@ -159,6 +163,8 @@ export default async function DreamDetailPage({ params, searchParams }: { params
           </section>
         </aside>
       </div>
+
+      {d.status !== "achieved" && <DreamLinks dreamId={d.id} hasTarget={!!(d.target_amount && d.target_date)} hasSavings={kept.length > 0} />}
     </>
   );
 }

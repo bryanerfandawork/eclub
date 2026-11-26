@@ -5,6 +5,8 @@ import { toggleLessonDone } from "@/app/actions/lms";
 import { SubmitButton } from "@/components/submit-button";
 import { getCourseBySlug, getLessonContent, getLessonVideo, sefLockedStep } from "@/lib/lms";
 import { getAccount } from "@/lib/plans";
+import { QuickPlan } from "@/components/links/quick-plan";
+import { todayJakarta } from "@/lib/format";
 
 export default async function LessonPage({ params }: { params: Promise<{ slug: string; lessonId: string }> }) {
   const { slug, lessonId } = await params;
@@ -84,6 +86,15 @@ export default async function LessonPage({ params }: { params: Promise<{ slug: s
           </form>
         )}
       </div>
+
+      {canWatch && (
+        <div className="mt-6 flex flex-col gap-3 rounded-2xl border border-gold/40 bg-gold-soft p-4 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-sm text-heading">
+            <b>Ilmu baru terasa setelah dipraktikkan.</b> Jadikan satu rencana aksi besok, nanti diingatkan di Laporan Harian.
+          </p>
+          <QuickPlan title={`Praktik: ${lesson.title}`} date={todayJakarta(1)} label="Praktikkan besok" />
+        </div>
+      )}
 
       {canWatch && (content ?? lesson.content) && <article className="card mt-6 p-6 leading-relaxed whitespace-pre-line text-ink">{content ?? lesson.content}</article>}
 
