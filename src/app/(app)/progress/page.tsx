@@ -5,6 +5,7 @@ import { WeekBars } from "@/components/week-bars";
 import { DiscSummary } from "@/components/disc-summary";
 import { getDiscResult } from "@/lib/disc/server";
 import { getProgressStats } from "@/lib/data";
+import { DreamProgress } from "@/components/links/dream-progress";
 
 export const metadata = { title: "My Progress" };
 
@@ -40,10 +41,15 @@ export default async function ProgressPage() {
           <Link href="/today" className="btn-ghost mt-5 w-full">Buka aksi hari ini</Link>
         </section>
         <section className="space-y-4">
+          <DreamProgress />
           <DiscSummary result={disc?.result ?? null} />
           <Link href="/assessment/8-wheel-entrepreneur" className="card block p-6 transition hover:shadow-lift">
             <p className="eyebrow">8 Wheel Entrepreneur</p>
             <p className="mt-1 font-semibold text-heading">Lihat perkembangan kompetensi entrepreneur Anda</p>
+          </Link>
+          <Link href="/sertifikat" className="card block p-6 transition hover:shadow-lift">
+            <p className="eyebrow">Sertifikat SEF</p>
+            <p className="mt-1 font-semibold text-heading">Lihat tahap SEF yang sudah Anda tuntaskan</p>
           </Link>
         </section>
       </div>

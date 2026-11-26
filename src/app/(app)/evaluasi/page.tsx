@@ -10,6 +10,7 @@ import { isDemoMode } from "@/lib/supabase/config";
 import { createClient } from "@/lib/supabase/server";
 import { todayJakarta } from "@/lib/format";
 import { ReviewForm } from "./form";
+import { DreamProgress } from "@/components/links/dream-progress";
 
 export const metadata = { title: "Evaluasi Berkala" };
 
@@ -33,7 +34,7 @@ const RHYTHM = [
     when: "Setiap bulan · 10 menit",
     title: "Progres bulanan",
     body: "Lihat grafik progres sebulan, lalu perbarui langkah 2 sampai 4 bila ada yang berubah: penghasilan, rencana income, pekerjaan, atau kebiasaan. Tiap 3 bulan, ulangi tes 8 Wheel.",
-    links: [["Lihat progres", "/progress"], ["Atur rutinitas", "/rutinitas"]],
+    links: [["Lihat progres", "/progress"], ["Atur rutinitas", "/rutinitas"], ["Kelas berikutnya", "/learn"]],
   },
 ];
 
@@ -130,6 +131,7 @@ export default async function EvaluasiPage() {
       <div className="mt-5 grid gap-5 lg:grid-cols-[minmax(0,1fr)_340px]">
         <ReviewForm done={doneThisWeek} />
         <aside className="space-y-4">
+          <DreamProgress title="Mimpi Anda minggu ini" />
           <div className="card p-5">
             <p className="flex items-center gap-2 font-bold text-heading">
               <RefreshCw className="h-4 w-4 text-brand" /> Perbarui rencana bila perlu
@@ -141,6 +143,8 @@ export default async function EvaluasiPage() {
                 ["Perbarui rencana income", "/rencana"],
                 ["Perbarui target harian", "/target"],
                 ["Perbarui pekerjaan & kebiasaan", "/rutinitas"],
+                ["Cek saldo kantong & tabungan mimpi", "/keuangan"],
+                ["Cek tugas & progres tim", "/tim"],
               ].map(([l, h]) => (
                 <Link key={h} href={h} className="flex items-center justify-between rounded-xl bg-paper px-3 py-2.5 text-sm font-medium text-heading hover:text-brand">
                   {l} <ArrowRight className="h-4 w-4" />

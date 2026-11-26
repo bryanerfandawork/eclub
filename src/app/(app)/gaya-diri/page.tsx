@@ -9,6 +9,7 @@ import { FACTOR_LABEL, FACTOR_SHORT, INSIGHTS } from "@/lib/disc/insights";
 import type { Factor } from "@/lib/disc/score";
 import { discPrice, getDiscResult, hasDiscReport } from "@/lib/disc/server";
 import { DiscQuiz } from "./quiz";
+import { aiConfigured } from "@/lib/ai";
 
 export const metadata = { title: "Tes Gaya Diri" };
 
@@ -166,9 +167,11 @@ export default async function DiscPage({ searchParams }: { searchParams: Promise
                   <p className="mt-3 text-xs text-muted">Jika diri alami dan diri di lingkungan sangat berbeda, Anda mungkin sedang banyak menyesuaikan diri. Ini bisa menguras energi bila berlangsung lama.</p>
                 </>
               )}
+              {aiConfigured() && (
               <p className="mt-5 flex items-center gap-2 text-sm text-muted">
                 <Sparkles className="h-4 w-4 text-gold" /> Ingin membahas hasil ini? Buka AI Companion (tombol emas) dan tanyakan langsung.
               </p>
+              )}
             </section>
           </div>
         </>
@@ -197,6 +200,24 @@ export default async function DiscPage({ searchParams }: { searchParams: Promise
           <p className="mt-3 text-xs text-white/50">Sekali bayar, berlaku selamanya termasuk untuk tes ulang.</p>
         </section>
       )}
+
+      <section className="card mt-5 p-5 lg:p-6">
+        <p className="eyebrow">Pakai hasil ini</p>
+        <h2 className="mt-1 text-lg font-bold text-heading">Kenali diri saja belum cukup. Ini langkah berikutnya.</h2>
+        <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          {[
+            ["Susun Personal SWOT", "Tulis kekuatan dan kelemahan Anda dengan bekal gaya ini.", "/potensi"],
+            ["Pilih kendaraan income", "Cocokkan gaya Anda dengan cara menghasilkan di Peta Income.", "/income"],
+            ["Kelas sesuai tahap", "Belajar mengikuti tahapan SEF, mulai dari posisi Anda.", "/learn"],
+            ["Bahas dengan mentor", "Bawa hasil ini ke sesi 1-on-1 untuk rencana 90 hari.", "/mentoring"],
+          ].map(([t, d, h]) => (
+            <Link key={h} href={h} className="rounded-2xl border border-line bg-paper p-4 transition hover:border-gold hover:bg-white">
+              <p className="text-sm font-bold text-heading">{t} ›</p>
+              <p className="mt-1 text-xs leading-relaxed text-muted">{d}</p>
+            </Link>
+          ))}
+        </div>
+      </section>
 
       <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
         <Link href="/gaya-diri?ulang=1" className="inline-flex items-center gap-2 text-sm font-medium text-muted hover:text-brand">
