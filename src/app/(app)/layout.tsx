@@ -9,9 +9,10 @@ import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { aiConfigured } from "@/lib/ai";
 import { getMe } from "@/lib/me";
+import { getTeamState } from "@/lib/team";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
-  const [profile, account] = await Promise.all([getProfile(), getAccount()]);
+  const [profile, account, team] = await Promise.all([getProfile(), getAccount(), getTeamState()]);
   if (!isDemoMode) {
     const supabase = await createClient();
     const b = (await getMe()).row;
@@ -28,7 +29,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     if (push && !push.error && !push.count) redirect("/aktifkan-notifikasi");
   }
   return (
-    <AppShell name={profile.full_name || "Sahabat EClub"} email={profile.email} demo={isDemoMode} plan={account.plan} admin={isAdmin(account.role)} ai={isDemoMode || aiConfigured()}>
+    <AppShell name={profile.full_name || "Sahabat EClub"} email={profile.email} demo={isDemoMode} plan={account.plan} admin={isAdmin(account.role)} ai={isDemoMode || aiConfigured()} team={team.ready && (team.workspaces + team.invites > 0 || account.plan === "plus" || isAdmin(account.role))} simple={team.simple} unread={team.unread}>
       {children}
     </AppShell>
   );

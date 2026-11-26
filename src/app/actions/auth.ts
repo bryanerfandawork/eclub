@@ -37,12 +37,15 @@ export async function signUp(_: FormState, formData: FormData): Promise<FormStat
   if (password.length < 8) return { error: "Kata sandi minimal 8 karakter." };
 
   const origin = (await headers()).get("origin") ?? "";
-  const ref = (await cookies()).get("eclub_ref")?.value;
+  const jar = await cookies();
+  const ref = jar.get("eclub_ref")?.value;
+  // Daftar dari link undangan tim: dashboard awal dibuat sederhana (lihat SQL 024, ws_join).
+  const viaInvite = jar.get("eclub_next")?.value?.startsWith("/gabung/");
   const supabase = await createClient();
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
-    options: { data: { full_name: fullName, ...(ref ? { ref } : {}) }, emailRedirectTo: `${origin}/auth/callback` },
+    options: { data: { full_name: fullName, ...(ref ? { ref } : {}), ...(viaInvite ? { via_invite: "1" } : {}) }, emailRedirectTo: `${origin}/auth/callback` },
   });
   if (error) {
     if (error.message.toLowerCase().includes("registered")) return { error: "Email ini sudah terdaftar. Silakan masuk." };

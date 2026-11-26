@@ -133,6 +133,21 @@ export function FeaturesForm({ features, settings, canEdit }: { features: PlanFe
         </section>
 
         <section className="card p-5 lg:p-6">
+          <h2 className="font-bold text-heading">Ruang Kerja Tim</h2>
+          <p className="mt-1 text-sm text-muted">Hanya member Plus yang bisa membuat ruang kerja. Batas anggota (selain pemilik) per ruang kerja. Anggota boleh akun gratis.</p>
+          <div className="mt-4 grid gap-4 sm:grid-cols-2">
+            <div>
+              <label className="label">Maks. anggota · Plus bulanan</label>
+              <input name="team_max_monthly" inputMode="numeric" defaultValue={String(settings.team_max_monthly ?? "5")} className="input" />
+            </div>
+            <div>
+              <label className="label">Maks. anggota · Plus tahunan</label>
+              <input name="team_max_yearly" inputMode="numeric" defaultValue={String(settings.team_max_yearly ?? "15")} className="input" />
+            </div>
+          </div>
+        </section>
+
+        <section className="card p-5 lg:p-6">
           <h2 className="font-bold text-heading">Notifikasi WhatsApp</h2>
           <div className="mt-4 grid gap-4 sm:grid-cols-3">
             <div>

@@ -18,6 +18,9 @@ import { demoDaily } from "@/lib/demo";
 import { tanggalPanjang, todayJakarta } from "@/lib/format";
 import { isDemoMode } from "@/lib/supabase/config";
 import type { DailyAction } from "@/lib/types";
+import { getMyTeamTasks, getTeamState } from "@/lib/team";
+import { TaskRow } from "@/components/team/task-row";
+import { FolderKanban } from "lucide-react";
 
 export const metadata = { title: "Laporan Harian" };
 
@@ -35,7 +38,11 @@ export default async function TodayPage() {
     getProgressStats(),
     getLimit("daily_action"),
   ]);
-  const [fin, finToday, acc] = await Promise.all([getFinance(today.slice(0, 7)), getFinToday(), getAccount()]);
+  const [fin, finToday, acc, teamTasks, team] = await Promise.all([getFinance(today.slice(0, 7)), getFinToday(), getAccount(), getMyTeamTasks(today, tomorrow), getTeamState()]);
+  const simple = team.simple;
+  const teamNow = teamTasks.filter((t) => t.plan_date <= today);
+  const teamTomorrow = teamTasks.filter((t) => t.plan_date > today && t.status === "open");
+  const teamDone = teamNow.filter((t) => t.status === "done").length;
   const plus = acc.plan === "plus" || isAdmin(acc.role);
   const dreams = allDreams.filter((d) => d.status === "active");
   const dreamTitle = (id?: string | null) => allDreams.find((d) => d.id === id)?.title;
@@ -98,20 +105,56 @@ export default async function TodayPage() {
     );
   };
 
+  // Pekerjaan Tim: tugas dari ruang kerja, terpisah dari rencana pribadi dan tidak dihitung di batas paket gratis.
+  const teamSection = (teamTasks.length > 0 || simple) && (
+    <section className="card p-5 lg:p-6">
+      <div className="flex items-center justify-between">
+        <h2 className="flex items-center gap-2 font-bold text-heading">
+          <FolderKanban className="h-5 w-5 text-brand" /> Pekerjaan Tim
+        </h2>
+        <span className="text-xs font-medium text-muted">
+          {teamDone}/{teamNow.length} selesai
+        </span>
+      </div>
+      {teamNow.length > 0 && (
+        <div className="mt-3">
+          <ProgressBar value={teamNow.length ? Math.round((teamDone / teamNow.length) * 100) : 0} tone="brand" />
+        </div>
+      )}
+      {teamNow.length === 0 ? (
+        <p className="mt-3 text-sm text-muted">Belum ada tugas tim untuk hari ini.</p>
+      ) : (
+        <ul className="mt-1 divide-y divide-line">
+          {teamNow.map((t) => (
+            <TaskRow key={t.id} t={t} today={today} canAct label={t.ws_name} comments={t.comments} />
+          ))}
+        </ul>
+      )}
+      {teamTomorrow.length > 0 && <p className="mt-2 text-xs text-muted">Besok: {teamTomorrow.length} tugas tim menunggu.</p>}
+      <Link href="/tim" className="mt-3 inline-flex items-center gap-1 text-sm font-semibold text-brand">
+        Buka ruang kerja <ArrowRight className="h-4 w-4" />
+      </Link>
+    </section>
+  );
+
   return (
     <>
       <PageHeader
         eyebrow="Laporan harian"
         title="Hari ini"
-        desc={`${tanggalPanjang(today)}. Centang kebiasaan, laporkan rencana aksi: selesai, lanjut besok, atau tutup.`}
+        desc={simple ? `${tanggalPanjang(today)}. Tandai tugas yang selesai, atau lanjutkan besok.` : `${tanggalPanjang(today)}. Centang kebiasaan, laporkan rencana aksi: selesai, lanjut besok, atau tutup.`}
         action={
-          <Link href="/rutinitas" className="btn-ghost text-sm">
-            <Settings2 className="h-4 w-4" /> Atur pekerjaan & kebiasaan
-          </Link>
+          simple ? undefined : (
+            <Link href="/rutinitas" className="btn-ghost text-sm">
+              <Settings2 className="h-4 w-4" /> Atur pekerjaan & kebiasaan
+            </Link>
+          )
         }
       />
       <div className="grid gap-5 lg:grid-cols-5 lg:gap-6">
         <div className="space-y-5 lg:col-span-3">
+          {simple && teamSection}
+          {!simple && (
           <section className="card p-5 lg:p-6">
             <div className="flex items-center justify-between">
               <h2 className="flex items-center gap-2 font-bold text-heading">
@@ -147,6 +190,9 @@ export default async function TodayPage() {
             )}
           </section>
 
+          )}
+
+          {!simple && (
           <section id="keuangan" className={`card scroll-mt-24 p-5 lg:p-6 ${finToday.reported ? "" : "border-gold/50"}`}>
             <div className="flex items-center justify-between">
               <h2 className="flex items-center gap-2 font-bold text-heading">
@@ -179,6 +225,7 @@ export default async function TodayPage() {
               )}
             </div>
           </section>
+          )}
 
           <section className="card p-5 lg:p-6">
             <div className="flex items-center justify-between">
@@ -210,6 +257,8 @@ export default async function TodayPage() {
             <AddPlanForm date={today} works={works.map((w) => ({ id: w.id, title: w.name }))} dreams={dreams.map((d) => ({ id: d.id, title: d.title }))} left={left} />
           </section>
 
+          {!simple && teamSection}
+
           {overdue.length > 0 && (
             <section className="card border-gold/40 p-5 lg:p-6">
               <h2 className="font-bold text-heading">Tertunda dari hari sebelumnya ({overdue.length})</h2>
@@ -236,6 +285,15 @@ export default async function TodayPage() {
 
         <aside className="space-y-5 lg:col-span-2">
           <AssistantPanel stats={stats} streak={progress.streak} />
+          {simple ? (
+            <Link href="/journey" className="block rounded-2xl border border-gold/50 bg-gold-soft p-5 text-sm hover:brightness-95">
+              <b className="block text-heading">🌱 Di sini juga bisa bantu Anda menyusun masa depan lho</b>
+              <span className="mt-1 block text-muted">Selain tugas kerja, EClub membantu Anda menulis mimpi, merapikan keuangan, dan membuat rencana harian menuju mimpi itu. Pelan-pelan saja, 5 langkah.</span>
+              <span className="mt-2 inline-flex items-center gap-1 font-semibold text-brand">
+                Lihat 5 langkahnya <ArrowRight className="h-4 w-4" />
+              </span>
+            </Link>
+          ) : (
           <section className="card p-5">
             <h2 className="font-bold text-heading">Tutup hari dengan baik</h2>
             <div className="mt-3 space-y-2">
@@ -247,6 +305,7 @@ export default async function TodayPage() {
               </Link>
             </div>
           </section>
+          )}
         </aside>
       </div>
       <QuickAdd defaultWallet="personal" pockets={fin.pockets} plus={plus} teaser={assistantConfig(await getSettings()).teaser} fab={false} dreams={dreams.map((d) => ({ id: d.id, title: d.title }))} />

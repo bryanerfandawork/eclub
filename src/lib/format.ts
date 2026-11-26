@@ -54,3 +54,8 @@ export function hariSingkat(iso: string) {
 export function tanggalPanjang(iso: string) {
   return new Date(iso + "T00:00:00").toLocaleDateString("id-ID", { weekday: "long", day: "numeric", month: "long" });
 }
+
+/** "26 Nov" (tanpa tahun), untuk daftar tugas. */
+export function tanggalPendek(iso: string) {
+  return new Date(iso + "T00:00:00").toLocaleDateString("id-ID", { day: "numeric", month: "short" });
+}
