@@ -2,8 +2,8 @@ import Link from "next/link";
 import { ArrowLeft, ChevronLeft, ChevronRight, Crown } from "lucide-react";
 import { PageHeader } from "@/components/ui";
 import { PrintButton } from "@/components/print-button";
-import { catInfo, type Tx } from "@/lib/finance";
-import { getFinance } from "@/lib/finance-server";
+import { catInfo, setEffect, type Tx } from "@/lib/finance";
+import { getBooks, getFinance, getPockets, getViewTxs } from "@/lib/finance-server";
 import { rupiah, todayJakarta } from "@/lib/format";
 import { getAccount, isAdmin } from "@/lib/plans";
 
@@ -19,17 +19,21 @@ function shift(month: string, d: number) {
   return `${t.getUTCFullYear()}-${String(t.getUTCMonth() + 1).padStart(2, "0")}`;
 }
 
-function pl(txs: Tx[]) {
-  const biz = txs.filter((t) => t.wallet === "business" || t.to_wallet === "business");
+function pl(txs: Tx[], set: Set<string> | null) {
+  // set = kantong satu buku usaha (SQL 029). null = semua dompet Usaha (cara lama).
+  const inSet = (t: Tx) => (set ? !!t.pocket_id && set.has(t.pocket_id) : t.wallet === "business");
+  const biz = set ? txs : txs.filter((t) => t.wallet === "business" || t.to_wallet === "business");
   const sum = (f: (t: Tx) => boolean) => biz.filter(f).reduce((s, t) => s + t.amount, 0);
+  const tOut = (t: Tx) => t.kind === "transfer" && (set ? setEffect(t, set) < 0 : t.wallet === "business" && t.to_wallet !== "business");
+  const tIn = (t: Tx) => t.kind === "transfer" && (set ? setEffect(t, set) > 0 : t.to_wallet === "business" && t.wallet !== "business");
   const revenue = new Map<string, number>();
   const opex = new Map<string, number>();
   for (const t of biz) {
-    if (t.kind === "in" && t.wallet === "business" && REVENUE.includes(t.category)) revenue.set(t.category, (revenue.get(t.category) ?? 0) + t.amount);
-    if (t.kind === "out" && t.wallet === "business" && !COGS.includes(t.category) && !NON_PL_OUT.includes(t.category)) opex.set(t.category, (opex.get(t.category) ?? 0) + t.amount);
+    if (t.kind === "in" && inSet(t) && REVENUE.includes(t.category)) revenue.set(t.category, (revenue.get(t.category) ?? 0) + t.amount);
+    if (t.kind === "out" && inSet(t) && !COGS.includes(t.category) && !NON_PL_OUT.includes(t.category)) opex.set(t.category, (opex.get(t.category) ?? 0) + t.amount);
   }
   const rev = [...revenue.values()].reduce((a, b) => a + b, 0);
-  const cogs = sum((t) => t.kind === "out" && t.wallet === "business" && COGS.includes(t.category));
+  const cogs = sum((t) => t.kind === "out" && inSet(t) && COGS.includes(t.category));
   const op = [...opex.values()].reduce((a, b) => a + b, 0);
   return {
     revenue: [...revenue.entries()].sort((a, b) => b[1] - a[1]),
@@ -39,9 +43,9 @@ function pl(txs: Tx[]) {
     gross: rev - cogs,
     op,
     net: rev - cogs - op,
-    owner: sum((t) => t.kind === "transfer" && t.wallet === "business"),
-    capitalIn: sum((t) => (t.kind === "transfer" && t.to_wallet === "business") || (t.kind === "in" && t.wallet === "business" && t.category === "modal")),
-    debt: sum((t) => t.kind === "out" && t.wallet === "business" && NON_PL_OUT.includes(t.category)),
+    owner: sum(tOut),
+    capitalIn: sum((t) => tIn(t) || (t.kind === "in" && inSet(t) && t.category === "modal")),
+    debt: sum((t) => t.kind === "out" && inSet(t) && NON_PL_OUT.includes(t.category)),
   };
 }
 
@@ -54,33 +58,46 @@ function Row({ label, value, bold, sub, tone }: { label: string; value: number; 
   );
 }
 
-export default async function LabaRugiPage({ searchParams }: { searchParams: Promise<{ m?: string }> }) {
+export default async function LabaRugiPage({ searchParams }: { searchParams: Promise<{ m?: string; b?: string }> }) {
   const sp = await searchParams;
   const thisMonth = todayJakarta().slice(0, 7);
   const month = /^\d{4}-\d{2}$/.test(sp.m ?? "") && sp.m! <= thisMonth ? sp.m! : thisMonth;
   const acc = await getAccount();
   const plus = acc.plan === "plus" || isAdmin(acc.role);
-  const [cur, prev] = await Promise.all([getFinance(month), getFinance(shift(month, -1))]);
-  const r = pl(cur.txs);
-  const p = pl(prev.txs);
+  const [books, pockets] = await Promise.all([getBooks(), getPockets()]);
+  const biz = books.filter((b) => b.status === "active" && b.kind === "business" && b.role !== "recorder");
+  const book = biz.find((b) => b.id === sp.b) ?? biz.find((b) => b.mine) ?? biz[0] ?? null;
+  let r: ReturnType<typeof pl>, p: ReturnType<typeof pl>;
+  if (book) {
+    const ids = pockets.filter((x) => x.book_id === book.id).map((x) => x.id);
+    const set = new Set(ids);
+    const [a, b] = await Promise.all([getViewTxs(month, ids.join(",")), getViewTxs(shift(month, -1), ids.join(","))]);
+    r = pl(a, set);
+    p = pl(b, set);
+  } else {
+    const [cur, prev] = await Promise.all([getFinance(month), getFinance(shift(month, -1))]);
+    r = pl(cur.txs, null);
+    p = pl(prev.txs, null);
+  }
+  const q = book ? `&b=${book.id}` : "";
   const margin = r.rev ? Math.round((r.net / r.rev) * 100) : 0;
   const delta = r.net - p.net;
   const name = new Date(month + "-01T00:00:00").toLocaleDateString("id-ID", { month: "long", year: "numeric" });
 
   return (
     <>
-      <Link href="/keuangan?w=business" className="mb-3 inline-flex items-center gap-1 text-sm font-semibold text-muted hover:text-heading print:hidden">
+      <Link href={book ? `/keuangan?b=${book.id}` : "/keuangan?w=business"} className="mb-3 inline-flex items-center gap-1 text-sm font-semibold text-muted hover:text-heading print:hidden">
         <ArrowLeft className="h-4 w-4" /> Keuangan
       </Link>
-      <PageHeader eyebrow="Keuangan usaha" title="Laba rugi" desc="Dihitung otomatis dari catatan dompet Usaha. Tidak perlu paham akuntansi." action={plus ? <PrintButton /> : undefined} />
+      <PageHeader eyebrow="Keuangan usaha" title="Laba rugi" desc={`Dihitung otomatis dari catatan ${book ? `"${book.name}"` : "dompet Usaha"}. Tidak perlu paham akuntansi.`} action={plus ? <PrintButton /> : undefined} />
 
       <div className="mb-4 flex items-center justify-between rounded-2xl border border-line bg-white px-2 py-1.5 print:hidden">
-        <Link href={`/keuangan/laba-rugi?m=${shift(month, -1)}`} className="grid h-9 w-9 place-items-center rounded-full hover:bg-paper" aria-label="Bulan sebelumnya">
+        <Link href={`/keuangan/laba-rugi?m=${shift(month, -1)}${q}`} className="grid h-9 w-9 place-items-center rounded-full hover:bg-paper" aria-label="Bulan sebelumnya">
           <ChevronLeft className="h-5 w-5 text-muted" />
         </Link>
         <p className="font-bold text-heading capitalize">{name}</p>
         {month < thisMonth ? (
-          <Link href={`/keuangan/laba-rugi?m=${shift(month, 1)}`} className="grid h-9 w-9 place-items-center rounded-full hover:bg-paper" aria-label="Bulan berikutnya">
+          <Link href={`/keuangan/laba-rugi?m=${shift(month, 1)}${q}`} className="grid h-9 w-9 place-items-center rounded-full hover:bg-paper" aria-label="Bulan berikutnya">
             <ChevronRight className="h-5 w-5 text-muted" />
           </Link>
         ) : (

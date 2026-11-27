@@ -47,7 +47,7 @@ function Fields({ init }: { init?: Pick<Pocket, "name" | "type" | "provider"> })
   );
 }
 
-export function AddPocketForm({ wallet, locked }: { wallet: "personal" | "business"; locked: string | null }) {
+export function AddPocketForm({ wallet, bookId, locked }: { wallet: "personal" | "business"; bookId?: string; locked: string | null }) {
   const [state, action] = useActionState<FormState, FormData>(addPocket, {});
   const [open, setOpen] = useState(false);
   const [n, setN] = useState(0);
@@ -76,6 +76,7 @@ export function AddPocketForm({ wallet, locked }: { wallet: "personal" | "busine
       className="mt-3 space-y-3 rounded-2xl bg-paper p-3.5"
     >
       <input type="hidden" name="wallet" value={wallet} />
+      {bookId && <input type="hidden" name="book_id" value={bookId} />}
       <Fields />
       <SubmitButton className="btn-primary w-full">Simpan kantong</SubmitButton>
       <FormMessage state={state} />

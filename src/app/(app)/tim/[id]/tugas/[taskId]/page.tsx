@@ -25,7 +25,7 @@ export default async function TaskPage({ params, searchParams }: { params: Promi
   const today = todayJakarta();
   const owner = role === "owner";
   const askResult = owner && t.status === "done" && !t.result_state;
-  const [dreams, pockets] = askResult ? await Promise.all([getDreams(), getPockets()]) : [[], []];
+  const [dreams, pockets] = askResult ? await Promise.all([getDreams(), getPockets().then((l) => l.filter((p) => p.own !== false))]) : [[], []];
   const section = sections?.find((x) => x.id === t.section_id)?.name;
   const goal = goals.find((g) => g.id === t.goal_id)?.title;
   const late = isLate(t, today);

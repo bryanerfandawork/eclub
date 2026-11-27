@@ -37,7 +37,10 @@ async function getIncomeProfileRaw(): Promise<IncomeProfile | null> {
 export async function getFinanceHint(): Promise<{ out: { label: string; amount: number }[]; income: number } | null> {
   if (isDemoMode) return null;
   const supabase = await createClient();
-  const { data } = await supabase.from("fin_transactions").select("wallet, kind, category, amount").eq("wallet", "personal").in("kind", ["in", "out"]).gte("tx_date", todayJakarta(-30));
+  const base = () => supabase.from("fin_transactions").select("wallet, kind, category, amount").eq("wallet", "personal").in("kind", ["in", "out"]).gte("tx_date", todayJakarta(-30));
+  // Hanya dompet Pribadi sendiri (bukan buku keluarga bersama, SQL 029).
+  const first = await base().is("book_id", null);
+  const data = first.error ? (await base()).data : first.data;
   const rows = (data ?? []) as { wallet: "personal"; kind: "in" | "out"; category: string; amount: number }[];
   if (rows.length < 3) return null;
   const by = new Map<string, number>();
