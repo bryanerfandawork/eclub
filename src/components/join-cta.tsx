@@ -13,7 +13,7 @@ export async function JoinCta({ next, title = "Mulai gratis sekarang", desc, sti
     <>
       {ref && (
         <p className="mb-3 flex items-center gap-2 rounded-xl bg-gold-soft px-3 py-2 text-xs text-heading">
-          <Ticket className="h-4 w-4 shrink-0 text-brand" /> Kode teman Anda <b>{ref}</b> tersimpan: hemat {disc}% saat membeli paket atau kelas.
+          <Ticket className="h-4 w-4 shrink-0 text-brand" /> Kode teman Anda <b>{ref}</b> tersimpan: hemat {disc}% saat berlangganan Plus.
         </p>
       )}
       <p className="font-bold text-heading">{title}</p>

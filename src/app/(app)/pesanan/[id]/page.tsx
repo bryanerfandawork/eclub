@@ -5,7 +5,7 @@ import { CheckCircle2, Clock, Download, Landmark, MessageCircle, QrCode, XCircle
 import { cookies } from "next/headers";
 import { applyCoupon, saveOrderWa } from "@/app/actions/orders";
 import { parseBankAccounts } from "@/lib/banks";
-import { getSettings } from "@/lib/plans";
+import { couponInfo, getSettings } from "@/lib/plans";
 import { isDemoMode } from "@/lib/supabase/config";
 import { createClient } from "@/lib/supabase/server";
 import { AutoRefresh, CopyButton, CouponForm, SaveWaForm } from "./client";
@@ -61,6 +61,7 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
     userWa = (prof?.whatsapp as string | null) ?? null;
   }
   const refCookie = (await cookies()).get("eclub_ref")?.value;
+  const coupon = couponInfo(settings);
   const expired = o.status === "pending" && new Date(o.expires_at) < new Date();
   const status = expired ? "expired" : o.status;
   const fmt = (iso: string) => new Date(iso).toLocaleString("id-ID", { day: "numeric", month: "long", hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jakarta" });
@@ -115,7 +116,7 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
             {o.product.startsWith("plus") && <PromoBadge tone="dark" className="mt-4" />}
           </div>
           <div className="space-y-5 p-6">
-            {!o.coupon_code && status === "pending" && <CouponForm orderId={o.id} action={applyCoupon} suggested={refCookie} />}
+            {!o.coupon_code && status === "pending" && <CouponForm orderId={o.id} action={applyCoupon} suggested={refCookie} general={coupon.code} pct={o.product.startsWith("plus") ? coupon.pct : coupon.other} />}
             {manual && (
               <ol className="grid grid-cols-3 gap-2 text-center text-[11px] font-semibold text-muted">
                 {["Bayar", "Kirim bukti via WA", "Admin konfirmasi"].map((t, i) => (

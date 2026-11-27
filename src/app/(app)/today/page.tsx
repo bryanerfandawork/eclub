@@ -258,7 +258,7 @@ export default async function TodayPage() {
                 ? `Hari ini: ${finToday.count} catatan · masuk ${rupiah(finToday.in)} · keluar ${rupiah(finToday.out)}.`
                 : finToday.noTx
                   ? "Anda menandai hari ini tanpa transaksi."
-                  : "Catat setiap uang masuk dan keluar hari ini. Paling cepat: foto notanya, atau ketik seperti chat. Tidak ada transaksi? Tandai saja."}
+                  : "Catat setiap uang masuk dan keluar hari ini. Member Plus cukup cerita lewat chat ke Asisten Catat. Tidak ada transaksi? Tandai saja."}
             </p>
             <div className="mt-3 flex flex-wrap gap-2">
               <CatatButton className="btn-primary flex-1 py-2.5">+ Catat transaksi</CatatButton>

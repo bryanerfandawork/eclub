@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { isDemoMode } from "@/lib/supabase/config";
 import { createClient } from "@/lib/supabase/server";
@@ -66,8 +67,12 @@ export async function applyCoupon(_: FormState, formData: FormData): Promise<For
   const code = String(formData.get("code") ?? "").trim();
   if (!code) return { error: "Masukkan kode kupon." };
   const supabase = await createClient();
-  const { error } = await supabase.rpc("apply_coupon", { p_order: order, p_code: code });
+  // Link affiliate yang dibawa pembeli: dipakai bila ia memasukkan kode umum (NEWECLUB).
+  const ref = (await cookies()).get("eclub_ref")?.value ?? null;
+  let { error } = await supabase.rpc("apply_coupon", { p_order: order, p_code: code, p_ref: ref });
+  // Sebelum SQL 030: fungsi lama hanya punya 2 parameter.
+  if (error && /p_ref|function/i.test(error.message)) ({ error } = await supabase.rpc("apply_coupon", { p_order: order, p_code: code }));
   if (error) return { error: error.message.includes("function") ? "Fitur kupon belum aktif." : error.message };
   revalidatePath(`/pesanan/${order}`);
-  return { message: "Kupon dipakai ✓ Total bayar sudah diperbarui." };
+  return { message: "Kupon dipakai ✓ Total bayar sudah dipotong." };
 }

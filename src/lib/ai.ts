@@ -11,7 +11,12 @@ import { PLACEMENT_COPY, PLACEMENT_KEY, type Placement } from "./placement";
 import { rupiah } from "./format";
 
 export const AI_MODEL = "claude-haiku-5-5";
-export const aiConfigured = () => !!process.env.ANTHROPIC_API_KEY;
+/**
+ * Fitur AI (AI Companion & Foto nota) sengaja disembunyikan dulu.
+ * Aktif hanya bila ANTHROPIC_API_KEY diisi DAN AI_FEATURES=on di Vercel,
+ * jadi memasang kunci saja tidak langsung memunculkan fitur AI.
+ */
+export const aiConfigured = () => !!process.env.ANTHROPIC_API_KEY && process.env.AI_FEATURES === "on";
 
 export const SYSTEM_PROMPT = `Anda adalah EClub Companion, teman bertumbuh di aplikasi EClub (Personal Growth Companion) untuk orang Indonesia: pelajar, karyawan, profesional, freelancer, dan pemilik usaha.
 

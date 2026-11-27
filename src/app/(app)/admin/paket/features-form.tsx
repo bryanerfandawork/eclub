@@ -111,15 +111,25 @@ export function FeaturesForm({ features, settings, canEdit }: { features: PlanFe
 
         <section className="card p-5 lg:p-6">
           <h2 className="font-bold text-heading">Affiliate & kode kupon</h2>
-          <p className="mt-1 text-xs text-muted">Berlaku untuk transaksi berikutnya. Komisi yang sudah tercatat tidak berubah.</p>
-          <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <p className="mt-1 text-xs text-muted">Berlaku untuk transaksi berikutnya. Komisi yang sudah tercatat tidak berubah. Pembeli yang datang dari link affiliate tetap tercatat ke affiliate tersebut walau memakai kode umum.</p>
+          <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <div>
               <label className="label">Komisi affiliate (%)</label>
               <input name="affiliate_rate" inputMode="numeric" defaultValue={String(settings.affiliate_rate ?? "20")} className="input" />
             </div>
             <div>
-              <label className="label">Potongan kupon untuk teman (%)</label>
-              <input name="coupon_discount" inputMode="numeric" defaultValue={String(settings.coupon_discount ?? "10")} className="input" />
+              <label className="label">Potongan kupon paket Plus (%)</label>
+              <input name="coupon_discount" inputMode="numeric" defaultValue={String(settings.coupon_discount ?? "50")} className="input" />
+            </div>
+            <div>
+              <label className="label">Potongan kupon produk lain (%)</label>
+              <input name="coupon_discount_other" inputMode="numeric" defaultValue={String(settings.coupon_discount_other ?? "10")} className="input" />
+              <p className="mt-1 text-[11px] text-muted">Laporan Gaya Diri & course.</p>
+            </div>
+            <div>
+              <label className="label">Kode kupon umum</label>
+              <input name="general_coupon_code" defaultValue={String(settings.general_coupon_code ?? "NEWECLUB")} className="input uppercase" />
+              <p className="mt-1 text-[11px] text-muted">Disarankan ke pembeli yang belum punya kupon. Kosongkan untuk mematikan.</p>
             </div>
             <div>
               <label className="label">Masa tunggu komisi (hari)</label>

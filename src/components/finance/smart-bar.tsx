@@ -1,10 +1,10 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Camera, Loader2, MessageSquareText, Sparkles } from "lucide-react";
+import { Camera, Loader2, Lock, SendHorizontal, Sparkles } from "lucide-react";
 import type { Draft } from "@/lib/fin-parse";
 
-type Status = { ai: boolean; used: number; limit: number | null };
+type Status = { ai: boolean; plus?: boolean; used: number; limit: number | null };
 
 /** Perkecil foto di HP sebelum dikirim (lebih cepat & hemat kuota internet). */
 async function shrink(file: File): Promise<{ data: string; media: string }> {
@@ -24,34 +24,62 @@ async function shrink(file: File): Promise<{ data: string; media: string }> {
   return { data: c.toDataURL("image/jpeg", 0.82).split(",")[1], media: "image/jpeg" };
 }
 
+const EXAMPLES = ["beli bensin 30rb cash", "gaji masuk 5jt ke BCA", "jual 10 kue 150rb usaha"];
+
+/** Gelembung chat dari asisten. */
+export function AssistantBubble({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="flex items-end gap-2">
+      <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-brand text-gold">
+        <Sparkles className="h-3.5 w-3.5" />
+      </span>
+      <div className="max-w-[85%] rounded-2xl rounded-bl-md bg-white px-3.5 py-2.5 text-sm leading-relaxed text-heading shadow-soft">{children}</div>
+    </div>
+  );
+}
+
+export function UserBubble({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="flex justify-end">
+      <div className="max-w-[85%] rounded-2xl rounded-br-md bg-brand px-3.5 py-2.5 text-sm leading-relaxed text-white">{children}</div>
+    </div>
+  );
+}
+
 /**
- * Catat pintar di atas lembar Catat: foto nota, atau ketik seperti chat.
- * Hasilnya mengisi lembar Catat; pengguna tinggal cek lalu Simpan.
+ * Asisten Catat (khusus Plus): cerita transaksi seperti chat, formulir terisi otomatis.
+ * Paket gratis melihat sapaannya, lalu diarahkan ke Plus. Mereka tetap bisa isi formulir di bawah.
  */
-export function SmartBar({ onDrafts }: { onDrafts: (d: Draft[], src: "scan" | "chat") => void }) {
-  const [mode, setMode] = useState<"" | "chat">("");
+export function SmartBar({ onDrafts, plus, onLocked }: { onDrafts: (d: Draft[], src: "scan" | "chat", said?: string) => void; plus: boolean; onLocked: () => void }) {
   const [text, setText] = useState("");
+  const [said, setSaid] = useState("");
   const [busy, setBusy] = useState<"" | "scan" | "chat">("");
   const [err, setErr] = useState("");
   const [st, setSt] = useState<Status | null>(null);
   const file = useRef<HTMLInputElement>(null);
+  const open = plus && st?.plus !== false;
 
   useEffect(() => {
+    if (!plus) return;
     fetch("/api/keuangan/pintar")
       .then((r) => (r.ok ? r.json() : null))
       .then((j) => j && setSt(j))
       .catch(() => {});
-  }, []);
+  }, [plus]);
 
   const send = async (body: Record<string, string>, src: "scan" | "chat") => {
+    if (!open) return onLocked();
     setBusy(src);
     setErr("");
+    if (body.text) setSaid(body.text);
     try {
       const r = await fetch("/api/keuangan/pintar", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
-      const j = (await r.json().catch(() => ({}))) as { drafts?: Draft[]; error?: string; used?: number; limit?: number | null };
+      const j = (await r.json().catch(() => ({}))) as { drafts?: Draft[]; error?: string; used?: number; limit?: number | null; plus?: boolean };
+      if (j.plus === false) return onLocked();
       if (!r.ok || !j.drafts?.length) return setErr(j.error ?? "Belum berhasil. Coba lagi.");
       if (j.used != null && st) setSt({ ...st, used: j.used });
-      onDrafts(j.drafts, src);
+      setText("");
+      onDrafts(j.drafts, src, body.text);
     } catch {
       setErr("Koneksi terputus. Coba lagi.");
     } finally {
@@ -59,35 +87,70 @@ export function SmartBar({ onDrafts }: { onDrafts: (d: Draft[], src: "scan" | "c
     }
   };
 
-  const left = st?.limit != null ? Math.max(0, st.limit - st.used) : null;
-  const scanOff = st ? !st.ai : false;
-
   return (
-    <div className="mb-4 rounded-2xl border border-gold/50 bg-gold-soft/30 p-3">
-      <p className="flex items-center gap-1.5 text-xs font-semibold text-heading">
-        <Sparkles className="h-3.5 w-3.5 text-gold" /> Catat pintar
-        {left != null && st?.ai && <span className="ml-auto font-medium text-muted">Foto nota: sisa {left}x hari ini</span>}
+    <div className="mb-4 rounded-3xl bg-gold-soft/40 p-3 ring-1 ring-gold/40">
+      <p className="mb-2.5 flex items-center gap-1.5 px-1 text-xs font-bold text-heading">
+        <span className="h-2 w-2 rounded-full bg-success" /> Asisten Catat
+        {!plus && <span className="ml-auto rounded-full bg-brand px-2 py-0.5 text-[10px] font-bold text-white">Plus</span>}
       </p>
-      <div className="mt-2 grid grid-cols-2 gap-2">
+      <div className="space-y-2">
+        <AssistantBubble>
+          Halo! 👋 Cerita aja transaksimu, <b>aku yang catat dan rapikan laporan keuanganmu.</b>
+        </AssistantBubble>
+        {said && <UserBubble>{said}</UserBubble>}
+        {busy === "chat" && (
+          <AssistantBubble>
+            <span className="inline-flex items-center gap-1.5 text-muted"><Loader2 className="h-3.5 w-3.5 animate-spin" /> Sebentar, aku catat…</span>
+          </AssistantBubble>
+        )}
+        {err && <AssistantBubble>{err}</AssistantBubble>}
+        {!plus && (
+          <AssistantBubble>
+            Fitur ini khusus <b>EClub Plus</b>. Di paket gratis, isi formulir di bawah ya, tetap tercatat rapi.
+          </AssistantBubble>
+        )}
+      </div>
+      {open && !said && (
+        <div className="mt-2.5 -mx-1 flex gap-1.5 overflow-x-auto px-1 pb-0.5">
+          {EXAMPLES.map((x) => (
+            <button key={x} type="button" onClick={() => setText(x)} className="shrink-0 rounded-full border border-gold/60 bg-white px-3 py-1 text-xs font-medium text-ink hover:bg-paper">
+              {x}
+            </button>
+          ))}
+        </div>
+      )}
+      <div className="mt-2.5 flex items-end gap-2">
+        {open && st?.ai && (
+          <button type="button" disabled={!!busy} onClick={() => file.current?.click()} aria-label="Foto nota" className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-white text-brand shadow-soft disabled:opacity-60">
+            {busy === "scan" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Camera className="h-4 w-4" />}
+          </button>
+        )}
+        <textarea
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          onFocus={() => !open && onLocked()}
+          readOnly={!open}
+          rows={1}
+          maxLength={1000}
+          placeholder={open ? "Ketik transaksimu di sini…" : "Ketik transaksimu… (Plus)"}
+          className="input min-h-[44px] flex-1 resize-none rounded-3xl bg-white py-2.5 text-sm"
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && !e.shiftKey && text.trim()) {
+              e.preventDefault();
+              send({ text: text.trim() }, "chat");
+            }
+          }}
+        />
         <button
           type="button"
-          disabled={!!busy || scanOff}
-          onClick={() => file.current?.click()}
-          className="flex items-center justify-center gap-2 rounded-xl bg-white px-3 py-2.5 text-sm font-semibold text-heading shadow-soft transition hover:bg-paper disabled:opacity-60"
+          aria-label="Kirim"
+          disabled={open && (!text.trim() || !!busy)}
+          onClick={() => (open ? send({ text: text.trim() }, "chat") : onLocked())}
+          className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-brand text-white shadow-soft transition hover:bg-brand-soft disabled:opacity-50"
         >
-          {busy === "scan" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Camera className="h-4 w-4 text-brand" />}
-          {busy === "scan" ? "Membaca nota…" : "Foto nota"}
-        </button>
-        <button
-          type="button"
-          disabled={!!busy}
-          onClick={() => setMode(mode === "chat" ? "" : "chat")}
-          className={`flex items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-sm font-semibold shadow-soft transition ${mode === "chat" ? "bg-brand text-white" : "bg-white text-heading hover:bg-paper"}`}
-        >
-          <MessageSquareText className={`h-4 w-4 ${mode === "chat" ? "text-gold" : "text-brand"}`} /> Ketik saja
+          {open ? <SendHorizontal className="h-4 w-4" /> : <Lock className="h-4 w-4 text-gold" />}
         </button>
       </div>
-      {scanOff && <p className="mt-1.5 text-[11px] text-muted">Foto nota segera aktif. Sementara ini pakai &quot;Ketik saja&quot;.</p>}
       <input
         ref={file}
         type="file"
@@ -107,29 +170,6 @@ export function SmartBar({ onDrafts }: { onDrafts: (d: Draft[], src: "scan" | "c
           send({ image: img.data, media: img.media }, "scan");
         }}
       />
-      {mode === "chat" && (
-        <div className="mt-2.5">
-          <textarea
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-            rows={2}
-            maxLength={1000}
-            autoFocus
-            placeholder='Misal: "beli minum 5rb pakai uang pribadi cash" atau "bayar listrik kantor 1 juta transfer bank jago"'
-            className="input min-h-[64px] resize-none bg-white text-sm"
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && !e.shiftKey && text.trim()) {
-                e.preventDefault();
-                send({ text }, "chat");
-              }
-            }}
-          />
-          <button type="button" disabled={!text.trim() || !!busy} onClick={() => send({ text }, "chat")} className="btn-primary mt-2 w-full py-2.5 disabled:opacity-60">
-            {busy === "chat" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4 text-gold" />} Isi otomatis
-          </button>
-        </div>
-      )}
-      {err && <p className="mt-2 rounded-xl bg-danger/10 px-3 py-2 text-xs text-danger">{err}</p>}
     </div>
   );
 }
