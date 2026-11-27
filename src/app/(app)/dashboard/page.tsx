@@ -85,54 +85,20 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
 
       <AssistantHome streak={stats.streak} hero={journey.setupDone} />
 
-      <TeamCard />
-
-      <PushToggle publicKey={vapid} variant="card" />
-
-      {ewDue && (
-        <Link href="/assessment/8-wheel-entrepreneur?ulang=1" className="flex items-center justify-between gap-3 rounded-2xl border border-gold/40 bg-gold-soft px-5 py-4 text-sm font-medium text-heading hover:brightness-95">
-          <span>Sudah 3 bulan sejak tes 8 Wheel Entrepreneur terakhir. Yuk ukur perkembangan Anda.</span>
-          <ArrowRight className="h-4 w-4 shrink-0 text-brand" />
-        </Link>
-      )}
-
-      {nextEvent && (
-        <Link href="/event" className="flex animate-rise items-center gap-4 overflow-hidden rounded-2xl border border-gold/40 bg-card p-4 shadow-soft transition hover:shadow-lift lg:p-5">
-          <span className="grid h-14 w-14 shrink-0 place-items-center rounded-2xl bg-brand text-center leading-none text-white">
-            <span>
-              <span className="block text-xl font-bold">{new Date(nextEvent.starts_at).toLocaleDateString("id-ID", { day: "numeric", timeZone: "Asia/Jakarta" })}</span>
-              <span className="block text-[10px] font-semibold uppercase text-gold">{new Date(nextEvent.starts_at).toLocaleDateString("id-ID", { month: "short", timeZone: "Asia/Jakarta" })}</span>
-            </span>
-          </span>
-          <span className="min-w-0 flex-1">
-            <span className="flex items-center gap-1.5 text-[11px] font-semibold tracking-wide text-gold uppercase">
-              <CalendarDays className="h-3.5 w-3.5" /> {eventDays <= 0 ? "Hari ini" : eventDays === 1 ? "Besok" : `${eventDays} hari lagi`} · Event terdekat
-            </span>
-            <span className="mt-0.5 line-clamp-2 font-bold text-heading">{nextEvent.title}</span>
-            <span className="mt-0.5 flex items-center gap-1 truncate text-xs text-muted">
-              <MapPin className="h-3 w-3 shrink-0" />
-              {new Date(nextEvent.starts_at).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jakarta" })} WIB · {nextEvent.location || regencyName(nextEvent.regency) || "Online"} · {nextEvent.registered ? "Anda terdaftar ✓" : eventPrice ? rupiah(eventPrice) : "Gratis"}
-            </span>
-          </span>
-          <ArrowRight className="h-5 w-5 shrink-0 text-brand" />
-        </Link>
-      )}
-
-      {bioMissing && (
-        <Link href="/profile#data-diri" className="flex items-center justify-between gap-3 rounded-2xl border border-line bg-white px-5 py-4 text-sm font-medium text-heading hover:border-gold">
-          <span>🎁 Lengkapi nomor WhatsApp, tanggal lahir & kota Anda: dapatkan hadiah ulang tahun dan kabar event EClub di kota Anda.</span>
-          <ArrowRight className="h-4 w-4 shrink-0 text-brand" />
-        </Link>
-      )}
-
+      {/* Mimpi tampil di Home (menu Goals di HP digabung ke sini & ke Hari ini). */}
       <div className="grid gap-5 lg:grid-cols-3 lg:gap-6">
         {/* Mimpi */}
         <section className="lg:col-span-3">
           <div className="mb-3 flex items-center justify-between">
             <h3 className="font-bold text-heading">Mimpi saya</h3>
-            <Link href="/goals" className="text-sm font-semibold text-heading/70 hover:text-heading">
-              Lihat semua
-            </Link>
+            <span className="flex items-center gap-3">
+              <Link href="/goals/baru" className="hidden items-center gap-1 text-sm font-semibold text-brand sm:inline-flex">
+                <Plus className="h-4 w-4" /> Mimpi baru
+              </Link>
+              <Link href="/goals" className="text-sm font-semibold text-heading/70 hover:text-heading">
+                Lihat semua ›
+              </Link>
+            </span>
           </div>
           {active.length === 0 ? (
             <Link href="/goals/baru" className="card flex flex-col items-center justify-center gap-3 border-dashed p-10 text-center hover:border-gold">
@@ -172,6 +138,46 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
           )}
         </section>
       </div>
+
+      <TeamCard />
+
+      <PushToggle publicKey={vapid} variant="card" />
+
+      {ewDue && (
+        <Link href="/assessment/8-wheel-entrepreneur?ulang=1" className="flex items-center justify-between gap-3 rounded-2xl border border-gold/40 bg-gold-soft px-5 py-4 text-sm font-medium text-heading hover:brightness-95">
+          <span>Sudah 3 bulan sejak tes 8 Wheel Entrepreneur terakhir. Yuk ukur perkembangan Anda.</span>
+          <ArrowRight className="h-4 w-4 shrink-0 text-brand" />
+        </Link>
+      )}
+
+      {nextEvent && (
+        <Link href="/event" className="flex animate-rise items-center gap-4 overflow-hidden rounded-2xl border border-gold/40 bg-card p-4 shadow-soft transition hover:shadow-lift lg:p-5">
+          <span className="grid h-14 w-14 shrink-0 place-items-center rounded-2xl bg-brand text-center leading-none text-white">
+            <span>
+              <span className="block text-xl font-bold">{new Date(nextEvent.starts_at).toLocaleDateString("id-ID", { day: "numeric", timeZone: "Asia/Jakarta" })}</span>
+              <span className="block text-[10px] font-semibold uppercase text-gold">{new Date(nextEvent.starts_at).toLocaleDateString("id-ID", { month: "short", timeZone: "Asia/Jakarta" })}</span>
+            </span>
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="flex items-center gap-1.5 text-[11px] font-semibold tracking-wide text-gold uppercase">
+              <CalendarDays className="h-3.5 w-3.5" /> {eventDays <= 0 ? "Hari ini" : eventDays === 1 ? "Besok" : `${eventDays} hari lagi`} · Event terdekat
+            </span>
+            <span className="mt-0.5 line-clamp-2 font-bold text-heading">{nextEvent.title}</span>
+            <span className="mt-0.5 flex items-center gap-1 truncate text-xs text-muted">
+              <MapPin className="h-3 w-3 shrink-0" />
+              {new Date(nextEvent.starts_at).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jakarta" })} WIB · {nextEvent.location || regencyName(nextEvent.regency) || "Online"} · {nextEvent.registered ? "Anda terdaftar ✓" : eventPrice ? rupiah(eventPrice) : "Gratis"}
+            </span>
+          </span>
+          <ArrowRight className="h-5 w-5 shrink-0 text-brand" />
+        </Link>
+      )}
+
+      {bioMissing && (
+        <Link href="/profile#data-diri" className="flex items-center justify-between gap-3 rounded-2xl border border-line bg-white px-5 py-4 text-sm font-medium text-heading hover:border-gold">
+          <span>🎁 Lengkapi nomor WhatsApp, tanggal lahir & kota Anda: dapatkan hadiah ulang tahun dan kabar event EClub di kota Anda.</span>
+          <ArrowRight className="h-4 w-4 shrink-0 text-brand" />
+        </Link>
+      )}
 
       <div className="grid gap-5 lg:grid-cols-3 lg:gap-6">
           <section className="card p-6">

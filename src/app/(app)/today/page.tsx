@@ -22,6 +22,7 @@ import { getManagedAlerts, getMyTeamTasks, getTeamState } from "@/lib/team";
 import { NeedsAction } from "@/components/team/needs-action";
 import { TaskRow } from "@/components/team/task-row";
 import { FolderKanban } from "lucide-react";
+import { DreamProgress } from "@/components/links/dream-progress";
 
 export const metadata = { title: "Laporan Harian" };
 
@@ -293,6 +294,7 @@ export default async function TodayPage() {
 
         <aside className="space-y-5 lg:col-span-2">
           <AssistantPanel stats={stats} streak={progress.streak} />
+          {!simple && <DreamProgress title="Mimpi yang sedang dikejar" links />}
           {simple ? (
             <Link href="/journey" className="block rounded-2xl border border-gold/50 bg-gold-soft p-5 text-sm hover:brightness-95">
               <b className="block text-heading">🌱 Di sini juga bisa bantu Anda menyusun masa depan lho</b>

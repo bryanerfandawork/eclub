@@ -5,7 +5,6 @@ import { usePathname } from "next/navigation";
 import { useState } from "react";
 import {
   Bell,
-  FolderKanban,
   Crown,
   LayoutGrid,
   LogOut,
@@ -40,7 +39,6 @@ export function AppShell({
   team = false,
   simple = false,
   unread = 0,
-  teamNav = false,
 }: {
   children: React.ReactNode;
   name: string;
@@ -55,11 +53,11 @@ export function AppShell({
   simple?: boolean;
   /** Pemberitahuan tim yang belum dibaca. */
   unread?: number;
-  /** Sudah tergabung di ruang kerja: menu bawah HP menampilkan "Tim" (menggantikan Learn). */
+  /** (Tidak dipakai lagi: Tim kini selalu ada di menu bawah HP.) */
   teamNav?: boolean;
 }) {
   const groups = (simple ? simpleSidebarNav : sidebarNav).map((g) => ({ ...g, items: g.items.filter((i) => !i.team || team) }));
-  const bottom = simple ? simpleMobileNav : teamNav ? mobileNav.map((i) => (i.href === "/learn" ? { label: "Tim", href: "/tim", icon: FolderKanban } : i)) : mobileNav;
+  const bottom = simple ? simpleMobileNav : mobileNav;
   // Member dari undangan tim: Laporan Harian tampil sebagai daftar kerja biasa dulu, tanpa penunjuk 5 langkah.
   const pathname = usePathname();
   const hideSteps = simple && pathname.startsWith("/today");
@@ -318,14 +316,30 @@ export function AppShell({
           {bottom.map((item) => {
             const active = isActive(pathname, item.href);
             const Icon = item.icon;
+            if (item.primary) {
+              // Tombol tengah: dibuka setiap hari, jadi dibuat lebih besar, naik, dan berwarna maroon.
+              return (
+                <li key={item.href} className="relative">
+                  <Link href={item.href} className="flex flex-col items-center gap-1 pb-1.5" aria-current={active ? "page" : undefined}>
+                    <span
+                      className={`-mt-6 grid h-14 w-14 place-items-center rounded-full border-4 border-white bg-brand text-white shadow-lift transition active:scale-95 ${active ? "ring-2 ring-gold" : ""}`}
+                    >
+                      <Icon className={`h-6 w-6 ${active ? "text-gold" : ""}`} strokeWidth={2.2} />
+                    </span>
+                    <span className="text-[11px] font-bold text-brand">{item.label}</span>
+                  </Link>
+                </li>
+              );
+            }
             return (
               <li key={item.href}>
                 <Link
                   href={item.href}
                   className="flex flex-col items-center gap-1 py-1.5"
+                  aria-current={active ? "page" : undefined}
                 >
                   <span
-                    className={`grid h-8 w-14 place-items-center rounded-full transition ${active ? "bg-brand text-gold" : "text-muted"}`}
+                    className={`relative grid h-8 w-14 place-items-center rounded-full transition ${active ? "bg-brand text-gold" : "text-muted"}`}
                   >
                     <Icon
                       className="h-[20px] w-[20px]"
