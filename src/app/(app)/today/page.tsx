@@ -205,18 +205,32 @@ export default async function TodayPage() {
             </div>
             <div className="mt-3 grid grid-cols-2 gap-2">
               {(["personal", "business"] as const).map((w) => (
-                <Link key={w} href={`/keuangan?w=${w}`} className="rounded-xl bg-paper p-3 hover:bg-gold-soft/50">
+                <Link key={w} href={w === "business" ? "/keuangan?w=business" : "/keuangan"} className="rounded-xl bg-paper p-3 hover:bg-gold-soft/50">
                   <p className="text-xs text-muted">{w === "personal" ? "🙂 Saldo pribadi" : "🏪 Saldo usaha"}</p>
                   <p className={`mt-0.5 font-bold ${fin.balances[w] < 0 ? "text-danger" : "text-heading"}`}>{rupiah(fin.balances[w])}</p>
                 </Link>
               ))}
             </div>
+            {(() => {
+              // Buku bersama (keluarga, atau usaha orang lain tempat saya ikut mencatat).
+              const shared = fin.books.filter((b) => b.status === "active" && (b.kind === "family" || !b.mine));
+              if (!shared.length) return null;
+              return (
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {shared.map((b) => (
+                    <Link key={b.id} href={`/keuangan?b=${b.id}`} className="rounded-full bg-paper px-3 py-1.5 text-xs font-semibold text-heading hover:bg-gold-soft/50">
+                      {b.kind === "family" ? "👨‍👩‍👧" : "🏪"} {b.name}: {rupiah(fin.pockets.filter((p) => p.book_id === b.id).reduce((n, p) => n + p.balance, 0))}
+                    </Link>
+                  ))}
+                </div>
+              );
+            })()}
             <p className="mt-3 text-sm text-muted">
               {finToday.count > 0
                 ? `Hari ini: ${finToday.count} catatan · masuk ${rupiah(finToday.in)} · keluar ${rupiah(finToday.out)}.`
                 : finToday.noTx
                   ? "Anda menandai hari ini tanpa transaksi."
-                  : "Catat setiap uang masuk dan keluar hari ini, dari kantong mana. Tidak ada transaksi? Tandai saja."}
+                  : "Catat setiap uang masuk dan keluar hari ini. Paling cepat: foto notanya, atau ketik seperti chat. Tidak ada transaksi? Tandai saja."}
             </p>
             <div className="mt-3 flex flex-wrap gap-2">
               <CatatButton className="btn-primary flex-1 py-2.5">+ Catat transaksi</CatatButton>
@@ -318,7 +332,7 @@ export default async function TodayPage() {
           )}
         </aside>
       </div>
-      <QuickAdd defaultWallet="personal" pockets={fin.pockets} plus={plus} teaser={assistantConfig(await getSettings()).teaser} fab={false} dreams={dreams.map((d) => ({ id: d.id, title: d.title }))} />
+      <QuickAdd defaultWallet="personal" pockets={fin.pockets} books={fin.books} plus={plus} teaser={assistantConfig(await getSettings()).teaser} fab={false} dreams={dreams.map((d) => ({ id: d.id, title: d.title }))} />
     </>
   );
 }

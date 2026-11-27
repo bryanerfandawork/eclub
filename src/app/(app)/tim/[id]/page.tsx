@@ -16,6 +16,7 @@ import { getDreams } from "@/lib/data";
 import { SITE } from "@/lib/share";
 import { rupiah, tanggalPendek, todayJakarta } from "@/lib/format";
 import { createClient } from "@/lib/supabase/server";
+import { WsFinanceLink } from "@/components/finance/ws-finance-link";
 
 export const metadata = { title: "Ruang Kerja" };
 
@@ -107,6 +108,7 @@ export default async function WorkspacePage({
             {dreamTitle ? `Mendukung mimpi: ${dreamTitle}` : <Link href={`/tim/${id}?tab=pengaturan`}>Kaitkan ke mimpi Anda (opsional) ›</Link>}
           </p>
         )}
+        <WsFinanceLink ws={id} kind={ws.kind} owner={owner} />
         {ws.archived && <p className="mt-2 ml-2 inline-block rounded-full bg-paper px-3 py-1 text-xs font-semibold text-muted">Diarsipkan</p>}
       </div>
 

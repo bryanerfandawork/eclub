@@ -4,7 +4,9 @@ import { useActionState, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Plus, X, ArrowRight } from "lucide-react";
 import { saveTx } from "@/app/actions/finance";
-import { CATEGORIES, MOVE, TRANSFERS, WALLET_LABEL, type TxKind, type Wallet } from "@/lib/finance";
+import { BOOK_EMOJI, CATEGORIES, MOVE, TRANSFERS, WALLET_LABEL, bookWallet, type Book, type TxKind, type Wallet } from "@/lib/finance";
+import type { Draft } from "@/lib/fin-parse";
+import { SmartBar } from "./smart-bar";
 import Link from "next/link";
 import { earmarked, freeBalance, providerOf, type Pocket, type PocketType } from "@/lib/pockets";
 import { DEFAULT_TEASER } from "@/lib/assistant-config";
@@ -12,7 +14,8 @@ import { PocketBadge } from "./pocket-badge";
 import { SubmitButton } from "@/components/submit-button";
 import type { FormState } from "@/app/actions/auth";
 
-export type QuickPreset = { kind?: TxKind; wallet?: Wallet; category?: string };
+/** book: "" = Pribadi, id buku, atau (sebelum SQL 029) "personal"/"business". */
+export type QuickPreset = { kind?: TxKind; wallet?: Wallet; category?: string; book?: string; amount?: number; pocket_id?: string | null; date?: string; note?: string; source?: "scan" | "chat"; step?: string };
 const EVENT = "eclub:catat";
 
 /** Buka lembar "Catat" dari mana saja (tombol petunjuk, kartu kosong, dll). */
@@ -34,14 +37,47 @@ function jakarta(offset: number) {
 
 export type DreamOpt = { id: string; title: string };
 
-export function QuickAdd({ defaultWallet, pockets = [], plus = false, fab = true, dreams = [], teaser = DEFAULT_TEASER }: { defaultWallet: Wallet; pockets?: Pocket[]; plus?: boolean; fab?: boolean; dreams?: DreamOpt[]; teaser?: string[] }) {
+export function QuickAdd({ defaultWallet, defaultBook, pockets = [], books = [], plus = false, fab = true, dreams = [], teaser = DEFAULT_TEASER }: { defaultWallet: Wallet; defaultBook?: string; pockets?: Pocket[]; books?: Book[]; plus?: boolean; fab?: boolean; dreams?: DreamOpt[]; teaser?: string[] }) {
   const [open, setOpen] = useState(false);
   const [preset, setPreset] = useState<QuickPreset>({});
   const [n, setN] = useState(0); // reset form setiap kali dibuka
+  const [queue, setQueue] = useState<QuickPreset[]>([]);
+  const active = books.filter((b) => b.status === "active");
+  const groupOf = (d: Draft) => {
+    const p = pockets.find((x) => x.id === d.pocket_id);
+    if (active.length) return p?.book_id ?? "";
+    return d.wallet;
+  };
+  const toPreset = (d: Draft, src: "scan" | "chat", i: number, total: number): QuickPreset => ({
+    kind: d.kind,
+    category: d.category,
+    wallet: d.wallet,
+    book: groupOf(d),
+    amount: d.amount,
+    pocket_id: d.pocket_id,
+    date: d.date,
+    note: d.note,
+    source: src,
+    step: total > 1 ? `${i + 1} dari ${total}` : undefined,
+  });
+  const onDrafts = (list: Draft[], src: "scan" | "chat") => {
+    const all = list.map((d, i) => toPreset(d, src, i, list.length));
+    setQueue(all.slice(1));
+    setPreset(all[0]);
+    setN((x) => x + 1);
+  };
+  const done = () => {
+    if (queue.length) {
+      setPreset(queue[0]);
+      setQueue(queue.slice(1));
+      setN((x) => x + 1);
+    } else setOpen(false);
+  };
 
   useEffect(() => {
     const h = (e: Event) => {
       setPreset((e as CustomEvent<QuickPreset>).detail ?? {});
+      setQueue([]);
       setN((x) => x + 1);
       setOpen(true);
     };
@@ -69,7 +105,7 @@ export function QuickAdd({ defaultWallet, pockets = [], plus = false, fab = true
         createPortal(
           <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 backdrop-blur-[2px] sm:items-center" onClick={() => setOpen(false)}>
             <div onClick={(e) => e.stopPropagation()} className="max-h-[92dvh] w-full max-w-lg animate-rise overflow-y-auto rounded-t-3xl bg-white p-5 pb-8 shadow-lift sm:rounded-3xl sm:p-6">
-              <Sheet key={n} preset={preset} defaultWallet={defaultWallet} pockets={pockets} plus={plus} dreams={dreams} teaser={teaser} onDone={() => setOpen(false)} />
+              <Sheet key={n} preset={preset} defaultWallet={defaultWallet} defaultBook={defaultBook} pockets={pockets} books={active} plus={plus} dreams={dreams} teaser={teaser} onDone={done} onClose={() => { setQueue([]); setOpen(false); }} onDrafts={onDrafts} left={queue.length} />
             </div>
           </div>,
           document.body,
@@ -84,7 +120,7 @@ const KINDS: { k: TxKind; label: string }[] = [
   { k: "transfer", label: "Pindah dana" },
 ];
 
-function PocketPick({ label, list, value, onChange, always = false }: { label: string; list: Pocket[]; value: string; onChange: (id: string) => void; always?: boolean }) {
+function PocketPick({ label, list, value, onChange, always = false, nameOf = (p) => p.name }: { label: string; list: Pocket[]; value: string; onChange: (id: string) => void; always?: boolean; nameOf?: (p: Pocket) => string }) {
   if (list.length < (always ? 1 : 2)) return null;
   return (
     <div className="mt-3">
@@ -97,7 +133,7 @@ function PocketPick({ label, list, value, onChange, always = false }: { label: s
             onClick={() => onChange(p.id)}
             className={`flex items-center gap-2 rounded-full border py-1 pr-3 pl-1 text-sm font-semibold transition ${value === p.id ? "border-brand bg-brand/5 text-heading" : "border-line text-ink hover:bg-paper"}`}
           >
-            <PocketBadge type={p.type} provider={p.provider} size={26} /> {p.name}
+            <PocketBadge type={p.type} provider={p.provider} size={26} /> {nameOf(p)}
           </button>
         ))}
       </div>
@@ -170,21 +206,45 @@ function Upsell({ onClose, teaser }: { onClose: () => void; teaser: string[] }) 
   );
 }
 
-function Sheet({ preset, defaultWallet, pockets, plus, dreams, teaser, onDone }: { preset: QuickPreset; defaultWallet: Wallet; pockets: Pocket[]; plus: boolean; dreams: DreamOpt[]; teaser: string[]; onDone: () => void }) {
+type Group = { key: string; label: string; emoji: string; wallet: Wallet; pockets: Pocket[] };
+
+function Sheet({ preset, defaultWallet, defaultBook, pockets, books, plus, dreams, teaser, onDone, onClose, onDrafts, left }: { preset: QuickPreset; defaultWallet: Wallet; defaultBook?: string; pockets: Pocket[]; books: Book[]; plus: boolean; dreams: DreamOpt[]; teaser: string[]; onDone: () => void; onClose: () => void; onDrafts: (d: Draft[], src: "scan" | "chat") => void; left: number }) {
+  // Dompet = Pribadi + buku usaha/keluarga (SQL 029). Sebelum itu: Pribadi & Usaha seperti dulu.
+  const groups: Group[] = books.length
+    ? [
+        { key: "", label: "Pribadi", emoji: "🙂", wallet: "personal", pockets: pockets.filter((p) => !p.book_id && p.own !== false) },
+        ...books.map((b) => ({ key: b.id, label: b.name, emoji: BOOK_EMOJI[b.kind], wallet: bookWallet(b.kind), pockets: pockets.filter((p) => p.book_id === b.id) })),
+      ]
+    : (["personal", "business"] as Wallet[]).map((w) => ({ key: w, label: WALLET_LABEL[w], emoji: w === "personal" ? "🙂" : "🏪", wallet: w, pockets: pockets.filter((p) => p.wallet === w) }));
+  const bookName = (id?: string | null) => books.find((b) => b.id === id)?.name;
+  const nameOf = (p: Pocket) => (p.book_id && books.length > 1 ? `${p.name} · ${bookName(p.book_id)}` : p.name);
+  const managed = new Set(books.filter((b) => b.role !== "recorder").map((b) => b.id));
+  const movable = pockets.filter((p) => !p.book_id || managed.has(p.book_id));
+  const initialGroup = (() => {
+    if (preset.book !== undefined && groups.some((g) => g.key === preset.book)) return preset.book;
+    const w = preset.wallet ?? defaultWallet;
+    if (!books.length) return w;
+    if (defaultBook !== undefined && groups.some((g) => g.key === defaultBook) && (!preset.wallet || groups.find((g) => g.key === defaultBook)?.wallet === preset.wallet)) return defaultBook;
+    return groups.find((g) => g.wallet === w && (w === "personal" ? g.key === "" : true))?.key ?? "";
+  })();
   const [upsell, setUpsell] = useState(false);
   const [dreamId, setDreamId] = useState(dreams[0]?.id ?? "");
   const [dreamMode, setDreamMode] = useState<"" | "for" | "other">("");
   const [dreamPick, setDreamPick] = useState("");
   const [kind, setKind] = useState<TxKind>(preset.kind ?? "out");
-  const [wallet, setWallet] = useState<Wallet>(preset.wallet ?? defaultWallet);
+  const [group, setGroup] = useState(initialGroup);
+  const g = groups.find((x) => x.key === group) ?? groups[0];
+  const wallet = g.wallet;
   const [category, setCategory] = useState(preset.category ?? "");
-  const [amount, setAmount] = useState("");
-  const [day, setDay] = useState<"0" | "-1" | "custom">("0");
-  const [custom, setCustom] = useState(jakarta(0));
-  const [note, setNote] = useState(false);
+  const [amount, setAmount] = useState(preset.amount ? preset.amount.toLocaleString("id-ID") : "");
+  const presetDay = !preset.date || preset.date === jakarta(0) ? "0" : preset.date === jakarta(-1) ? "-1" : "custom";
+  const [day, setDay] = useState<"0" | "-1" | "custom">(presetDay);
+  const [custom, setCustom] = useState(preset.date ?? jakarta(0));
+  const [note, setNote] = useState(!!preset.note);
+  const [noteText, setNoteText] = useState(preset.note ?? "");
   const [state, action] = useActionState<FormState, FormData>(saveTx, {});
-  const first = (w: Wallet) => pockets.find((p) => p.wallet === w)?.id ?? "";
-  const [pocket, setPocket] = useState(first(preset.wallet ?? defaultWallet));
+  const first = (w: Wallet) => (w === "personal" ? groups.find((x) => x.wallet === "personal")?.pockets[0]?.id : movable.find((p) => p.wallet === w)?.id) ?? "";
+  const [pocket, setPocket] = useState(preset.pocket_id && g.pockets.some((p) => p.id === preset.pocket_id) ? preset.pocket_id : (g.pockets[0]?.id ?? ""));
   const [fromP, setFromP] = useState("");
   const [toP, setToP] = useState("");
   const amountRef = useRef<HTMLInputElement>(null);
@@ -200,6 +260,7 @@ function Sheet({ preset, defaultWallet, pockets, plus, dreams, teaser, onDone }:
   }, [state, onDone]);
 
   const cats = kind === "transfer" ? [] : CATEGORIES[wallet][kind];
+  const ownPockets = pockets.filter((p) => p.own !== false);
   const date = day === "custom" ? custom : jakarta(Number(day));
   const tone = kind === "in" ? "text-success" : kind === "out" ? "text-brand" : "text-heading";
 
@@ -208,7 +269,7 @@ function Sheet({ preset, defaultWallet, pockets, plus, dreams, teaser, onDone }:
       <div className="py-10 text-center">
         <div className="mx-auto grid h-16 w-16 place-items-center rounded-full bg-success/10 text-3xl">✓</div>
         <p className="mt-4 text-lg font-bold text-heading">Tersimpan</p>
-        <p className="text-sm text-muted">Catatan Anda sudah masuk.</p>
+        <p className="text-sm text-muted">{left > 0 ? `Lanjut ke transaksi berikutnya (${left} lagi)…` : "Catatan Anda sudah masuk."}</p>
       </div>
     );
 
@@ -217,12 +278,20 @@ function Sheet({ preset, defaultWallet, pockets, plus, dreams, teaser, onDone }:
       {upsell && <Upsell onClose={() => setUpsell(false)} teaser={teaser} />}
       <div className="mb-4 flex items-center justify-between">
         <h2 className="text-lg font-bold text-heading">Catat transaksi</h2>
-        <button type="button" onClick={onDone} className="grid h-9 w-9 place-items-center rounded-full text-muted hover:bg-paper" aria-label="Tutup">
+        <button type="button" onClick={onClose} className="grid h-9 w-9 place-items-center rounded-full text-muted hover:bg-paper" aria-label="Tutup">
           <X className="h-5 w-5" />
         </button>
       </div>
 
+      {preset.source ? (
+        <p className="mb-4 rounded-2xl bg-gold-soft/60 px-3.5 py-2.5 text-sm text-heading">
+          ✨ Terisi otomatis dari {preset.source === "scan" ? "foto nota" : "ketikan Anda"}{preset.step ? ` (${preset.step})` : ""}. Cek sebentar, ubah bila perlu, lalu <b>Simpan</b>.
+        </p>
+      ) : (
+        !preset.kind && !preset.category && <SmartBar onDrafts={onDrafts} />
+      )}
       <input type="hidden" name="kind" value={kind} />
+      {preset.source && <input type="hidden" name="source" value={preset.source} />}
       <input type="hidden" name="wallet" value={wallet} />
       <input type="hidden" name="category" value={category} />
       <input type="hidden" name="tx_date" value={date} />
@@ -255,25 +324,25 @@ function Sheet({ preset, defaultWallet, pockets, plus, dreams, teaser, onDone }:
       </div>
 
       {kind !== "transfer" && (
-        <div className="mt-4 flex items-center gap-2 text-sm">
-          <span className="text-muted">Dompet:</span>
-          {(["personal", "business"] as Wallet[]).map((w) => (
+        <div className="mt-4 -mx-1 flex items-center gap-2 overflow-x-auto px-1 pb-1 text-sm">
+          <span className="shrink-0 text-muted">Dompet:</span>
+          {groups.map((x) => (
             <button
-              key={w}
+              key={x.key}
               type="button"
               onClick={() => {
-                setWallet(w);
-                setCategory("");
-                setPocket(first(w));
+                if (x.wallet !== wallet) setCategory("");
+                setGroup(x.key);
+                setPocket(x.pockets[0]?.id ?? "");
               }}
-              className={`rounded-full border px-3.5 py-1.5 font-semibold transition ${wallet === w ? "border-brand bg-brand text-white" : "border-line text-ink hover:bg-paper"}`}
+              className={`shrink-0 rounded-full border px-3.5 py-1.5 font-semibold whitespace-nowrap transition ${group === x.key ? "border-brand bg-brand text-white" : "border-line text-ink hover:bg-paper"}`}
             >
-              {w === "personal" ? "🙂" : "🏪"} {WALLET_LABEL[w]}
+              {x.emoji} {x.label}
             </button>
           ))}
         </div>
       )}
-      {kind !== "transfer" && <WalletPockets teaserKeys={teaser} list={pockets.filter((p) => p.wallet === wallet)} value={pocket} onChange={setPocket} plus={plus} onLocked={() => setUpsell(true)} />}
+      {kind !== "transfer" && <WalletPockets teaserKeys={teaser} list={g.pockets} value={pocket} onChange={setPocket} plus={plus || (!!g.key && books.some((b) => b.id === g.key && b.owner_plus))} onLocked={() => setUpsell(true)} />}
 
       <label className="mt-5 block">
         <span className="text-xs font-medium text-muted">Nominal</span>
@@ -297,7 +366,7 @@ function Sheet({ preset, defaultWallet, pockets, plus, dreams, teaser, onDone }:
 
       {kind === "transfer" ? (
         <div className="mt-5 space-y-2">
-          {dreams.length > 0 && pockets.length > 0 && (
+          {dreams.length > 0 && ownPockets.length > 0 && (
             <button
               type="button"
               onClick={() => {
@@ -326,10 +395,10 @@ function Sheet({ preset, defaultWallet, pockets, plus, dreams, teaser, onDone }:
                   ))}
                 </div>
               </div>
-              <PocketPick label="Disimpan di kantong:" list={pockets} value={toP} onChange={setToP} always />
-              {plus && <PocketPick label="Diambil dari kantong:" list={pockets} value={fromP} onChange={setFromP} always />}
+              <PocketPick label="Disimpan di kantong:" list={ownPockets} value={toP} onChange={setToP} always nameOf={nameOf} />
+              {plus && <PocketPick label="Diambil dari kantong:" list={ownPockets} value={fromP} onChange={setFromP} always nameOf={nameOf} />}
               {(() => {
-                const src = pockets.find((p) => p.id === (plus ? fromP : toP));
+                const src = ownPockets.find((p) => p.id === (plus ? fromP : toP));
                 return src ? <p className="text-xs text-muted">Saldo bebas {src.name}: {rp(freeBalance(src))}</p> : null;
               })()}
             </div>
@@ -379,12 +448,13 @@ function Sheet({ preset, defaultWallet, pockets, plus, dreams, teaser, onDone }:
           )}
           {(() => {
             const tr = TRANSFERS.find((t) => t.key === category);
-            const from = category === MOVE.key ? pockets : pockets.filter((p) => p.wallet === tr?.from);
-            const to = category === MOVE.key ? pockets.filter((p) => p.id !== fromP) : pockets.filter((p) => p.wallet === tr?.to);
+            const side = (w?: Wallet) => (w === "personal" ? movable.filter((p) => p.wallet === "personal" && (p.own !== false || !!p.book_id)) : movable.filter((p) => p.wallet === w));
+            const from = category === MOVE.key ? pockets : side(tr?.from);
+            const to = category === MOVE.key ? pockets.filter((p) => p.id !== fromP) : side(tr?.to);
             return (
               <>
-                <PocketPick label="Dari kantong:" list={from} value={fromP} onChange={(id) => { setFromP(id); if (id === toP) setToP(pockets.find((p) => p.id !== id)?.id ?? ""); }} always={category === MOVE.key} />
-                <PocketPick label="Ke kantong:" list={to} value={toP} onChange={setToP} always={category === MOVE.key} />
+                <PocketPick label="Dari kantong:" list={from} value={fromP} onChange={(id) => { setFromP(id); if (id === toP) setToP(pockets.find((p) => p.id !== id)?.id ?? ""); }} always={category === MOVE.key} nameOf={nameOf} />
+                <PocketPick label="Ke kantong:" list={to} value={toP} onChange={setToP} always={category === MOVE.key} nameOf={nameOf} />
               </>
             );
           })()}
@@ -471,7 +541,7 @@ function Sheet({ preset, defaultWallet, pockets, plus, dreams, teaser, onDone }:
       </div>
 
       {note ? (
-        <input name="note" maxLength={200} placeholder="Catatan (opsional), misal: belanja di pasar" className="input mt-4" autoFocus />
+        <input name="note" maxLength={200} value={noteText} onChange={(e) => setNoteText(e.target.value)} placeholder="Catatan (opsional), misal: belanja di pasar" className="input mt-4" autoFocus={!preset.note} />
       ) : (
         <button type="button" onClick={() => setNote(true)} className="mt-4 text-sm font-semibold text-brand/80 hover:text-brand">
           + Tambah catatan

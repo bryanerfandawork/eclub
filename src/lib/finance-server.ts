@@ -3,10 +3,57 @@ import { cache } from "react";
 import { isDemoMode } from "./supabase/config";
 import { createClient } from "./supabase/server";
 import { todayJakarta } from "./format";
-import type { Tx, Wallet } from "./finance";
+import { getMe } from "./me";
+import { setSummary, type Book, type Tx, type Wallet } from "./finance";
 import type { Earmark, Pocket } from "./pockets";
 
-export type FinanceData = { balances: Record<Wallet, number>; txs: Tx[]; hasAny: boolean; pockets: Pocket[] };
+/**
+ * pockets = semua kantong yang boleh saya akses (pribadi + buku bersama).
+ * txs & balances = keuangan "milik saya": Pribadi + buku usaha yang saya miliki (bukan buku keluarga / buku orang lain).
+ */
+export type FinanceData = { balances: Record<Wallet, number>; txs: Tx[]; hasAny: boolean; pockets: Pocket[]; books: Book[] };
+
+/** Kantong yang dihitung sebagai keuangan "saya" (Home, Hari ini, dashboard). */
+export function ownIds(pockets: Pocket[], books: Book[]) {
+  const fam = new Set(books.filter((b) => b.kind === "family").map((b) => b.id));
+  return pockets.filter((p) => p.own !== false && !(p.book_id && fam.has(p.book_id))).map((p) => p.id);
+}
+
+/** Buku keuangan yang bisa saya akses + undangan untuk saya. Kosong bila SQL 029 belum dijalankan. */
+async function getBooksRaw(): Promise<Book[]> {
+  if (isDemoMode) return DEMO_BOOKS;
+  const [supabase, me] = await Promise.all([createClient(), getMe()]);
+  const { data, error } = await supabase.rpc("fin_my_books");
+  if (error) return [];
+  return ((data ?? []) as Omit<Book, "mine">[]).map((b) => ({ ...b, members: Number(b.members) || 1, mine: b.owner_id === me.user?.id }));
+}
+
+const DEMO_BOOKS: Book[] = [
+  { id: "bk1", kind: "business", name: "Usaha saya", owner_id: "demo", owner_name: "Anda", role: "owner", status: "active", pocket_ids: null, owner_plus: true, workspace_id: null, members: 2, mine: true },
+  { id: "bk2", kind: "family", name: "Keluarga kita", owner_id: "demo", owner_name: "Anda", role: "owner", status: "active", pocket_ids: null, owner_plus: true, workspace_id: null, members: 2, mine: true },
+];
+
+/** Catatan satu bulan yang menyentuh kantong tertentu (satu buku, atau Pribadi). */
+async function getViewTxsRaw(month: string, key: string): Promise<Tx[]> {
+  const ids = key ? key.split(",") : [];
+  if (!ids.length) return [];
+  const { from, to } = monthRange(month);
+  if (isDemoMode) return demoTxs().filter((t) => t.tx_date >= from && t.tx_date < to && (ids.includes(t.pocket_id ?? "") || ids.includes(t.to_pocket_id ?? "")));
+  const supabase = await createClient();
+  const list = ids.join(",");
+  const { data } = await supabase
+    .from("fin_transactions")
+    .select("*")
+    .gte("tx_date", from)
+    .lt("tx_date", to)
+    .or(`pocket_id.in.(${list}),to_pocket_id.in.(${list})`)
+    .order("tx_date", { ascending: false })
+    .order("created_at", { ascending: false })
+    .limit(800);
+  return ((data ?? []) as Tx[]).map((x) => ({ ...x, amount: Number(x.amount) }));
+}
+/** key = id kantong dipisah koma (supaya bisa di-cache per permintaan). */
+export const getViewTxs = cache(getViewTxsRaw);
 
 function monthRange(month: string) {
   const [y, m] = month.split("-").map(Number);
@@ -26,7 +73,8 @@ function demoTxs(): Tx[] {
     { wallet: "business", kind: "in", to_wallet: null, amount: 5_000_000, category: "saldo_awal", note: null, tx_date: d(6) },
     { wallet: "personal", kind: "in", to_wallet: null, amount: 1_000_000, category: "saldo_awal", note: null, tx_date: d(6) },
   ];
-  return rows.map((r, i) => ({ ...r, id: `demo-${i}` }));
+  const pk = (t: Omit<Tx, "id">) => (t.wallet === "business" ? "pk4" : "pk2");
+  return rows.map((r, i) => ({ ...r, id: `demo-${i}`, pocket_id: pk(r), to_pocket_id: r.to_wallet ? (r.to_wallet === "business" ? "pk4" : "pk2") : null }));
 }
 
 async function getFinanceRaw(month: string): Promise<FinanceData> {
@@ -42,52 +90,75 @@ async function getFinanceRaw(month: string): Promise<FinanceData> {
         if (t.to_wallet) bal[t.to_wallet] += t.amount;
       }
     }
-    return { balances: bal, txs: all.filter((t) => t.tx_date >= from && t.tx_date < to), hasAny: true, pockets: DEMO_POCKETS(bal) };
+    return { balances: bal, txs: all.filter((t) => t.tx_date >= from && t.tx_date < to), hasAny: true, pockets: DEMO_POCKETS(bal), books: DEMO_BOOKS };
   }
   const supabase = await createClient();
-  const [b, pockets, t] = await Promise.all([
-    supabase.rpc("fin_balances"),
-    getPockets(),
-    supabase.from("fin_transactions").select("*").gte("tx_date", from).lt("tx_date", to).order("tx_date", { ascending: false }).order("created_at", { ascending: false }).limit(500),
-  ]);
+  const [pockets, books] = await Promise.all([getPockets(), getBooks()]);
+  const mine = new Set(ownIds(pockets, books));
+  const own = pockets.filter((p) => mine.has(p.id));
+  let txs: Tx[];
+  if (own.length) txs = await getViewTxs(month, own.map((p) => p.id).join(","));
+  else {
+    // Sebelum SQL 022: belum ada kantong, pakai dompet lama.
+    const t = await supabase.from("fin_transactions").select("*").gte("tx_date", from).lt("tx_date", to).order("tx_date", { ascending: false }).order("created_at", { ascending: false }).limit(500);
+    txs = ((t.data ?? []) as Tx[]).map((x) => ({ ...x, amount: Number(x.amount) }));
+  }
   const balances = { personal: 0, business: 0 } as Record<Wallet, number>;
-  for (const r of (b.data ?? []) as { wallet: Wallet; balance: number }[]) balances[r.wallet] = Number(r.balance) || 0;
-  // Setelah SQL 022: saldo dompet = jumlah saldo kantongnya (benar juga untuk pindah antar kantong).
-  if (pockets.length) for (const w of ["personal", "business"] as Wallet[]) balances[w] = pockets.filter((p) => p.wallet === w).reduce((n, p) => n + p.balance, 0);
-  const txs = ((t.data ?? []) as Tx[]).map((x) => ({ ...x, amount: Number(x.amount) }));
-  let hasAny = txs.length > 0 || balances.personal !== 0 || balances.business !== 0;
+  if (own.length) {
+    balances.personal = own.filter((p) => !p.book_id && p.wallet === "personal").reduce((n, p) => n + p.balance, 0);
+    balances.business = own.filter((p) => p.wallet === "business").reduce((n, p) => n + p.balance, 0);
+  } else {
+    const b = await supabase.rpc("fin_balances");
+    for (const r of (b.data ?? []) as { wallet: Wallet; balance: number }[]) balances[r.wallet] = Number(r.balance) || 0;
+  }
+  let hasAny = txs.length > 0 || pockets.some((p) => p.balance !== 0);
   if (!hasAny) {
     const { count } = await supabase.from("fin_transactions").select("id", { count: "exact", head: true });
     hasAny = (count ?? 0) > 0;
   }
-  return { balances, txs, hasAny, pockets };
+  return { balances, txs, hasAny, pockets, books };
 }
 
 const DEMO_POCKETS = (bal: Record<Wallet, number>): Pocket[] => [
   { id: "pk1", wallet: "personal", name: "Dompet", type: "cash", provider: null, balance: Math.round(bal.personal * 0.3) },
   { id: "pk2", wallet: "personal", name: "BCA", type: "bank", provider: "bca", balance: bal.personal - Math.round(bal.personal * 0.3), earmarks: [{ dream_id: "demo-2", title: "Umrah bersama orang tua", amount: 1_200_000 }] },
-  { id: "pk3", wallet: "business", name: "Kas toko", type: "cash", provider: null, balance: Math.round(bal.business * 0.2) },
-  { id: "pk4", wallet: "business", name: "BRI usaha", type: "bank", provider: "bri", balance: bal.business - Math.round(bal.business * 0.2) - 250_000 },
-  { id: "pk5", wallet: "business", name: "GoPay", type: "ewallet", provider: "gopay", balance: 250_000 },
+  { id: "pk3", wallet: "business", name: "Kas toko", type: "cash", provider: null, balance: Math.round(bal.business * 0.2), book_id: "bk1" },
+  { id: "pk4", wallet: "business", name: "BRI usaha", type: "bank", provider: "bri", balance: bal.business - Math.round(bal.business * 0.2) - 250_000, book_id: "bk1" },
+  { id: "pk5", wallet: "business", name: "GoPay", type: "ewallet", provider: "gopay", balance: 250_000, book_id: "bk1" },
+  { id: "pk6", wallet: "personal", name: "Kas keluarga", type: "cash", provider: null, balance: 1_750_000, book_id: "bk2" },
 ];
 
-/** Kantong aktif + saldonya. Pengguna baru otomatis mendapat 2 kantong bawaan. Kosong bila SQL 022 belum dijalankan. */
+/**
+ * Kantong aktif yang boleh saya akses + saldonya. Pengguna baru otomatis mendapat kantong pribadi
+ * dan buku "Usaha saya" (SQL 029). Kosong bila SQL 022 belum dijalankan.
+ */
 async function getPocketsRaw(): Promise<Pocket[]> {
-  if (isDemoMode) return DEMO_POCKETS((await getFinance(todayJakarta().slice(0, 7))).balances);
+  if (isDemoMode) return DEMO_POCKETS((await getFinance(todayJakarta().slice(0, 7))).balances).map((p) => ({ ...p, own: true }));
   const supabase = await createClient();
-  const first = await supabase.from("fin_pockets").select("id, wallet, name, type, provider").eq("archived", false).order("created_at");
-  if (first.error) return [];
-  let data = first.data as Omit<Pocket, "balance">[] | null;
-  if (!data?.length) {
-    await supabase.from("fin_pockets").insert([
-      { wallet: "personal", name: "Dompet pribadi", type: "cash" },
-      { wallet: "business", name: "Kas usaha", type: "cash" },
-    ]);
-    ({ data } = await supabase.from("fin_pockets").select("id, wallet, name, type, provider").eq("archived", false).order("created_at"));
+  const cols = "id, wallet, name, type, provider, book_id";
+  const load = async () => {
+    const r = await supabase.from("fin_pockets").select(cols).eq("archived", false).order("created_at");
+    if (!r.error) return { data: r.data as Omit<Pocket, "balance">[], books: true };
+    const old = await supabase.from("fin_pockets").select("id, wallet, name, type, provider").eq("archived", false).order("created_at");
+    return old.error ? null : { data: old.data as Omit<Pocket, "balance">[], books: false };
+  };
+  let res = await load();
+  if (!res) return [];
+  const books = res.books ? await getBooks() : [];
+  const personal = res.data.some((p) => !p.book_id && p.wallet === "personal");
+  const anyBiz = res.books ? books.some((b) => b.mine) : res.data.some((p) => p.wallet === "business");
+  if (!personal || !anyBiz) {
+    if (!personal) await supabase.from("fin_pockets").insert({ wallet: "personal", name: "Dompet pribadi", type: "cash" });
+    if (!anyBiz) {
+      if (res.books) await supabase.rpc("fin_book_create", { p_kind: "business", p_name: "Usaha saya" });
+      else await supabase.from("fin_pockets").insert({ wallet: "business", name: "Kas usaha", type: "cash" });
+    }
+    res = (await load()) ?? res;
   }
+  const mineBooks = new Set(books.filter((b) => b.mine).map((b) => b.id));
   const [{ data: bal }, funds] = await Promise.all([supabase.rpc("fin_pocket_balances"), getDreamFunds()]);
   const m = new Map(((bal ?? []) as { pocket_id: string; balance: number }[]).map((r) => [r.pocket_id, Number(r.balance) || 0]));
-  return ((data ?? []) as Omit<Pocket, "balance">[]).map((p) => ({ ...p, balance: m.get(p.id) ?? 0, earmarks: funds.get(p.id) ?? [] }));
+  return res.data.map((p) => ({ ...p, balance: m.get(p.id) ?? 0, earmarks: funds.get(p.id) ?? [], own: !p.book_id || mineBooks.has(p.book_id) }));
 }
 
 /** Tabungan mimpi per kantong (SQL 023). Map kosong bila tabel belum ada. */
@@ -112,9 +183,10 @@ async function getDreamFundsRaw(): Promise<Map<string, Earmark[]>> {
 async function getFinTodayRaw(): Promise<{ reported: boolean; noTx: boolean; in: number; out: number; count: number }> {
   const today = todayJakarta();
   if (isDemoMode) return { reported: true, noTx: false, in: 2_450_000, out: 45_000, count: 2 };
-  const supabase = await createClient();
+  const [supabase, me] = await Promise.all([createClient(), getMe()]);
   const [t, c] = await Promise.all([
-    supabase.from("fin_transactions").select("kind, amount, category").eq("tx_date", today),
+    // Yang saya catat sendiri hari ini (termasuk di buku bersama).
+    supabase.from("fin_transactions").select("kind, amount, category").eq("tx_date", today).eq("user_id", me.user?.id ?? ""),
     supabase.from("fin_checks").select("check_date").eq("check_date", today).maybeSingle(),
   ]);
   const rows = (t.data ?? []) as { kind: string; amount: number; category: string }[];
@@ -140,8 +212,8 @@ export function monthSummary(txs: Tx[], w: Wallet) {
   return { income, expense, transferIn, transferOut, top };
 }
 
-/** Ringkasan 6 bulan terakhir per dompet (grafik Plus). */
-export async function getMonthly(w: Wallet): Promise<{ month: string; income: number; expense: number }[]> {
+/** Ringkasan 6 bulan terakhir untuk sekumpulan kantong (grafik Plus). */
+export async function getMonthly(ids: string[]): Promise<{ month: string; income: number; expense: number }[]> {
   const months = Array.from({ length: 6 }, (_, i) => {
     const d = new Date(todayJakarta().slice(0, 7) + "-01T00:00:00Z");
     d.setUTCMonth(d.getUTCMonth() - (5 - i));
@@ -149,17 +221,20 @@ export async function getMonthly(w: Wallet): Promise<{ month: string; income: nu
   });
   let txs: Tx[] = [];
   if (isDemoMode) {
+    const w = ids.includes("pk4") ? "business" : "personal";
     txs = months.flatMap((m, i) => [
-      { id: `a${i}`, wallet: w, kind: "in" as const, to_wallet: null, amount: (w === "business" ? 6_000_000 : 4_000_000) + i * 400_000, category: w === "business" ? "penjualan" : "gaji", note: null, tx_date: `${m}-05` },
-      { id: `b${i}`, wallet: w, kind: "out" as const, to_wallet: null, amount: (w === "business" ? 4_200_000 : 3_100_000) + ((i * 7) % 5) * 150_000, category: "lain", note: null, tx_date: `${m}-10` },
+      { id: `a${i}`, wallet: w as Wallet, kind: "in" as const, to_wallet: null, amount: (w === "business" ? 6_000_000 : 4_000_000) + i * 400_000, category: "lain", note: null, tx_date: `${m}-05`, pocket_id: ids[0] },
+      { id: `b${i}`, wallet: w as Wallet, kind: "out" as const, to_wallet: null, amount: (w === "business" ? 4_200_000 : 3_100_000) + ((i * 7) % 5) * 150_000, category: "lain", note: null, tx_date: `${m}-10`, pocket_id: ids[0] },
     ]);
-  } else {
+  } else if (ids.length) {
     const supabase = await createClient();
-    const { data } = await supabase.from("fin_transactions").select("wallet, kind, to_wallet, amount, category, tx_date").gte("tx_date", `${months[0]}-01`).limit(5000);
+    const list = ids.join(",");
+    const { data } = await supabase.from("fin_transactions").select("wallet, kind, to_wallet, amount, category, tx_date, pocket_id, to_pocket_id").gte("tx_date", `${months[0]}-01`).or(`pocket_id.in.(${list}),to_pocket_id.in.(${list})`).limit(8000);
     txs = ((data ?? []) as Tx[]).map((x) => ({ ...x, amount: Number(x.amount) }));
   }
+  const set = new Set(ids);
   return months.map((m) => {
-    const s = monthSummary(txs.filter((t) => t.tx_date.startsWith(m)), w);
+    const s = setSummary(txs.filter((t) => t.tx_date.startsWith(m)), set);
     return { month: m, income: s.income, expense: s.expense };
   });
 }
@@ -169,3 +244,4 @@ export const getFinance = cache(getFinanceRaw);
 export const getPockets = cache(getPocketsRaw);
 export const getFinToday = cache(getFinTodayRaw);
 export const getDreamFunds = cache(getDreamFundsRaw);
+export const getBooks = cache(getBooksRaw);

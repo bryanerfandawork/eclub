@@ -2,7 +2,8 @@ import type { Wallet } from "./finance";
 
 export type PocketType = "cash" | "bank" | "ewallet" | "other";
 export type Earmark = { dream_id: string; title: string; amount: number };
-export type Pocket = { id: string; wallet: Wallet; name: string; type: PocketType; provider: string | null; balance: number; earmarks?: Earmark[] };
+/** book_id null = kantong pribadi. own = milik saya (pribadi atau buku yang saya miliki). */
+export type Pocket = { id: string; wallet: Wallet; name: string; type: PocketType; provider: string | null; balance: number; earmarks?: Earmark[]; book_id?: string | null; own?: boolean };
 
 /** Uang yang disisihkan untuk mimpi di kantong ini, dan saldo bebasnya. */
 export const earmarked = (p: Pocket) => (p.earmarks ?? []).reduce((n, e) => n + e.amount, 0);

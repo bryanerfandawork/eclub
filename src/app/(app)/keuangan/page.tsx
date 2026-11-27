@@ -1,14 +1,18 @@
 import Link from "next/link";
-import { BarChart3, ChevronLeft, ChevronRight, Download, Lock, Settings2, ShieldCheck } from "lucide-react";
+import { BarChart3, ChevronLeft, ChevronRight, Download, Lock, Plus, Settings2, ShieldCheck, Users } from "lucide-react";
 import { PocketBadge } from "@/components/finance/pocket-badge";
 import { getAccount, getSettings, isAdmin } from "@/lib/plans";
 import { assistantConfig } from "@/lib/assistant-config";
 import { compactRupiah } from "@/lib/format";
 import { deleteTx } from "@/app/actions/finance";
+import { respondBook } from "@/app/actions/finance-books";
+import { createClient } from "@/lib/supabase/server";
+import { isDemoMode } from "@/lib/supabase/config";
+import { getMe } from "@/lib/me";
 import { CatatButton, DeleteTx, QuickAdd } from "@/components/finance/quick-add";
 import { PageHeader } from "@/components/ui";
-import { catInfo, effect, WALLET_LABEL, type Tx, type Wallet } from "@/lib/finance";
-import { getFinance, getMonthly, monthSummary } from "@/lib/finance-server";
+import { BOOK_EMOJI, ROLE_LABEL, catInfo, setEffect, setSummary, WALLET_LABEL, bookWallet, type Book, type Tx, type Wallet } from "@/lib/finance";
+import { getFinance, getMonthly, getViewTxs } from "@/lib/finance-server";
 import { getDreams } from "@/lib/data";
 import { earmarked } from "@/lib/pockets";
 import { rupiah, todayJakarta } from "@/lib/format";
@@ -29,22 +33,56 @@ function dayLabel(iso: string) {
   return new Date(iso + "T00:00:00").toLocaleDateString("id-ID", { weekday: "long", day: "numeric", month: "short" });
 }
 
-export default async function KeuanganPage({ searchParams }: { searchParams: Promise<{ w?: string; m?: string }> }) {
+type View = { key: string; label: string; emoji: string; wallet: Wallet; ids: string[]; balance: number; book: Book | null };
+
+export default async function KeuanganPage({ searchParams }: { searchParams: Promise<{ w?: string; m?: string; b?: string }> }) {
   const sp = await searchParams;
-  const w: Wallet = sp.w === "business" ? "business" : "personal";
   const thisMonth = todayJakarta().slice(0, 7);
   const month = /^\d{4}-\d{2}$/.test(sp.m ?? "") && sp.m! <= thisMonth ? sp.m! : thisMonth;
-  const [{ balances, txs, hasAny, pockets }, acc, dreams] = await Promise.all([getFinance(month), getAccount(), getDreams()]);
+  const [{ hasAny, pockets, books: allBooks }, acc, dreams, me] = await Promise.all([getFinance(month), getAccount(), getDreams(), isDemoMode ? Promise.resolve({ user: null, row: null }) : getMe()]);
   const plus = acc.plan === "plus" || isAdmin(acc.role);
-  const monthly = plus ? await getMonthly(w) : [];
+  const books = allBooks.filter((b) => b.status === "active");
+  const invites = allBooks.filter((b) => b.status === "invited");
+  const sum = (ids: string[]) => pockets.filter((p) => ids.includes(p.id)).reduce((n, p) => n + p.balance, 0);
+  // Dompet yang bisa dibuka: Pribadi + buku usaha/keluarga (SQL 029). Sebelum itu: Pribadi & Usaha.
+  const views: View[] = books.length
+    ? [
+        { key: "", label: "Pribadi", emoji: "🙂", wallet: "personal" as Wallet, ids: pockets.filter((p) => !p.book_id && p.own !== false).map((p) => p.id), book: null },
+        ...books.map((b) => ({ key: b.id, label: b.name, emoji: BOOK_EMOJI[b.kind], wallet: bookWallet(b.kind), ids: pockets.filter((p) => p.book_id === b.id).map((p) => p.id), book: b })),
+      ].map((v) => ({ ...v, balance: sum(v.ids) }))
+    : (["personal", "business"] as Wallet[]).map((w) => {
+        const ids = pockets.filter((p) => p.wallet === w).map((p) => p.id);
+        return { key: w, label: WALLET_LABEL[w], emoji: w === "personal" ? "🙂" : "🏪", wallet: w, ids, balance: sum(ids), book: null };
+      });
+  const wanted = sp.b ?? (sp.w === "business" ? (books.length ? (books.find((b) => b.kind === "business" && b.mine) ?? books.find((b) => b.kind === "business"))?.id : "business") : undefined);
+  const view = views.find((v) => v.key === wanted) ?? views[0];
+  const w = view.wallet;
+  const book = view.book;
+  const set = new Set(view.ids);
+  const txs = await getViewTxs(month, view.ids.join(","));
+  const monthly = plus ? await getMonthly(view.ids) : [];
   const maxM = Math.max(1, ...monthly.flatMap((x) => [x.income, x.expense]));
-  const myPockets = pockets.filter((p) => p.wallet === w);
+  const myPockets = pockets.filter((p) => set.has(p.id));
   const pname = (id?: string | null) => pockets.find((p) => p.id === id)?.name;
-  const mine = txs.filter((t) => t.wallet === w || t.to_wallet === w);
-  const s = monthSummary(txs, w);
+  const mine = txs;
+  const s = setSummary(txs, set);
   const net = s.income - s.expense;
   const paidSelf = txs.some((t) => t.kind === "transfer" && t.category === "gaji_diri");
-  const href = (q: { w?: Wallet; m?: string }) => `/keuangan?w=${q.w ?? w}${(q.m ?? month) !== thisMonth ? `&m=${q.m ?? month}` : ""}`;
+  const canManage = !book || book.role !== "recorder";
+  const href = (q: { b?: string; m?: string }) => {
+    const k = q.b ?? view.key;
+    const m = q.m ?? month;
+    const qs = [k ? (books.length ? `b=${k}` : `w=${k}`) : "", m !== thisMonth ? `m=${m}` : ""].filter(Boolean).join("&");
+    return `/keuangan${qs ? `?${qs}` : ""}`;
+  };
+  // Siapa yang mencatat (buku bersama).
+  let people = new Map<string, string>();
+  if (book && book.members > 1 && !isDemoMode) {
+    const supabase = await createClient();
+    const { data } = await supabase.rpc("fin_book_people", { p_book: book.id });
+    people = new Map(((data ?? []) as { user_id: string; full_name: string | null }[]).map((r) => [r.user_id, (r.full_name ?? "Anggota").split(" ")[0]]));
+  }
+  const who = (t: Tx) => (book && t.user_id && t.user_id !== me.user?.id ? people.get(t.user_id) : null);
 
   const groups = new Map<string, Tx[]>();
   for (const t of mine) groups.set(t.tx_date, [...(groups.get(t.tx_date) ?? []), t]);
@@ -54,38 +92,74 @@ export default async function KeuanganPage({ searchParams }: { searchParams: Pro
       <PageHeader
         eyebrow="Keuangan"
         title="Uang Anda, rapi & terpisah"
-        desc="Pribadi dan usaha punya dompet sendiri. Di dalamnya ada kantong: uang tunai, rekening bank, atau e-wallet. Lapor setiap hari, cukup 1 menit."
+        desc="Pribadi, setiap usaha, dan keuangan keluarga punya dompet sendiri. Di dalamnya ada kantong: uang tunai, rekening bank, atau e-wallet. Lapor setiap hari, cukup 1 menit."
       />
 
-      {/* Dua dompet */}
-      <div className="grid grid-cols-2 gap-3">
-        {(["personal", "business"] as Wallet[]).map((x) => {
-          const on = x === w;
+      {invites.map((b) => (
+        <section key={b.id} className="mb-3 flex flex-wrap items-center gap-3 rounded-2xl border border-gold bg-gold-soft/50 p-4">
+          <span className="text-2xl">{BOOK_EMOJI[b.kind]}</span>
+          <p className="min-w-0 flex-1 text-sm text-heading">
+            <b>{b.owner_name ?? "Seseorang"}</b> mengajak Anda mengelola <b>{b.name}</b> sebagai {ROLE_LABEL[b.role]}. Keuangan Pribadi Anda tetap rahasia.
+          </p>
+          <form action={respondBook} className="flex gap-2">
+            <input type="hidden" name="book_id" value={b.id} />
+            <button name="accept" value="1" className="btn-primary py-2">Terima</button>
+            <button name="accept" value="0" className="btn-ghost py-2">Tolak</button>
+          </form>
+        </section>
+      ))}
+
+      {/* Dompet: Pribadi, usaha-usaha, keluarga */}
+      <div className="-mx-1 flex snap-x gap-3 overflow-x-auto px-1 pb-1">
+        {views.map((x) => {
+          const on = x.key === view.key;
           return (
             <Link
-              key={x}
-              href={href({ w: x })}
+              key={x.key}
+              href={href({ b: x.key })}
               scroll={false}
-              className={`relative overflow-hidden rounded-2xl p-4 transition lg:p-5 ${on ? "bg-brand text-white shadow-lift" : "card hover:border-gold"}`}
+              className={`relative min-w-[46%] shrink-0 snap-start overflow-hidden rounded-2xl p-4 transition sm:min-w-[220px] lg:p-5 ${on ? "bg-brand text-white shadow-lift" : "card hover:border-gold"}`}
             >
               {on && <div className="pointer-events-none absolute -top-10 -right-10 h-32 w-32 rounded-full bg-gold/25 blur-2xl" />}
-              <p className={`text-xs font-semibold ${on ? "text-gold" : "text-muted"}`}>
-                {x === "personal" ? "🙂" : "🏪"} Dompet {WALLET_LABEL[x]}
+              <p className={`truncate text-xs font-semibold ${on ? "text-gold" : "text-muted"}`}>
+                {x.emoji} {x.book ? x.label : `Dompet ${x.label}`}
               </p>
-              <p className={`mt-1.5 text-xl font-bold tracking-tight lg:text-2xl ${on ? "" : "text-heading"} ${balances[x] < 0 ? (on ? "text-gold" : "text-danger") : ""}`}>{rupiah(balances[x])}</p>
-              <p className={`mt-0.5 text-[11px] ${on ? "text-white/60" : "text-muted"}`}>Saldo saat ini</p>
+              <p className={`mt-1.5 text-xl font-bold tracking-tight lg:text-2xl ${on ? "" : "text-heading"} ${x.balance < 0 ? (on ? "text-gold" : "text-danger") : ""}`}>{rupiah(x.balance)}</p>
+              <p className={`mt-0.5 flex items-center gap-1 text-[11px] ${on ? "text-white/60" : "text-muted"}`}>
+                {x.book && x.book.members > 1 ? (
+                  <>
+                    <Users className="h-3 w-3" /> {x.book.members} orang{!x.book.mine ? ` · milik ${(x.book.owner_name ?? "").split(" ")[0]}` : ""}
+                  </>
+                ) : (
+                  "Saldo saat ini"
+                )}
+              </p>
             </Link>
           );
         })}
+        {books.length > 0 && (
+          <Link href="/keuangan/buku" className="flex min-w-[120px] shrink-0 flex-col items-center justify-center gap-1 rounded-2xl border border-dashed border-line p-4 text-center text-xs font-semibold text-muted hover:border-gold hover:text-heading">
+            <Plus className="h-5 w-5 text-brand" /> Usaha lain / Keluarga
+          </Link>
+        )}
       </div>
 
       {myPockets.length > 0 && (
         <section className="mt-3 rounded-2xl border border-line bg-white p-3">
           <div className="mb-2 flex items-center justify-between px-1">
-            <p className="text-xs font-semibold text-muted">Kantong {WALLET_LABEL[w]}</p>
-            <Link href="/keuangan/kantong" className="flex items-center gap-1 text-xs font-semibold text-brand">
-              <Settings2 className="h-3.5 w-3.5" /> Kelola kantong
-            </Link>
+            <p className="text-xs font-semibold text-muted">Kantong {view.label}</p>
+            <span className="flex items-center gap-3">
+              {book && (
+                <Link href={`/keuangan/buku#${book.id}`} className="flex items-center gap-1 text-xs font-semibold text-brand">
+                  <Users className="h-3.5 w-3.5" /> {book.mine ? "Anggota" : ROLE_LABEL[book.role]}
+                </Link>
+              )}
+              {canManage && (
+                <Link href={`/keuangan/kantong${book ? `#${book.id}` : ""}`} className="flex items-center gap-1 text-xs font-semibold text-brand">
+                  <Settings2 className="h-3.5 w-3.5" /> Kelola kantong
+                </Link>
+              )}
+            </span>
           </div>
           <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
             {myPockets.map((p) => (
@@ -99,10 +173,11 @@ export default async function KeuanganPage({ searchParams }: { searchParams: Pro
               </div>
             ))}
           </div>
+          {book?.role === "recorder" && book.pocket_ids && <p className="mt-1 px-1 text-[11px] text-muted">Anda pencatat di buku ini, jadi yang tampil hanya kantong yang diizinkan pemilik.</p>}
         </section>
       )}
 
-      {w === "business" && (
+      {w === "business" && canManage && (
         <div className="mt-3 grid grid-cols-2 gap-3">
           <Link href="/keuangan/hpp" className="card flex items-center gap-3 p-3.5 hover:border-gold">
             <span className="text-2xl">🧮</span>
@@ -111,7 +186,7 @@ export default async function KeuanganPage({ searchParams }: { searchParams: Pro
               <span className="text-xs text-muted">Harga jual yang untung</span>
             </span>
           </Link>
-          <Link href="/keuangan/laba-rugi" className="card flex items-center gap-3 p-3.5 hover:border-gold">
+          <Link href={`/keuangan/laba-rugi${book ? `?b=${book.id}` : ""}`} className="card flex items-center gap-3 p-3.5 hover:border-gold">
             <span className="text-2xl">📊</span>
             <span className="text-sm leading-tight">
               <b className="block text-heading">Laba rugi</b>
@@ -119,6 +194,16 @@ export default async function KeuanganPage({ searchParams }: { searchParams: Pro
             </span>
           </Link>
         </div>
+      )}
+      {view.key === "" && books.length > 0 && !books.some((b) => b.kind === "family") && (
+        <Link href="/keuangan/buku" className="mt-3 flex items-center gap-3 rounded-2xl border border-line bg-white p-3.5 hover:border-gold">
+          <span className="text-2xl">👨‍👩‍👧</span>
+          <span className="flex-1 text-sm">
+            <b className="block text-heading">Kelola keuangan keluarga bersama pasangan</b>
+            <span className="text-xs text-muted">Buku keluarga terpisah dari dompet pribadi. Pasangan bisa ikut mencatat.{!plus && " Khusus Plus."}</span>
+          </span>
+          <ChevronRight className="h-4 w-4 text-muted" />
+        </Link>
       )}
 
       {!hasAny ? (
@@ -195,7 +280,7 @@ export default async function KeuanganPage({ searchParams }: { searchParams: Pro
             </section>
 
             {/* Petunjuk gaji diri sendiri */}
-            {month === thisMonth && !paidSelf && balances.business > 0 && (
+            {month === thisMonth && !paidSelf && w === "business" && canManage && (!book || book.mine) && view.balance > 0 && (
               <section className="flex items-start gap-3 rounded-2xl border border-gold/40 bg-gold-soft p-4">
                 <span className="text-2xl">🧑‍💼</span>
                 <div className="flex-1 text-sm">
@@ -215,7 +300,7 @@ export default async function KeuanganPage({ searchParams }: { searchParams: Pro
                   <h3 className="flex items-center gap-2 font-bold text-heading">
                     <BarChart3 className="h-4 w-4 text-brand" /> 6 bulan terakhir
                   </h3>
-                  <a href={`/api/keuangan/export?m=${month}`} className="flex items-center gap-1 text-xs font-semibold text-brand">
+                  <a href={`/api/keuangan/export?m=${month}${book ? `&b=${book.id}` : view.key === "business" ? "&w=business" : ""}`} className="flex items-center gap-1 text-xs font-semibold text-brand">
                     <Download className="h-3.5 w-3.5" /> Ekspor Excel
                   </a>
                 </div>
@@ -277,12 +362,12 @@ export default async function KeuanganPage({ searchParams }: { searchParams: Pro
 
           {/* Riwayat */}
           <section className="card p-5 lg:col-span-3">
-            <h3 className="font-bold text-heading">Riwayat {WALLET_LABEL[w]}</h3>
+            <h3 className="font-bold text-heading">Riwayat {view.label}</h3>
             {mine.length === 0 ? (
               <div className="py-10 text-center text-sm text-muted">
                 Belum ada catatan di bulan ini.
                 <div className="mt-3">
-                  <CatatButton preset={{ wallet: w }} className="btn-ghost">
+                  <CatatButton preset={{ wallet: w, book: view.key }} className="btn-ghost">
                     Catat sekarang
                   </CatatButton>
                 </div>
@@ -295,17 +380,17 @@ export default async function KeuanganPage({ searchParams }: { searchParams: Pro
                     <ul className="divide-y divide-line">
                       {list.map((t) => {
                         const c = catInfo(t);
-                        const v = effect(t, w);
+                        const v = setEffect(t, set);
                         return (
                           <li key={t.id} className="group flex items-center gap-3 py-2.5">
                             <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-paper text-xl">{c.emoji}</span>
                             <span className="min-w-0 flex-1">
                               <span className="block truncate text-sm font-semibold text-heading">{c.label}</span>
                               <span className="block truncate text-xs text-muted">
-                                {[t.kind === "transfer" && t.to_pocket_id ? `${pname(t.pocket_id) ?? "?"} → ${pname(t.to_pocket_id) ?? "?"}` : pname(t.pocket_id), t.note].filter(Boolean).join(" · ")}
+                                {[t.kind === "transfer" && t.to_pocket_id ? `${pname(t.pocket_id) ?? "Pribadi"} → ${pname(t.to_pocket_id) ?? "Pribadi"}` : pname(t.pocket_id), t.note, who(t) ? `oleh ${who(t)}` : null, t.source === "scan" ? "📸" : t.source === "chat" ? "💬" : null].filter(Boolean).join(" · ")}
                               </span>
                             </span>
-                            {t.kind === "transfer" && t.wallet === t.to_wallet ? (
+                            {t.kind === "transfer" && v === 0 ? (
                               <span className="text-sm font-bold whitespace-nowrap text-muted">⇄ {rupiah(t.amount)}</span>
                             ) : (
                               <span className={`text-sm font-bold whitespace-nowrap ${v >= 0 ? "text-success" : "text-ink"}`}>
@@ -313,7 +398,7 @@ export default async function KeuanganPage({ searchParams }: { searchParams: Pro
                                 {rupiah(Math.abs(v))}
                               </span>
                             )}
-                            <DeleteTx id={t.id} action={deleteTx} />
+                            {(canManage || t.user_id === me.user?.id) && <DeleteTx id={t.id} action={deleteTx} />}
                           </li>
                         );
                       })}
@@ -327,10 +412,10 @@ export default async function KeuanganPage({ searchParams }: { searchParams: Pro
       )}
 
       <p className="mt-6 flex items-center justify-center gap-1.5 text-center text-xs text-muted">
-        <ShieldCheck className="h-3.5 w-3.5" /> Catatan keuangan hanya bisa dilihat oleh Anda.
+        <ShieldCheck className="h-3.5 w-3.5" /> {book && book.members > 1 ? `Buku ini dikelola ${book.members} orang. Keuangan Pribadi Anda tetap hanya bisa dilihat oleh Anda.` : "Catatan keuangan hanya bisa dilihat oleh Anda."}
       </p>
       <div className="h-16 lg:hidden" />
-      <QuickAdd defaultWallet={w} pockets={pockets} plus={plus} teaser={assistantConfig(await getSettings()).teaser} dreams={dreams.filter((d) => d.status === "active").map((d) => ({ id: d.id, title: d.title }))} />
+      <QuickAdd defaultWallet={w} defaultBook={books.length ? view.key : undefined} pockets={pockets} books={allBooks} plus={plus} teaser={assistantConfig(await getSettings()).teaser} dreams={dreams.filter((d) => d.status === "active").map((d) => ({ id: d.id, title: d.title }))} />
     </>
   );
 }

@@ -1,7 +1,15 @@
 export type Wallet = "personal" | "business";
 export type TxKind = "in" | "out" | "transfer";
-export type Tx = { id: string; wallet: Wallet; kind: TxKind; to_wallet: Wallet | null; amount: number; category: string; note: string | null; tx_date: string; pocket_id?: string | null; to_pocket_id?: string | null };
+export type Tx = { book_id?: string | null; user_id?: string; source?: string; id: string; wallet: Wallet; kind: TxKind; to_wallet: Wallet | null; amount: number; category: string; note: string | null; tx_date: string; pocket_id?: string | null; to_pocket_id?: string | null };
 export type Cat = { key: string; label: string; emoji: string };
+
+export type BookKind = "business" | "family";
+export type BookRole = "owner" | "manager" | "recorder";
+/** Buku keuangan bersama (SQL 029). Pribadi bukan buku: selalu rahasia. */
+export type Book = { id: string; kind: BookKind; name: string; owner_id: string; owner_name: string | null; role: BookRole; status: "invited" | "active"; pocket_ids: string[] | null; owner_plus: boolean; workspace_id: string | null; members: number; mine: boolean };
+export const BOOK_EMOJI: Record<BookKind, string> = { business: "🏪", family: "👨‍👩‍👧" };
+export const ROLE_LABEL: Record<BookRole, string> = { owner: "Pemilik", manager: "Pengelola", recorder: "Pencatat" };
+export const bookWallet = (k: BookKind): Wallet => (k === "business" ? "business" : "personal");
 
 export const WALLET_LABEL: Record<Wallet, string> = { personal: "Pribadi", business: "Usaha" };
 
@@ -17,6 +25,14 @@ export const CATEGORIES: Record<Wallet, { out: Cat[]; in: Cat[] }> = {
       { key: "pendidikan", label: "Pendidikan", emoji: "🎓" },
       { key: "keluarga", label: "Keluarga", emoji: "👨‍👩‍👧" },
       { key: "hiburan", label: "Hiburan", emoji: "🎉" },
+      { key: "pakaian", label: "Pakaian & aksesoris", emoji: "👕" },
+      { key: "perawatan", label: "Perawatan diri", emoji: "💇" },
+      { key: "rumah_tangga", label: "Perlengkapan rumah", emoji: "🧹" },
+      { key: "anak", label: "Kebutuhan anak", emoji: "🧸" },
+      { key: "langganan", label: "Langganan & aplikasi", emoji: "📺" },
+      { key: "kendaraan", label: "Servis & pajak kendaraan", emoji: "🛵" },
+      { key: "asuransi", label: "Asuransi", emoji: "🛡️" },
+      { key: "hadiah", label: "Hadiah & kondangan", emoji: "🎁" },
       { key: "sedekah", label: "Sedekah & zakat", emoji: "🤲" },
       { key: "cicilan", label: "Cicilan & utang", emoji: "💳" },
       { key: "tabungan", label: "Tabungan & mimpi", emoji: "🐷" },
@@ -36,10 +52,17 @@ export const CATEGORIES: Record<Wallet, { out: Cat[]; in: Cat[] }> = {
       { key: "bahan", label: "Bahan baku & stok", emoji: "🧺" },
       { key: "gaji_karyawan", label: "Gaji karyawan", emoji: "👷" },
       { key: "sewa", label: "Sewa tempat", emoji: "🏪" },
-      { key: "utilitas", label: "Listrik & air", emoji: "⚡" },
+      { key: "utilitas", label: "Listrik, air & internet", emoji: "⚡" },
+      { key: "kemasan", label: "Kemasan", emoji: "🥡" },
       { key: "marketing", label: "Marketing & iklan", emoji: "📣" },
       { key: "ongkir", label: "Ongkir & transport", emoji: "🚚" },
       { key: "peralatan", label: "Peralatan", emoji: "🔧" },
+      { key: "perbaikan", label: "Perawatan & perbaikan", emoji: "🛠️" },
+      { key: "atk", label: "ATK & perlengkapan kantor", emoji: "✏️" },
+      { key: "konsumsi", label: "Konsumsi & jamuan", emoji: "☕" },
+      { key: "software", label: "Aplikasi & langganan", emoji: "💻" },
+      { key: "komisi", label: "Komisi & fee", emoji: "🎯" },
+      { key: "biaya_bank", label: "Biaya bank & admin", emoji: "🏧" },
       { key: "operasional", label: "Operasional lain", emoji: "🗂️" },
       { key: "pajak", label: "Pajak & izin", emoji: "🧾" },
       { key: "cicilan", label: "Cicilan usaha", emoji: "💳" },
@@ -76,4 +99,33 @@ export function effect(t: Tx, w: Wallet): number {
   if (t.kind === "out") return t.wallet === w ? -t.amount : 0;
   if (t.wallet === t.to_wallet) return 0; // pindah antar kantong dalam dompet yang sama
   return t.wallet === w ? -t.amount : t.to_wallet === w ? t.amount : 0;
+}
+
+/** Pengaruh transaksi terhadap sekumpulan kantong (satu buku / pribadi). Pindah di dalam kumpulan = 0. */
+export function setEffect(t: Tx, ids: Set<string>): number {
+  const from = !!t.pocket_id && ids.has(t.pocket_id);
+  if (t.kind === "in") return from ? t.amount : 0;
+  if (t.kind === "out") return from ? -t.amount : 0;
+  const to = !!t.to_pocket_id && ids.has(t.to_pocket_id);
+  return from === to ? 0 : from ? -t.amount : t.amount;
+}
+
+/** Ringkasan bulan untuk sekumpulan kantong. */
+export function setSummary(txs: Tx[], ids: Set<string>) {
+  let income = 0, expense = 0, transferIn = 0, transferOut = 0;
+  const byCat = new Map<string, number>();
+  for (const t of txs) {
+    const inSet = !!t.pocket_id && ids.has(t.pocket_id);
+    if (t.kind === "in" && inSet && t.category !== "saldo_awal") income += t.amount;
+    else if (t.kind === "out" && inSet) {
+      expense += t.amount;
+      byCat.set(t.category, (byCat.get(t.category) ?? 0) + t.amount);
+    } else if (t.kind === "transfer") {
+      const v = setEffect(t, ids);
+      if (v < 0) transferOut -= v;
+      if (v > 0) transferIn += v;
+    }
+  }
+  const top = [...byCat.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5);
+  return { income, expense, transferIn, transferOut, top };
 }
