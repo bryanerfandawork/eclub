@@ -159,15 +159,22 @@ export default async function WorkspacePage({
                     </b>
                     <span className="text-xs text-muted">
                       {p.username ? `@${p.username} · ` : ""}
-                      {p.status === "invited" ? <span className="text-gold">Menunggu diterima · sudah bisa diberi tugas</span> : ROLE_LABEL[p.role]}
+                      {p.status === "invited" ? (
+                        <span className="text-gold">Menunggu diterima · sudah bisa diberi tugas</span>
+                      ) : p.role === "admin" && p.plus === false ? (
+                        <span className="text-gold">Editor · Plus habis, sementara seperti anggota</span>
+                      ) : (
+                        ROLE_LABEL[p.role]
+                      )}
                     </span>
                   </span>
-                  {owner && p.role !== "owner" && p.status === "active" && (
+                  {owner && p.role === "member" && p.status === "active" && p.plus === false && <span className="text-[11px] text-muted">Bisa jadi Editor bila akunnya Plus</span>}
+                  {owner && p.role !== "owner" && p.status === "active" && (p.role === "admin" || p.plus !== false) && (
                     <form action={setMemberRole}>
                       <input type="hidden" name="ws" value={id} />
                       <input type="hidden" name="user" value={p.user_id} />
                       <input type="hidden" name="role" value={p.role === "admin" ? "member" : "admin"} />
-                      <PendingButton className="rounded-lg border border-line px-2.5 py-1.5 text-xs font-semibold text-heading hover:border-gold">{p.role === "admin" ? "Jadikan anggota" : "Jadikan admin"}</PendingButton>
+                      <PendingButton className="rounded-lg border border-line px-2.5 py-1.5 text-xs font-semibold text-heading hover:border-gold">{p.role === "admin" ? "Jadikan anggota" : "Jadikan Editor"}</PendingButton>
                     </form>
                   )}
                   {p.role !== "owner" && p.user_id !== me && (owner || (role === "admin" && p.role === "member")) && (
@@ -183,7 +190,7 @@ export default async function WorkspacePage({
               ))}
             </ul>
             <p className="mt-3 text-xs text-muted">
-              <b>Pemilik</b> mengatur semuanya. <b>Admin</b> boleh membuat & membagi tugas serta mengundang. <b>Anggota</b> mengerjakan tugas dan berkomentar.
+              <b>Pemilik</b> mengatur semuanya. <b>Editor</b> (harus akun Plus, diangkat pemilik) boleh mengelola tugas, tahapan, target, dan mengundang. <b>Anggota</b> mengerjakan tugas dan berkomentar.
             </p>
             {manage && others.length > 0 && (
               <Link href={`/tim/${id}?tab=tugas`} className="btn-primary mt-4">

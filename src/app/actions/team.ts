@@ -191,7 +191,7 @@ export async function addTask(_: FormState, f: FormData): Promise<FormState> {
     .select("id")
     .single();
   if (error || !data) {
-    if (error?.code === "42501") return { error: "Tidak bisa menambah tugas. Hanya pemilik/admin tim, dan paket Plus pemilik harus aktif." };
+    if (error?.code === "42501") return { error: "Tidak bisa menambah tugas. Hanya pemilik/editor tim, dan paket Plus pemilik harus aktif." };
     return { error: dbError(error, "Gagal menyimpan tugas.") };
   }
   if (isId(assignee) && assignee !== uid) {
@@ -459,7 +459,7 @@ export async function addGoal(_: FormState, f: FormData): Promise<FormState> {
   if (!title) return { error: "Tulis targetnya, mis. Omzet bulan Maret." };
   const { supabase } = await me();
   const { error } = await supabase.from("ws_goals").insert({ workspace_id: ws, title, target_value: target, unit: str(f, "unit", 20) || null, due_date: isDate(due) ? due : null });
-  if (error) return { error: error.code === "42501" ? "Hanya pemilik/admin tim yang bisa menambah target." : dbError(error, "Gagal menyimpan target.") };
+  if (error) return { error: error.code === "42501" ? "Hanya pemilik/editor tim yang bisa menambah target." : dbError(error, "Gagal menyimpan target.") };
   refresh(ws);
   return { message: "Target ditambahkan ✓" };
 }
@@ -490,7 +490,7 @@ export async function addItem(_: FormState, f: FormData): Promise<FormState> {
   const { supabase } = await me();
   const { count } = await supabase.from("ws_task_items").select("id", { count: "exact", head: true }).eq("task_id", task);
   const { error } = await supabase.from("ws_task_items").insert(titles.map((title, i) => ({ task_id: task, workspace_id: ws, title, sort: (count ?? 0) + i })));
-  if (error) return { error: error.code === "42P01" ? "Checklist aktif setelah SQL 026 dijalankan." : error.code === "42501" ? "Hanya penanggung jawab atau pemilik/admin yang bisa menambah checklist." : dbError(error, "Gagal menyimpan.") };
+  if (error) return { error: error.code === "42P01" ? "Checklist aktif setelah SQL 026 dijalankan." : error.code === "42501" ? "Hanya penanggung jawab atau pemilik/editor yang bisa menambah checklist." : dbError(error, "Gagal menyimpan.") };
   revalidatePath(`/tim/${ws}/tugas/${task}`);
   revalidatePath(`/tim/${ws}`);
   return { message: "ok" };
