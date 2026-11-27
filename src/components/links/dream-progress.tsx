@@ -1,16 +1,23 @@
 import Link from "next/link";
-import { Gem } from "lucide-react";
+import { Gem, Plus } from "lucide-react";
 import { getDreams } from "@/lib/data";
 import { dreamProgress, rupiah } from "@/lib/format";
 
 /** Ringkasan kemajuan tiap mimpi aktif: menghubungkan Evaluasi & Progres kembali ke Mimpi. */
-export async function DreamProgress({ title = "Kemajuan mimpi" }: { title?: string }) {
+export async function DreamProgress({ title = "Kemajuan mimpi", links = false }: { title?: string; /** Tampilkan tautan "Semua mimpi" & "Mimpi baru". */ links?: boolean }) {
   const dreams = (await getDreams()).filter((d) => d.status === "active");
   return (
     <div className="card p-5">
-      <p className="flex items-center gap-2 font-bold text-heading">
-        <Gem className="h-4 w-4 text-gold" /> {title}
-      </p>
+      <div className="flex items-center justify-between gap-2">
+        <p className="flex items-center gap-2 font-bold text-heading">
+          <Gem className="h-4 w-4 text-gold" /> {title}
+        </p>
+        {links && dreams.length > 0 && (
+          <Link href="/goals" className="text-xs font-semibold text-brand">
+            Semua mimpi ›
+          </Link>
+        )}
+      </div>
       {dreams.length === 0 ? (
         <p className="mt-2 text-sm text-muted">
           Belum ada mimpi aktif.{" "}
@@ -44,6 +51,11 @@ export async function DreamProgress({ title = "Kemajuan mimpi" }: { title?: stri
             );
           })}
         </ul>
+      )}
+      {links && dreams.length > 0 && (
+        <Link href="/goals/baru" className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-muted hover:text-heading">
+          <Plus className="h-3.5 w-3.5" /> Mimpi baru
+        </Link>
       )}
     </div>
   );

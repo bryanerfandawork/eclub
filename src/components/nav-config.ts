@@ -23,7 +23,6 @@ import {
   Newspaper,
   Route,
   Sprout,
-  Target,
   User,
   Users,
   Wallet,
@@ -34,15 +33,18 @@ export type NavItem = {
   label: string;
   href: string;
   icon: LucideIcon;
+  /** Tombol utama di tengah menu bawah HP (dibuat menonjol). */
+  primary?: boolean;
   soon?: boolean;
   /** Hanya tampil bila member punya / tergabung di ruang kerja tim (atau Plus). */
   team?: boolean;
 };
 
+/** Menu bawah HP. Mimpi (Goals) ada di Home & Hari ini, dan tetap di Menu / sidebar. */
 export const mobileNav: NavItem[] = [
   { label: "Home", href: "/dashboard", icon: Home },
-  { label: "Hari ini", href: "/today", icon: CalendarCheck2 },
-  { label: "Goals", href: "/goals", icon: Target },
+  { label: "Tim", href: "/tim", icon: FolderKanban },
+  { label: "Hari ini", href: "/today", icon: CalendarCheck2, primary: true },
   { label: "Learn", href: "/learn", icon: BookOpen },
   { label: "Profile", href: "/profile", icon: User },
 ];
@@ -123,8 +125,8 @@ export const sidebarNav: { section: string; items: NavItem[] }[] = [
 /** Tampilan sederhana untuk member yang bergabung lewat undangan tim (belum menyusun mimpi). */
 export const simpleMobileNav: NavItem[] = [
   { label: "Home", href: "/dashboard", icon: Home },
-  { label: "Hari ini", href: "/today", icon: CalendarCheck2 },
   { label: "Tim", href: "/tim", icon: FolderKanban },
+  { label: "Hari ini", href: "/today", icon: CalendarCheck2, primary: true },
   { label: "5 Langkah", href: "/journey", icon: Route },
   { label: "Profile", href: "/profile", icon: User },
 ];
