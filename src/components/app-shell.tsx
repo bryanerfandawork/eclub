@@ -300,7 +300,7 @@ export function AppShell({
       {(ai || admin) && (
         <button
           onClick={() => setAiOpen(true)}
-          className="print:hidden fixed right-5 bottom-[92px] z-30 grid h-14 w-14 place-items-center rounded-full bg-gold text-heading shadow-lift transition hover:scale-105 active:scale-95 lg:right-8 lg:bottom-8"
+          className="print:hidden fixed right-5 bottom-[112px] z-30 grid h-14 w-14 place-items-center rounded-full bg-gold text-heading shadow-lift transition hover:scale-105 active:scale-95 lg:right-8 lg:bottom-8"
           aria-label="AI Companion"
         >
           <Sparkles className="h-6 w-6" strokeWidth={2} />
@@ -310,52 +310,52 @@ export function AppShell({
 
       <InstallPrompt />
 
-      {/* Bottom nav mobile */}
-      <nav className="print:hidden pb-safe fixed inset-x-0 bottom-0 z-40 border-t border-line bg-white/95 backdrop-blur-xl lg:hidden">
-        <ul className="mx-auto grid max-w-md grid-cols-5 px-2 pt-1.5">
-          {bottom.map((item) => {
-            const active = isActive(pathname, item.href);
-            const Icon = item.icon;
-            if (item.primary) {
-              // Tombol tengah: dibuka setiap hari, jadi dibuat lebih besar, naik, dan berwarna maroon.
-              return (
-                <li key={item.href} className="relative">
-                  <Link href={item.href} className="flex flex-col items-center gap-1 pb-1.5" aria-current={active ? "page" : undefined}>
-                    <span
-                      className={`-mt-6 grid h-14 w-14 place-items-center rounded-full border-4 border-white bg-brand text-white shadow-lift transition active:scale-95 ${active ? "ring-2 ring-gold" : ""}`}
+      {/* Menu bawah HP: bar melayang membulat, tombol "Hari ini" duduk di lekukan tengah. */}
+      <nav className="print:hidden pb-safe pointer-events-none fixed inset-x-0 bottom-0 z-40 bg-gradient-to-t from-paper via-paper/85 to-transparent px-4 pt-8 lg:hidden">
+        <div className="pointer-events-auto relative mx-auto mb-1 h-16 max-w-md drop-shadow-[0_10px_24px_rgba(42,29,28,0.28)]">
+          {/* Latar bar: kiri + lekukan + kanan (satu warna, tanpa sambungan terlihat) */}
+          <div className="absolute inset-0 flex" aria-hidden>
+            <div className="flex-1 rounded-l-[26px] bg-brand-deep" />
+            <svg viewBox="0 0 104 64" className="-mx-px h-16 w-[104px] shrink-0 fill-brand-deep" preserveAspectRatio="none">
+              <path d="M0 0H8Q18 0 20.06 6A32 32 0 1 0 83.94 6Q86 0 96 0H104V64H0Z" />
+            </svg>
+            <div className="flex-1 rounded-r-[26px] bg-brand-deep" />
+          </div>
+          <ul className="relative grid h-full grid-cols-[1fr_1fr_104px_1fr_1fr]">
+            {bottom.map((item) => {
+              const active = isActive(pathname, item.href);
+              const Icon = item.icon;
+              if (item.primary) {
+                // Tombol tengah: dibuka setiap hari, jadi duduk menonjol di lekukan bar.
+                return (
+                  <li key={item.href} className="relative">
+                    <Link
+                      href={item.href}
+                      aria-label={item.label}
+                      aria-current={active ? "page" : undefined}
+                      className={`absolute -top-[18px] left-1/2 grid h-[52px] w-[52px] -translate-x-1/2 place-items-center rounded-full bg-gradient-to-b from-[#d8b673] to-gold text-brand-deep shadow-[0_6px_16px_rgba(198,161,91,0.45)] transition active:scale-95 ${active ? "ring-2 ring-white/70 ring-offset-0" : ""}`}
                     >
-                      <Icon className={`h-6 w-6 ${active ? "text-gold" : ""}`} strokeWidth={2.2} />
-                    </span>
-                    <span className="text-[11px] font-bold text-brand">{item.label}</span>
+                      <Icon className="h-6 w-6" strokeWidth={2.2} />
+                    </Link>
+                    <span className={`absolute inset-x-0 bottom-2 text-center text-[10px] font-semibold tracking-wide ${active ? "text-gold" : "text-white/60"}`}>{item.label}</span>
+                  </li>
+                );
+              }
+              return (
+                <li key={item.href}>
+                  <Link
+                    href={item.href}
+                    aria-current={active ? "page" : undefined}
+                    className="flex h-full flex-col items-center justify-center gap-1 transition active:scale-95"
+                  >
+                    <Icon className={`h-[21px] w-[21px] ${active ? "text-gold" : "text-white/60"}`} strokeWidth={active ? 2.2 : 1.7} />
+                    <span className={`text-[10px] font-semibold tracking-wide ${active ? "text-white" : "text-white/60"}`}>{item.label}</span>
                   </Link>
                 </li>
               );
-            }
-            return (
-              <li key={item.href}>
-                <Link
-                  href={item.href}
-                  className="flex flex-col items-center gap-1 py-1.5"
-                  aria-current={active ? "page" : undefined}
-                >
-                  <span
-                    className={`relative grid h-8 w-14 place-items-center rounded-full transition ${active ? "bg-brand text-gold" : "text-muted"}`}
-                  >
-                    <Icon
-                      className="h-[20px] w-[20px]"
-                      strokeWidth={active ? 2.2 : 1.8}
-                    />
-                  </span>
-                  <span
-                    className={`text-[11px] font-semibold ${active ? "text-heading" : "text-muted"}`}
-                  >
-                    {item.label}
-                  </span>
-                </Link>
-              </li>
-            );
-          })}
-        </ul>
+            })}
+          </ul>
+        </div>
       </nav>
     </div>
   );

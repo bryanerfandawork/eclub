@@ -69,7 +69,7 @@ export function InstallPrompt() {
   };
 
   return (
-    <div className="fixed inset-x-3 bottom-[88px] z-50 animate-rise lg:hidden print:hidden">
+    <div className="fixed inset-x-3 bottom-[108px] z-50 animate-rise lg:hidden print:hidden">
       <div className="rounded-2xl border border-line bg-white p-4 shadow-lift">
         <div className="flex items-start gap-3">
           <LogoMark className="h-11 w-11 shrink-0" />

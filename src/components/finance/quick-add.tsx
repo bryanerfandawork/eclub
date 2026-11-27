@@ -61,7 +61,7 @@ export function QuickAdd({ defaultWallet, pockets = [], plus = false, fab = true
       {fab && <button
         type="button"
         onClick={() => openQuickAdd({})}
-        className="fixed bottom-24 left-1/2 z-30 flex -translate-x-1/2 items-center gap-2 rounded-full bg-brand px-6 py-3.5 font-semibold text-white shadow-lift transition hover:bg-brand-soft active:scale-95 lg:right-28 lg:bottom-8 lg:left-auto lg:translate-x-0 print:hidden"
+        className="fixed bottom-[112px] left-1/2 z-30 flex -translate-x-1/2 items-center gap-2 rounded-full bg-brand px-6 py-3.5 font-semibold text-white shadow-lift transition hover:bg-brand-soft active:scale-95 lg:right-28 lg:bottom-8 lg:left-auto lg:translate-x-0 print:hidden"
       >
         <Plus className="h-5 w-5 text-gold" strokeWidth={2.5} /> Catat
       </button>}
