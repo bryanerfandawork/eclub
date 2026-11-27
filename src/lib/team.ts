@@ -17,7 +17,7 @@ export type Workspace = {
   created_at: string;
 };
 export type MyWorkspace = Workspace & { role: WsRole; open: number; mine: number; late: number };
-export type Person = { user_id: string; full_name: string | null; username: string | null; role: WsRole; status: "invited" | "active"; joined_at: string | null };
+export type Person = { user_id: string; full_name: string | null; username: string | null; role: WsRole; status: "invited" | "active"; joined_at: string | null; /** Plus aktif (SQL 027). */ plus?: boolean };
 export type TeamTask = {
   id: string;
   workspace_id: string;
@@ -62,7 +62,7 @@ export type TaskComment = { id: string; task_id: string; user_id: string; body: 
 export type Invite = { workspace_id: string; name: string; kind: string; inviter: string; created_at: string };
 export type Notice = { id: string; title: string; body: string | null; url: string | null; read_at: string | null; created_at: string };
 
-export const ROLE_LABEL: Record<WsRole, string> = { owner: "Pemilik", admin: "Admin", member: "Anggota" };
+export const ROLE_LABEL: Record<WsRole, string> = { owner: "Pemilik", admin: "Editor", member: "Anggota" };
 export const KIND_LABEL = { company: "Perusahaan", project: "Project" } as const;
 export const canManage = (r?: WsRole | null) => r === "owner" || r === "admin";
 
@@ -170,7 +170,8 @@ export async function getWorkspace(id: string) {
   return {
     ws: ws as Workspace & { dream_id?: string | null },
     people: ppl,
-    role: me.role,
+    // Editor yang Plus-nya habis: haknya kembali seperti anggota (database juga begitu, SQL 027).
+    role: (me.role === "admin" && me.plus === false ? "member" : me.role) as WsRole,
     me: user.id,
     tasks: (tasks ?? []) as TeamTask[],
     comments,
