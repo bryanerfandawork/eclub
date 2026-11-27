@@ -270,7 +270,11 @@ export async function getNotices(limit = 20): Promise<Notice[]> {
   return error ? [] : ((data ?? []) as Notice[]);
 }
 
-export const personName = (p?: Pick<Person, "full_name" | "username"> | null) => p?.full_name || (p?.username ? `@${p.username}` : "Anggota");
+/** Nama tampil: nama lengkap (bila berisi huruf/angka), lalu @username, lalu "Anggota". */
+export const personName = (p?: Pick<Person, "full_name" | "username"> | null) => {
+  const n = p?.full_name?.trim();
+  return n && /[\p{L}\p{N}]/u.test(n) ? n : p?.username ? `@${p.username}` : "Anggota";
+};
 
 export type Alert = TeamTask & { ws_name: string; who: string };
 

@@ -154,14 +154,18 @@ export default async function WorkspacePage({
               {invited.length ? ` + ${invited.length} menunggu` : ""})
             </h2>
             <ul className="mt-2 divide-y divide-line">
-              {[...active, ...invited].map((p) => (
-                <li key={p.user_id} className="flex flex-wrap items-center gap-3 py-3">
-                  <span className={`grid h-9 w-9 shrink-0 place-items-center rounded-full text-xs font-bold ${p.status === "invited" ? "border border-dashed border-line text-muted" : "bg-gold-soft text-heading"}`}>{(p.full_name || p.username || "?").slice(0, 2).toUpperCase()}</span>
-                  <span className="min-w-0 flex-1 text-sm">
-                    <b className="block truncate text-heading">
+              {[...active, ...invited].map((p) => {
+                const canRole = owner && p.role !== "owner" && p.status === "active" && (p.role === "admin" || p.plus !== false);
+                const canRemove = p.role !== "owner" && p.user_id !== me && (owner || (role === "admin" && p.role === "member"));
+                const initials = (personName(p).replace(/[^\p{L}\p{N}]/gu, "") || "?").slice(0, 2).toUpperCase();
+                return (
+                <li key={p.user_id} className="flex items-start gap-3 py-3">
+                  <span className={`grid h-9 w-9 shrink-0 place-items-center rounded-full text-xs font-bold ${p.status === "invited" ? "border border-dashed border-line text-muted" : "bg-gold-soft text-heading"}`}>{initials}</span>
+                  <div className="min-w-0 flex-1 text-sm">
+                    <p className="font-bold break-words text-heading">
                       {personName(p)} {p.user_id === me && <span className="font-normal text-muted">(saya)</span>}
-                    </b>
-                    <span className="text-xs text-muted">
+                    </p>
+                    <p className="text-xs break-words text-muted">
                       {p.username ? `@${p.username} · ` : ""}
                       {p.status === "invited" ? (
                         <span className="text-gold">Menunggu diterima · sudah bisa diberi tugas</span>
@@ -170,28 +174,33 @@ export default async function WorkspacePage({
                       ) : (
                         ROLE_LABEL[p.role]
                       )}
-                    </span>
-                  </span>
-                  {owner && p.role === "member" && p.status === "active" && p.plus === false && <span className="text-[11px] text-muted">Bisa jadi Editor bila akunnya Plus</span>}
-                  {owner && p.role !== "owner" && p.status === "active" && (p.role === "admin" || p.plus !== false) && (
-                    <form action={setMemberRole}>
-                      <input type="hidden" name="ws" value={id} />
-                      <input type="hidden" name="user" value={p.user_id} />
-                      <input type="hidden" name="role" value={p.role === "admin" ? "member" : "admin"} />
-                      <PendingButton className="rounded-lg border border-line px-2.5 py-1.5 text-xs font-semibold text-heading hover:border-gold">{p.role === "admin" ? "Jadikan anggota" : "Jadikan Editor"}</PendingButton>
-                    </form>
-                  )}
-                  {p.role !== "owner" && p.user_id !== me && (owner || (role === "admin" && p.role === "member")) && (
-                    <form action={removeMember}>
-                      <input type="hidden" name="ws" value={id} />
-                      <input type="hidden" name="user" value={p.user_id} />
-                      <PendingButton className="flex items-center gap-1 rounded-lg border border-line px-2.5 py-1.5 text-xs font-semibold text-muted hover:border-danger hover:text-danger" title={p.status === "invited" ? "Batalkan undangan" : "Keluarkan dari tim"}>
-                        <UserMinus className="h-3.5 w-3.5" /> {p.status === "invited" ? "Batalkan" : "Keluarkan"}
-                      </PendingButton>
-                    </form>
-                  )}
+                    </p>
+                    {owner && p.role === "member" && p.status === "active" && p.plus === false && <p className="mt-0.5 text-[11px] text-muted">Bisa dijadikan Editor bila akunnya Plus.</p>}
+                    {(canRole || canRemove) && (
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        {canRole && (
+                          <form action={setMemberRole}>
+                            <input type="hidden" name="ws" value={id} />
+                            <input type="hidden" name="user" value={p.user_id} />
+                            <input type="hidden" name="role" value={p.role === "admin" ? "member" : "admin"} />
+                            <PendingButton className="rounded-lg border border-line px-2.5 py-1.5 text-xs font-semibold text-heading hover:border-gold">{p.role === "admin" ? "Jadikan anggota" : "Jadikan Editor"}</PendingButton>
+                          </form>
+                        )}
+                        {canRemove && (
+                          <form action={removeMember}>
+                            <input type="hidden" name="ws" value={id} />
+                            <input type="hidden" name="user" value={p.user_id} />
+                            <PendingButton className="flex items-center gap-1 rounded-lg border border-line px-2.5 py-1.5 text-xs font-semibold text-muted hover:border-danger hover:text-danger" title={p.status === "invited" ? "Batalkan undangan" : "Keluarkan dari tim"}>
+                              <UserMinus className="h-3.5 w-3.5" /> {p.status === "invited" ? "Batalkan undangan" : "Keluarkan"}
+                            </PendingButton>
+                          </form>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 </li>
-              ))}
+                );
+              })}
             </ul>
             <p className="mt-3 text-xs text-muted">
               <b>Pemilik</b> mengatur semuanya. <b>Editor</b> (harus akun Plus, diangkat pemilik) boleh mengelola tugas, tahapan, target, dan mengundang. <b>Anggota</b> mengerjakan tugas dan berkomentar.
