@@ -84,6 +84,7 @@ const FEATURE_GROUPS: { step: string; items: Feature[] }[] = [
     items: [
       { icon: Crosshair, title: "Target Jualan Harian", desc: "Dari mimpi ke angka harian: berapa yang disisihkan dan berapa produk yang harus terjual hari ini.", plan: "Gratis" },
       { icon: CalendarCheck2, title: "Asisten & Laporan Harian", desc: "Rencana aksi, pekerjaan rutin, dan kebiasaan yang terhubung ke mimpi. Diingatkan pagi dan malam.", plan: "Gratis + Plus" },
+      { icon: Heart, title: "Kebiasaan & Jurnal Syukur", desc: "Pantau kebiasaan baik setiap hari dan tutup hari dengan rasa syukur supaya semangat tetap menyala.", plan: "Gratis + Plus" },
       { icon: FolderKanban, title: "Ruang Kerja Tim", desc: "Project dan perusahaan: tahapan, tugas, checklist, papan, tugas berulang, dan diskusi tim.", plan: "Plus" },
     ],
   },
@@ -91,6 +92,7 @@ const FEATURE_GROUPS: { step: string; items: Feature[] }[] = [
     step: "Evaluasi & tumbuh",
     items: [
       { icon: BarChart3, title: "Rapor Mingguan & Progres", desc: "Setiap Minggu: berapa persen rencana selesai dan mimpi mana yang paling maju.", plan: "Gratis" },
+      { icon: Wallet, title: "Laba Rugi & HPP", desc: "Hitung HPP per produk, simpan daftar produk, dan lihat laba rugi otomatis yang bisa dicetak.", plan: "Gratis + Plus" },
       { icon: BookOpen, title: "Kelas Berjenjang & Sertifikat", desc: "Kelas mengikuti tahapan SEF. Tuntaskan satu tahap, dapat sertifikat yang bisa dicek keasliannya.", plan: "Gratis + Plus" },
       { icon: Users, title: "Mentoring, Event & Komunitas", desc: "Sesi 1-on-1, workshop di kota Anda, dan ruang berbagi dengan sesama member.", plan: "Gratis + Plus" },
       { icon: HandCoins, title: "Affiliate & Kupon", desc: "Member Plus punya link dan kupon sendiri. Teman hemat, Anda dapat bagi hasil.", plan: "Plus" },
@@ -452,6 +454,9 @@ export default async function Home() {
                 "Project → Tahapan → Tugas → Checklist; Perusahaan → Area kerja",
                 "Setiap tugas punya PIC dan tenggat, yang telat ditandai merah",
                 "Papan Belum mulai / Dikerjakan / Selesai, tugas berulang, dan diskusi tim",
+                "Kalender minggu, bulan & tahun; satu tugas bisa dikerjakan beberapa orang",
+                "Bukti hasil saat tugas selesai, sebut @nama di komentar, dan CC checklist ke rekan",
+                "Peran Pemilik, Editor, dan Anggota",
                 "Progres per orang, target tim, dan hasil tugas bisa jadi tabungan mimpi",
                 "Anggota cukup akun gratis, hanya pembuat ruang kerja yang perlu Plus",
                 "Privasi terjaga: mimpi, keuangan, dan kebiasaan anggota tetap pribadi",
@@ -922,6 +927,8 @@ export default async function Home() {
             <Link href="/cek-sertifikat" className="hover:text-brand">Cek sertifikat</Link>
             <Link href="/kebijakan-privasi" className="hover:text-brand">Privasi</Link>
             <Link href="/syarat-ketentuan" className="hover:text-brand">Syarat & Ketentuan</Link>
+            <Link href="/kebijakan-pengembalian" className="hover:text-brand">Pengembalian Dana</Link>
+            <Link href="/kontak" className="hover:text-brand">Kontak</Link>
             <Link href="/masuk" className="hover:text-brand">Masuk</Link>
           </div>
           <p>© {new Date().getFullYear()} EClub Indonesia</p>

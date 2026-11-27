@@ -32,7 +32,8 @@ export default function TermsPage() {
             [
               "EClub Plus berlaku sesuai periode yang dibeli (bulanan atau tahunan) sejak pembayaran dikonfirmasi.",
               "Harga dapat berubah sewaktu-waktu. Perubahan tidak memengaruhi periode yang sudah dibayar.",
-              "Pembayaran yang sudah dikonfirmasi tidak dapat dikembalikan, kecuali terjadi kesalahan dari pihak kami atau layanan tidak dapat diberikan.",
+              "Pengembalian dana mengikuti Kebijakan Pengembalian Dana di eclub.co.id/kebijakan-pengembalian.",
+              "Langganan tidak diperpanjang otomatis. Anda memilih sendiri kapan memperpanjang.",
               "Kelas, laporan, mentoring, dan event yang dibeli satuan berlaku sesuai keterangan pada halaman pembeliannya.",
             ],
           ],
