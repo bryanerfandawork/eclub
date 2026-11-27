@@ -42,11 +42,11 @@ export default async function AffiliatePage() {
 
   const shareOptions: ShareOption[] = aff
     ? [
-        { group: "Umum", label: "Beranda EClub (ajak coba gratis)", url: `${origin}/?ref=${aff.code}`, text: `Aku pakai EClub buat menata mimpi, keuangan, dan belajar bisnis step by step. Coba gratis ya. Pakai kode *${aff.code}* biar hemat ${disc}% kalau upgrade:` },
-        { group: "Umum", label: "Semua kelas", url: `${origin}/kelas?ref=${aff.code}`, text: `Kelas bisnis berjenjang dari EClub, bisa dilihat dulu isinya. Kode hemat ${disc}%: *${aff.code}*` },
-        { group: "Umum", label: "Event & webinar", url: `${origin}/acara?ref=${aff.code}`, text: `Ada event EClub nih, yuk ikut bareng. Kode hemat ${disc}%: *${aff.code}*` },
-        { group: "Umum", label: "Mentoring 1-on-1", url: `${origin}/mentoring-1on1?ref=${aff.code}`, text: `Lagi buntu soal usaha? Coba mentoring 1-on-1 di EClub. Kode hemat ${disc}%: *${aff.code}*` },
-        ...courses.map((c) => ({ group: "Kelas", label: c.title, url: `${origin}/kelas/${c.slug}?ref=${aff.code}`, text: `Kelas ini bagus banget: *${c.title}*. Lihat dulu isinya, pakai kode *${aff.code}* biar hemat ${disc}%:` })),
+        { group: "Umum", label: "Beranda EClub (ajak coba gratis)", url: `${origin}/?ref=${aff.code}`, text: `Aku pakai EClub buat menata mimpi, keuangan, dan belajar bisnis step by step. Coba gratis ya. Pakai kode *${aff.code}* biar hemat hingga ${disc}% kalau upgrade:` },
+        { group: "Umum", label: "Semua kelas", url: `${origin}/kelas?ref=${aff.code}`, text: `Kelas bisnis berjenjang dari EClub, bisa dilihat dulu isinya. Kode hemat hingga ${disc}%: *${aff.code}*` },
+        { group: "Umum", label: "Event & webinar", url: `${origin}/acara?ref=${aff.code}`, text: `Ada event EClub nih, yuk ikut bareng. Kode hemat hingga ${disc}%: *${aff.code}*` },
+        { group: "Umum", label: "Mentoring 1-on-1", url: `${origin}/mentoring-1on1?ref=${aff.code}`, text: `Lagi buntu soal usaha? Coba mentoring 1-on-1 di EClub. Kode hemat hingga ${disc}%: *${aff.code}*` },
+        ...courses.map((c) => ({ group: "Kelas", label: c.title, url: `${origin}/kelas/${c.slug}?ref=${aff.code}`, text: `Kelas ini bagus banget: *${c.title}*. Lihat dulu isinya, pakai kode *${aff.code}* biar hemat hingga ${disc}%:` })),
         ...articles.slice(0, 15).map((a) => ({ group: "Artikel", label: a.title, url: `${origin}/artikel/${a.slug}?ref=${aff.code}`, text: `Baca deh artikel ini: *${a.title}*` })),
       ]
     : [];
@@ -105,7 +105,7 @@ export default async function AffiliatePage() {
               <p className="text-xs font-semibold text-gold">🎟️ Kode kupon pribadi Anda</p>
               <p className="mt-1 text-2xl font-bold tracking-wider text-heading">{aff.code}</p>
               <p className="mt-1 text-sm text-muted">
-                Teman hemat <b className="text-heading">{disc}%</b> saat memasukkan kode ini di halaman pembayaran, dan Anda tetap mendapat komisi {rate}%. Kupon aktif otomatis selama Anda member Plus. Cocok dibagikan lewat status WA atau live jualan.
+                Teman hemat <b className="text-heading">{disc}%</b> untuk paket Plus saat memasukkan kode ini di halaman pembayaran, dan Anda tetap mendapat komisi {rate}%. Kupon aktif otomatis selama Anda member Plus. Cocok dibagikan lewat status WA atau live jualan.
               </p>
               {canChange && <ChangeCodeForm current={aff.code} />}
             </section>

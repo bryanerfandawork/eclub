@@ -296,8 +296,8 @@ export function AppShell({
         {!hideSteps && <StepNext />}
       </main>
 
-      {/* AI Companion (disembunyikan dari member bila kunci AI belum dipasang; admin tetap melihat) */}
-      {(ai || admin) && (
+      {/* AI Companion (disembunyikan sampai fitur AI dinyalakan, lihat aiConfigured) */}
+      {ai && (
         <button
           onClick={() => setAiOpen(true)}
           className="print:hidden fixed right-5 bottom-[112px] z-30 grid h-14 w-14 place-items-center rounded-full bg-gold text-heading shadow-lift transition hover:scale-105 active:scale-95 lg:right-8 lg:bottom-8"

@@ -6,7 +6,7 @@ import { Plus, X, ArrowRight } from "lucide-react";
 import { saveTx } from "@/app/actions/finance";
 import { BOOK_EMOJI, CATEGORIES, MOVE, TRANSFERS, WALLET_LABEL, bookWallet, type Book, type TxKind, type Wallet } from "@/lib/finance";
 import type { Draft } from "@/lib/fin-parse";
-import { SmartBar } from "./smart-bar";
+import { AssistantBubble, SmartBar, UserBubble } from "./smart-bar";
 import Link from "next/link";
 import { earmarked, freeBalance, providerOf, type Pocket, type PocketType } from "@/lib/pockets";
 import { DEFAULT_TEASER } from "@/lib/assistant-config";
@@ -15,7 +15,7 @@ import { SubmitButton } from "@/components/submit-button";
 import type { FormState } from "@/app/actions/auth";
 
 /** book: "" = Pribadi, id buku, atau (sebelum SQL 029) "personal"/"business". */
-export type QuickPreset = { kind?: TxKind; wallet?: Wallet; category?: string; book?: string; amount?: number; pocket_id?: string | null; date?: string; note?: string; source?: "scan" | "chat"; step?: string };
+export type QuickPreset = { kind?: TxKind; wallet?: Wallet; category?: string; book?: string; amount?: number; pocket_id?: string | null; date?: string; note?: string; source?: "scan" | "chat"; step?: string; said?: string };
 const EVENT = "eclub:catat";
 
 /** Buka lembar "Catat" dari mana saja (tombol petunjuk, kartu kosong, dll). */
@@ -48,7 +48,7 @@ export function QuickAdd({ defaultWallet, defaultBook, pockets = [], books = [],
     if (active.length) return p?.book_id ?? "";
     return d.wallet;
   };
-  const toPreset = (d: Draft, src: "scan" | "chat", i: number, total: number): QuickPreset => ({
+  const toPreset = (d: Draft, src: "scan" | "chat", i: number, total: number, said?: string): QuickPreset => ({
     kind: d.kind,
     category: d.category,
     wallet: d.wallet,
@@ -59,9 +59,10 @@ export function QuickAdd({ defaultWallet, defaultBook, pockets = [], books = [],
     note: d.note,
     source: src,
     step: total > 1 ? `${i + 1} dari ${total}` : undefined,
+    said,
   });
-  const onDrafts = (list: Draft[], src: "scan" | "chat") => {
-    const all = list.map((d, i) => toPreset(d, src, i, list.length));
+  const onDrafts = (list: Draft[], src: "scan" | "chat", said?: string) => {
+    const all = list.map((d, i) => toPreset(d, src, i, list.length, said));
     setQueue(all.slice(1));
     setPreset(all[0]);
     setN((x) => x + 1);
@@ -182,10 +183,20 @@ function WalletPockets({ list, value, onChange, plus, onLocked, teaserKeys }: { 
   );
 }
 
-function Upsell({ onClose, teaser }: { onClose: () => void; teaser: string[] }) {
+function Upsell({ onClose, teaser, chat = false }: { onClose: () => void; teaser: string[]; chat?: boolean }) {
   return (
     <div className="fixed inset-0 z-[60] flex items-end justify-center bg-black/40 p-3 sm:items-center" onClick={onClose}>
       <div onClick={(e) => e.stopPropagation()} className="w-full max-w-sm animate-rise rounded-3xl bg-white p-5 text-center shadow-lift">
+        {chat ? (
+          <>
+            <div className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-brand text-2xl">💬</div>
+            <p className="mt-4 text-lg font-bold text-heading">Catat cukup lewat chat</p>
+            <p className="mt-1 text-sm text-muted">
+              Dengan <b className="text-heading">EClub Plus</b>, cukup ketik seperti ngobrol, misal <i>&quot;beli bahan kue 85rb pakai BCA, usaha&quot;</i>. Asisten Catat langsung mengisi jumlah, kategori, kantong, dan buku usaha/keluarga yang tepat. Laporan keuangan Anda rapi tanpa isi formulir.
+            </p>
+          </>
+        ) : (
+        <>
         <div className="flex justify-center gap-1.5">
           {teaser.filter((k) => providerOf(k)).slice(0, 6).map((k) => (
             <PocketBadge key={k} type={providerOf(k)!.type as PocketType} provider={k} size={34} />
@@ -195,6 +206,8 @@ function Upsell({ onClose, teaser }: { onClose: () => void; teaser: string[] }) 
         <p className="mt-1 text-sm text-muted">
           Dengan <b className="text-heading">EClub Plus</b>, catat uang di setiap tempatnya: tunai, BCA, BRI, Mandiri, DANA, ShopeePay, atau kantong buatan Anda sendiri. Saldo tiap kantong selalu cocok dengan aslinya, plus bisa pindah antar kantong, grafik 6 bulan, dan ekspor Excel.
         </p>
+        </>
+        )}
         <Link href="/paket" className="btn-primary mt-4 w-full py-3">
           Upgrade ke Plus
         </Link>
@@ -208,7 +221,7 @@ function Upsell({ onClose, teaser }: { onClose: () => void; teaser: string[] }) 
 
 type Group = { key: string; label: string; emoji: string; wallet: Wallet; pockets: Pocket[] };
 
-function Sheet({ preset, defaultWallet, defaultBook, pockets, books, plus, dreams, teaser, onDone, onClose, onDrafts, left }: { preset: QuickPreset; defaultWallet: Wallet; defaultBook?: string; pockets: Pocket[]; books: Book[]; plus: boolean; dreams: DreamOpt[]; teaser: string[]; onDone: () => void; onClose: () => void; onDrafts: (d: Draft[], src: "scan" | "chat") => void; left: number }) {
+function Sheet({ preset, defaultWallet, defaultBook, pockets, books, plus, dreams, teaser, onDone, onClose, onDrafts, left }: { preset: QuickPreset; defaultWallet: Wallet; defaultBook?: string; pockets: Pocket[]; books: Book[]; plus: boolean; dreams: DreamOpt[]; teaser: string[]; onDone: () => void; onClose: () => void; onDrafts: (d: Draft[], src: "scan" | "chat", said?: string) => void; left: number }) {
   // Dompet = Pribadi + buku usaha/keluarga (SQL 029). Sebelum itu: Pribadi & Usaha seperti dulu.
   const groups: Group[] = books.length
     ? [
@@ -227,7 +240,7 @@ function Sheet({ preset, defaultWallet, defaultBook, pockets, books, plus, dream
     if (defaultBook !== undefined && groups.some((g) => g.key === defaultBook) && (!preset.wallet || groups.find((g) => g.key === defaultBook)?.wallet === preset.wallet)) return defaultBook;
     return groups.find((g) => g.wallet === w && (w === "personal" ? g.key === "" : true))?.key ?? "";
   })();
-  const [upsell, setUpsell] = useState(false);
+  const [upsell, setUpsell] = useState<boolean | "chat">(false);
   const [dreamId, setDreamId] = useState(dreams[0]?.id ?? "");
   const [dreamMode, setDreamMode] = useState<"" | "for" | "other">("");
   const [dreamPick, setDreamPick] = useState("");
@@ -275,7 +288,7 @@ function Sheet({ preset, defaultWallet, defaultBook, pockets, books, plus, dream
 
   return (
     <form action={action}>
-      {upsell && <Upsell onClose={() => setUpsell(false)} teaser={teaser} />}
+      {upsell && <Upsell onClose={() => setUpsell(false)} teaser={teaser} chat={upsell === "chat"} />}
       <div className="mb-4 flex items-center justify-between">
         <h2 className="text-lg font-bold text-heading">Catat transaksi</h2>
         <button type="button" onClick={onClose} className="grid h-9 w-9 place-items-center rounded-full text-muted hover:bg-paper" aria-label="Tutup">
@@ -284,11 +297,14 @@ function Sheet({ preset, defaultWallet, defaultBook, pockets, books, plus, dream
       </div>
 
       {preset.source ? (
-        <p className="mb-4 rounded-2xl bg-gold-soft/60 px-3.5 py-2.5 text-sm text-heading">
-          ✨ Terisi otomatis dari {preset.source === "scan" ? "foto nota" : "ketikan Anda"}{preset.step ? ` (${preset.step})` : ""}. Cek sebentar, ubah bila perlu, lalu <b>Simpan</b>.
-        </p>
+        <div className="mb-4 space-y-2 rounded-3xl bg-gold-soft/40 p-3 ring-1 ring-gold/40">
+          {preset.said && <UserBubble>{preset.said}</UserBubble>}
+          <AssistantBubble>
+            Siap, sudah aku catat{preset.step ? ` (transaksi ${preset.step})` : ""} dari {preset.source === "scan" ? "foto nota" : "ceritamu"} ✍️ Cek sebentar di bawah, ubah bila perlu, lalu tekan <b>Simpan</b>.
+          </AssistantBubble>
+        </div>
       ) : (
-        !preset.kind && !preset.category && <SmartBar onDrafts={onDrafts} />
+        !preset.kind && !preset.category && <SmartBar onDrafts={onDrafts} plus={plus} onLocked={() => setUpsell("chat")} />
       )}
       <input type="hidden" name="kind" value={kind} />
       {preset.source && <input type="hidden" name="source" value={preset.source} />}

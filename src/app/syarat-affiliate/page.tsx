@@ -14,7 +14,7 @@ export default async function AffiliateTerms() {
     <LegalPage
       title="Syarat Program Affiliate"
       updated="22 November 2026"
-      intro={`Singkatnya: bagikan link atau kode kupon Anda, teman hemat ${disc}%, dan Anda dapat komisi ${rate}% dari setiap pembelian mereka. Berikut aturan lengkapnya dalam bahasa sederhana.`}
+      intro={`Singkatnya: bagikan link atau kode kupon Anda, teman hemat hingga ${disc}%, dan Anda dapat komisi ${rate}% dari setiap pembelian mereka. Berikut aturan lengkapnya dalam bahasa sederhana.`}
       sections={[
         {
           h: "Siapa yang bisa ikut",
@@ -25,7 +25,7 @@ export default async function AffiliateTerms() {
           p: [
             [
               "Lewat link: teman membuka link Anda (beranda, kelas, event, atau artikel mana pun) lalu mendaftar dalam 30 hari.",
-              `Lewat kode kupon: teman memasukkan kode Anda di halaman pembayaran dan langsung hemat ${disc}%. Cara ini juga berlaku untuk orang yang sudah punya akun.`,
+              `Lewat kode kupon: teman memasukkan kode Anda di halaman pembayaran dan langsung hemat hingga ${disc}%. Cara ini juga berlaku untuk orang yang sudah punya akun.`,
               "Jika teman datang lewat link orang lain tetapi memakai kode kupon Anda, komisi menjadi milik Anda (pemilik kupon).",
               "Memakai link atau kode sendiri tidak dihitung.",
             ],

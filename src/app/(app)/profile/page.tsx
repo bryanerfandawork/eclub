@@ -1,7 +1,7 @@
 import Link from "next/link";
-import { Crown, LogOut, Mail, ShieldCheck } from "lucide-react";
+import { Crown, LogOut, Mail, MessageCircle, ShieldCheck } from "lucide-react";
 import { PlanBadge } from "@/components/plan-badge";
-import { getAccount, isAdmin } from "@/lib/plans";
+import { getAccount, getSettings, isAdmin } from "@/lib/plans";
 import { signOut } from "@/app/actions/auth";
 import { PageHeader } from "@/components/ui";
 import { getProfile } from "@/lib/data";
@@ -18,7 +18,10 @@ import { getTeamState } from "@/lib/team";
 export const metadata = { title: "Profil" };
 
 export default async function ProfilePage() {
-  const [profile, account, vapid, team] = await Promise.all([getProfile(), getAccount(), isDemoMode ? null : getVapidPublicKey(), getTeamState()]);
+  const [profile, account, vapid, team, settings] = await Promise.all([getProfile(), getAccount(), isDemoMode ? null : getVapidPublicKey(), getTeamState(), getSettings()]);
+  // Bantuan prioritas: member Plus bisa langsung chat admin lewat WhatsApp.
+  const adminWa = String(settings.admin_whatsapp ?? "").replace(/[^\d]/g, "").replace(/^0/, "62");
+  const supportHref = account.plan === "plus" && adminWa ? `https://wa.me/${adminWa}?text=${encodeURIComponent(`Halo Tim EClub, saya member Plus (${profile.email}). Saya butuh bantuan:`)}` : null;
   let wa: WaSettings = { whatsapp: null, wa_opt_in: false, wa_daily: true };
   let bio: Bio = { birth_date: null, province: null, regency: null };
   if (!isDemoMode) {
@@ -54,6 +57,11 @@ export default async function ProfilePage() {
             <Link href="/paket" className="btn-ghost w-full">
               <Crown className="h-4 w-4 text-gold" /> {account.plan === "plus" ? "Paket saya" : "Upgrade ke Plus"}
             </Link>
+            {supportHref && (
+              <a href={supportHref} target="_blank" rel="noopener noreferrer" className="btn-ghost w-full">
+                <MessageCircle className="h-4 w-4 text-success" /> Bantuan prioritas (WhatsApp)
+              </a>
+            )}
             {isAdmin(account.role) && (
               <Link href="/admin" className="btn-ghost w-full">
                 <ShieldCheck className="h-4 w-4 text-brand" /> Panel Admin

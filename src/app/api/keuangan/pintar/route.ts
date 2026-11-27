@@ -4,7 +4,7 @@ import { AI_MODEL, aiConfigured } from "@/lib/ai";
 import { CATEGORIES } from "@/lib/finance";
 import { getBooks, getPockets } from "@/lib/finance-server";
 import { parseText, sanitize, type Draft } from "@/lib/fin-parse";
-import { getLimit } from "@/lib/plans";
+import { getAccount, getLimit, isAdmin } from "@/lib/plans";
 import { providerOf } from "@/lib/pockets";
 import { isDemoMode } from "@/lib/supabase/config";
 import { createClient } from "@/lib/supabase/server";
@@ -18,8 +18,15 @@ function today() {
   return new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Jakarta" });
 }
 
+/** Asisten Catat khusus Plus (dan admin). Gratis: isi formulir. */
+async function allowed() {
+  const [acc, limit] = await Promise.all([getAccount(), getLimit("fin_smart")]);
+  return acc.plan === "plus" || isAdmin(acc.role) || limit !== 0;
+}
+
+/** Kuota pemakaian AI per hari (hanya bila fitur AI dinyalakan). */
 async function quota(supabase: Awaited<ReturnType<typeof createClient>>) {
-  const limit = await getLimit("fin_smart");
+  const limit = 50;
   const start = new Date(today() + "T00:00:00+07:00").toISOString();
   const { count, error } = await supabase.from("fin_ai_usage").select("id", { count: "exact", head: true }).gte("created_at", start);
   return { used: error ? 0 : (count ?? 0), limit };
@@ -27,10 +34,10 @@ async function quota(supabase: Awaited<ReturnType<typeof createClient>>) {
 
 /** Status untuk tombol di lembar Catat: AI aktif? sisa kuota hari ini? */
 export async function GET() {
-  if (isDemoMode) return NextResponse.json({ ai: false, used: 0, limit: 3 });
+  if (isDemoMode) return NextResponse.json({ ai: false, plus: true, used: 0, limit: null });
   const supabase = await createClient();
-  const q = await quota(supabase);
-  return NextResponse.json({ ai: aiConfigured(), ...q });
+  const [q, plus] = await Promise.all([quota(supabase), allowed()]);
+  return NextResponse.json({ ai: aiConfigured(), plus, ...q });
 }
 
 const SCHEMA = {
@@ -68,6 +75,7 @@ export async function POST(req: Request) {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Silakan masuk dulu." }, { status: 401 });
+  if (!(await allowed())) return NextResponse.json({ error: "Asisten Catat khusus member EClub Plus. Sementara ini, isi formulir di bawah ya.", plus: false }, { status: 403 });
 
   const body = (await req.json().catch(() => ({}))) as { text?: unknown; image?: unknown; media?: unknown };
   const text = String(body.text ?? "").trim().slice(0, 1000);
@@ -87,7 +95,7 @@ export async function POST(req: Request) {
   }
   if (!aiConfigured()) {
     return NextResponse.json(
-      { error: image ? "Foto nota belum aktif: admin perlu memasang kunci AI dulu. Sementara ini, ketik saja transaksinya." : "Nominalnya belum terbaca. Coba tulis seperti: \"beli makan 25rb pakai cash\"." },
+      { error: image ? "Foto nota belum tersedia. Ceritakan saja transaksinya lewat chat ya." : "Hmm, nominalnya belum kebaca. Coba tulis begini: \"beli makan 25rb pakai cash\"." },
       { status: image ? 503 : 422 },
     );
   }
@@ -98,7 +106,7 @@ export async function POST(req: Request) {
     if (rule) {
       return NextResponse.json({ drafts: [plain(rule)], ai: false });
     }
-    return NextResponse.json({ error: `Kuota catat pintar hari ini (${limit}x) sudah habis. Coba lagi besok, atau upgrade ke EClub Plus.`, limited: true }, { status: 429 });
+    return NextResponse.json({ error: `Kuota hari ini (${limit}x) sudah habis. Coba lagi besok.`, limited: true }, { status: 429 });
   }
 
   const books_txt = [

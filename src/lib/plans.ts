@@ -30,13 +30,14 @@ export const DEFAULT_FEATURES: PlanFeature[] = [
   { key: "finance", label: "Keuangan pribadi & usaha", description: "Dompet pribadi & usaha, laporan harian, ringkasan bulanan, kalkulator HPP", free_limit: null, plus_limit: null, unit: null, enforced: true, sort: 35 },
   { key: "finance_reports", label: "Laporan laba rugi & simpan produk", description: "Laba rugi otomatis, cetak PDF, daftar produk & HPP", free_limit: 0, plus_limit: null, unit: null, enforced: true, sort: 36 },
   { key: "fin_pockets", label: "Kantong keuangan", description: "Dompet, rekening bank, dan e-wallet (pribadi & usaha). Plus: pindah antar kantong, grafik & ekspor", free_limit: 2, plus_limit: null, unit: "kantong", enforced: true, sort: 31 },
-  { key: "fin_books", label: "Buku usaha & keluarga", description: "Usaha lebih dari 1, keuangan keluarga bersama pasangan, dan ajak staf keuangan mencatat. Yang diajak boleh akun gratis.", free_limit: 1, plus_limit: null, unit: "buku", enforced: true, sort: 32 },
-  { key: "fin_smart", label: "Catat pintar (foto nota & ketik)", description: "Foto nota atau ketik seperti chat, langsung terisi otomatis. Batas per hari.", free_limit: 3, plus_limit: 50, unit: "kali/hari", enforced: true, sort: 33 },
+  { key: "fin_books", label: "Usaha tambahan & keuangan keluarga", description: "Gratis: 1 buku usaha. Plus: tambah usaha tanpa batas, keuangan keluarga bersama pasangan, dan ajak staf ikut mencatat (yang diajak boleh akun gratis).", free_limit: 1, plus_limit: null, unit: "buku", enforced: true, sort: 32 },
+  { key: "fin_smart", label: "Asisten Catat (catat lewat chat)", description: "Cukup cerita transaksi Anda seperti chat, asisten yang mengisi dan merapikan laporan keuangan. Paket gratis mencatat lewat formulir.", free_limit: 0, plus_limit: null, unit: null, enforced: true, sort: 33 },
   { key: "income_reco", label: "Rekomendasi Peta Income", description: "Ide active, massive, dan passive income yang dipersonalisasi dari Gaya Diri, minat, dan mimpi", free_limit: 0, plus_limit: null, unit: null, enforced: true, sort: 37 },
   { key: "team_workspace", label: "Ruang Kerja Tim", description: "Buat ruang kerja perusahaan/project, undang tim, bagi tugas & diskusi. Anggota yang diundang boleh akun gratis.", free_limit: 0, plus_limit: null, unit: null, enforced: true, sort: 38 },
   { key: "community", label: "Komunitas & event gratis", description: "Circle per fase SEF, event terbuka", free_limit: null, plus_limit: null, unit: null, enforced: true, sort: 85 },
   { key: "mentoring_price", label: "Harga khusus mentoring & event", description: "Potongan harga sesi 1-on-1 dan webinar berbayar", free_limit: 0, plus_limit: null, unit: null, enforced: true, sort: 86 },
   { key: "affiliate", label: "Program affiliate", description: "Bagi hasil dari setiap teman yang membeli lewat link Anda", free_limit: 0, plus_limit: null, unit: null, enforced: true, sort: 90 },
+  { key: "priority_support", label: "Bantuan prioritas WhatsApp", description: "Tanya langsung ke tim EClub lewat WhatsApp, dijawab lebih dulu", free_limit: 0, plus_limit: null, unit: null, enforced: true, sort: 92 },
   { key: "premium_articles", label: "Artikel premium", description: "Akses artikel premium", free_limit: 0, plus_limit: null, unit: null, enforced: false, sort: 70 },
   { key: "paid_courses", label: "Course berbayar", description: "Akses course khusus member", free_limit: 0, plus_limit: null, unit: null, enforced: false, sort: 80 },
 ];
@@ -49,7 +50,7 @@ export const getFeatures = cache(async (): Promise<PlanFeature[]> => {
 });
 
 export const getSettings = cache(async (): Promise<Record<string, unknown>> => {
-  const defaults = { plus_price_monthly: 79000, plus_price_yearly: 690000, upgrade_contact: "", bank_accounts: "", disc_report_price: 49000, payment_mode: "manual", admin_whatsapp: "", qris_image_url: "", coupon_discount: 10, affiliate_rate: 20, affiliate_hold_days: 7, affiliate_months: 12, renewal_days: "7,3,1", wa_daily_max: 40, wa_motivation: true };
+  const defaults = { plus_price_monthly: 158000, plus_price_yearly: 1380000, upgrade_contact: "", bank_accounts: "", disc_report_price: 49000, payment_mode: "manual", admin_whatsapp: "", qris_image_url: "", coupon_discount: 50, coupon_discount_other: 10, general_coupon_code: "NEWECLUB", affiliate_rate: 20, affiliate_hold_days: 7, affiliate_months: 12, renewal_days: "7,3,1", wa_daily_max: 40, wa_motivation: true };
   if (isDemoMode) return defaults;
   const supabase = await createClient();
   const { data } = await supabase.from("app_settings").select("key, value");
@@ -79,6 +80,19 @@ export async function getLimit(key: string): Promise<number | null> {
 
 export function isAdmin(role: Role) {
   return role === "admin" || role === "super_admin";
+}
+
+/** Fitur yang sedang disembunyikan (AI) tidak ditampilkan di tabel perbandingan. */
+export function visibleFeatures(list: PlanFeature[], ai: boolean) {
+  return list.filter((f) => ai || f.key !== "ai_messages");
+}
+
+/** Info kupon untuk halaman harga: kode umum, potongan Plus & produk lain. */
+export function couponInfo(s: Record<string, unknown>) {
+  const pct = Math.min(90, Math.max(0, Number(s.coupon_discount ?? 50)));
+  const other = Math.min(90, Math.max(0, Number(s.coupon_discount_other ?? 10)));
+  const code = String(s.general_coupon_code ?? "NEWECLUB").trim().toUpperCase();
+  return { pct, other, code, after: (price: number) => price - Math.floor((price * pct) / 100) };
 }
 
 export const UPGRADE_HINT = "Upgrade ke EClub Plus untuk membuka batas ini.";

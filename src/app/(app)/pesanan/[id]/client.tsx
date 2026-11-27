@@ -49,16 +49,21 @@ export function SaveWaForm({ orderId, action }: { orderId: string; action: (s: {
   );
 }
 
-export function CouponForm({ orderId, action, suggested }: { orderId: string; action: (s: { error?: string; message?: string } | undefined, fd: FormData) => Promise<{ error?: string; message?: string } | undefined>; suggested?: string }) {
+export function CouponForm({ orderId, action, suggested, general, pct }: { orderId: string; action: (s: { error?: string; message?: string } | undefined, fd: FormData) => Promise<{ error?: string; message?: string } | undefined>; suggested?: string; general?: string; pct?: number }) {
   const [state, run] = useActionState(action, undefined);
+  const fill = suggested || general || "";
+  const off = pct ? ` hemat ${pct}%` : "";
   return (
-    <form action={run} className="rounded-xl bg-gold-soft/60 p-3.5">
+    <form action={run} className="rounded-xl border-2 border-dashed border-gold bg-gold-soft/60 p-3.5">
       <input type="hidden" name="order" value={orderId} />
-      <label htmlFor="coupon" className="mb-2 block text-xs font-semibold text-heading">{suggested ? "🎟️ Kode kupon dari teman Anda sudah terisi, tinggal tekan Pakai" : "🎟️ Punya kode kupon? Masukkan di sini"}</label>
+      <label htmlFor="coupon" className="mb-2 block text-xs font-semibold text-heading">
+        {suggested ? `🎟️ Kode kupon dari teman Anda sudah terisi. Tekan Pakai untuk${off}` : general ? `🎟️ Belum punya kupon? Pakai kode ${general} untuk${off}` : "🎟️ Punya kode kupon? Masukkan di sini"}
+      </label>
       <div className="flex gap-2">
-        <input id="coupon" name="code" defaultValue={suggested} autoCapitalize="characters" className="input min-w-0 flex-1 uppercase" placeholder="Misal: BUDIEC123" />
+        <input id="coupon" name="code" defaultValue={fill} autoCapitalize="characters" className="input min-w-0 flex-1 uppercase" placeholder="Misal: BUDIEC123" />
         <button className="btn-primary shrink-0">Pakai</button>
       </div>
+      {general && <p className="mt-1.5 text-[11px] text-muted">Punya kode dari teman? Ganti dengan kode tersebut.</p>}
       {state?.error && <p className="mt-2 text-xs text-danger">{state.error}</p>}
     </form>
   );

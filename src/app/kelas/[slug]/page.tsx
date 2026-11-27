@@ -5,7 +5,7 @@ import { CourseCover } from "@/components/course-cover";
 import { JoinCta } from "@/components/join-cta";
 import { ACCESS_LABEL, getCourseBySlug } from "@/lib/lms";
 import { SEF_STEPS } from "@/lib/sef";
-import { getSettings } from "@/lib/plans";
+import { couponInfo, getSettings } from "@/lib/plans";
 import { rupiah } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
@@ -28,7 +28,7 @@ export default async function PublicCourse({ params }: { params: Promise<{ slug:
     c.access === "purchase"
       ? `Kelas berbayar ${rupiah(c.price)} sekali beli${c.include_in_plus ? ", sudah termasuk untuk member Plus" : ""}.`
       : c.access === "plus"
-        ? `Termasuk dalam EClub Plus (mulai ${rupiah(Number(s.plus_price_monthly) || 79000)}/bulan). Ada materi cuplikan yang bisa dicoba gratis.`
+        ? `Termasuk dalam EClub Plus (mulai ${rupiah(couponInfo(s).after(Number(s.plus_price_monthly) || 158000))}/bulan dengan kupon). Ada materi cuplikan yang bisa dicoba gratis.`
         : "Gratis untuk semua member. Cukup daftar akun gratis.";
 
   return (

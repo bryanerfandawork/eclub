@@ -28,6 +28,8 @@ import {
   TrendingUp,
   PieChart,
   FolderKanban,
+  MessageSquareText,
+  Ticket,
   BarChart3,
   Bell,
 } from "lucide-react";
@@ -39,7 +41,7 @@ import { createClient } from "@/lib/supabase/server";
 import { regencyName } from "@/lib/regions";
 import { Logo } from "@/components/logo";
 import { SEF_PHASES, SEF_STEPS, SPARK } from "@/lib/sef";
-import { getFeatures, getSettings } from "@/lib/plans";
+import { couponInfo, getFeatures, getSettings, visibleFeatures } from "@/lib/plans";
 import { listTestimonials } from "@/lib/testimonials";
 import { rupiah } from "@/lib/format";
 import { SEGMENTS } from "@/lib/types";
@@ -65,6 +67,8 @@ const FEATURE_GROUPS: { step: string; items: Feature[] }[] = [
       { icon: Radar, title: "Cek Posisi SEF", desc: "10 pertanyaan singkat menempatkan Anda di peta Sustainable Entrepreneur Framework dan langkah paling tepat berikutnya.", plan: "Gratis" },
       { icon: TrendingUp, title: "Peta Income", desc: "Petakan penghasilan aktif, masif, dan pasif, lalu hitung jarak ke mimpi. Plus mendapat 9 ide income personal.", plan: "Gratis + Plus" },
       { icon: Wallet, title: "Kantong & Tabungan Mimpi", desc: "Pisahkan uang pribadi dan usaha per kantong. Sisihkan untuk mimpi, lengkap dengan HPP dan laba rugi.", plan: "Gratis + Plus" },
+      { icon: MessageSquareText, title: "Asisten Catat", desc: "Cukup cerita transaksi seperti chat. Asisten yang mengisi dan merapikan laporan keuangan Anda.", plan: "Plus" },
+      { icon: Users, title: "Keuangan Usaha & Keluarga", desc: "Tambah banyak usaha, kelola keuangan keluarga bersama pasangan, dan ajak staf ikut mencatat.", plan: "Plus" },
     ],
   },
   {
@@ -169,8 +173,13 @@ function PhoneMockup() {
 
 export default async function Home() {
   const [features, settings, testimonials] = await Promise.all([getFeatures(), getSettings(), listTestimonials()]);
-  const monthly = Number(settings.plus_price_monthly) || 0;
-  const yearly = Number(settings.plus_price_yearly) || 0;
+  // Harga normal, lalu harga setelah kupon (kode teman atau kode umum NEWECLUB).
+  const coupon = couponInfo(settings);
+  const promo = !!coupon.code && coupon.pct > 0;
+  const listMonthly = Number(settings.plus_price_monthly) || 0;
+  const listYearly = Number(settings.plus_price_yearly) || 0;
+  const monthly = promo ? coupon.after(listMonthly) : listMonthly;
+  const yearly = promo ? coupon.after(listYearly) : listYearly;
   const save = monthly && yearly ? Math.round((1 - yearly / (monthly * 12)) * 100) : 0;
   const saveRp = monthly && yearly ? monthly * 12 - yearly : 0;
   const perMonth = yearly ? Math.round(yearly / 12 / 100) * 100 : 0;
@@ -194,7 +203,9 @@ export default async function Home() {
     limit === 0 ? <span className="text-line">—</span> : limit == null ? (unit ? "Tanpa batas" : <Check className="mx-auto h-4 w-4 text-success" />) : `${limit} ${unit ?? ""}`;
 
   const PLUS_PERKS = [
-    "Rencana aksi harian tanpa batas",
+    "Asisten Catat: cerita transaksi lewat chat, laporan keuangan langsung rapi",
+    "Tambah usaha tanpa batas & keuangan keluarga bersama pasangan",
+    "Mimpi, rencana aksi harian & kebiasaan tanpa batas",
     `Ruang Kerja Tim: buat project & perusahaan, ajak hingga ${teamY} anggota (tahunan)`,
     "Kantong bank & e-wallet tanpa batas, grafik 6 bulan & ekspor",
     "Produk HPP tanpa batas & laporan laba rugi",
@@ -202,19 +213,21 @@ export default async function Home() {
     "9 ide income personal di Peta Income",
     "Kelas khusus Plus & sertifikat tahap SEF",
     "Harga khusus mentoring & event",
-    `Link affiliate & kupon pribadi: bagi hasil ${rate}%`,
+    `Kupon pribadi: teman hemat ${couponOff}%, Anda dapat bagi hasil ${rate}%`,
+    "Bantuan prioritas lewat WhatsApp",
   ];
 
   const FAQ = [
     { q: "Apakah EClub hanya untuk pengusaha?", a: "Tidak. EClub untuk siapa saja yang ingin bertumbuh: pelajar, karyawan, profesional, freelancer, maupun pemilik bisnis. Yang kami latih adalah pola pikir entrepreneur, dan kendaraannya bisa karier, usaha, investasi, atau gabungannya." },
-    { q: "Apakah versi gratis benar-benar bisa dipakai?", a: "Ya, gratis selamanya: Perjalanan 5 Langkah, Cek Posisi, Peta Income, Dream Planner, Target Jualan Harian, kalkulator HPP 3 produk, kantong tunai pribadi & usaha, Asisten Harian (3 rencana aksi baru per hari, kebiasaan tidak dihitung), jurnal syukur, Rapor Mingguan, komunitas, kelas gratis, dan Tes Gaya Diri (hasil dasar). Anda juga bisa bergabung ke ruang kerja tim orang lain secara gratis." },
+    { q: "Apakah versi gratis benar-benar bisa dipakai?", a: "Ya, gratis selamanya: Perjalanan 5 Langkah, Cek Posisi, Peta Income, Dream Planner, Target Jualan Harian, kalkulator HPP 3 produk, kantong tunai pribadi & usaha, Asisten Harian (3 rencana aksi baru per hari, kebiasaan tidak dihitung), catat keuangan lewat formulir, jurnal syukur, Rapor Mingguan, komunitas, kelas gratis, dan Tes Gaya Diri (hasil dasar). Anda juga bisa bergabung ke ruang kerja tim orang lain secara gratis." },
     { q: "Apa bedanya Plus bulanan dan tahunan?", a: `Isinya sama. Tahunan ${saveRp ? `lebih hemat ${rupiah(saveRp)} (${save}%)` : "lebih hemat"} dan pemilik ruang kerja tim bisa mengajak hingga ${teamY} anggota per ruang kerja, sedangkan bulanan hingga ${teamM} anggota.` },
     { q: "Siapa yang perlu Plus di Ruang Kerja Tim?", a: "Hanya pembuat ruang kerja. Anggota yang diundang bisa memakai akun gratis. Tugas tim muncul di Laporan Harian masing-masing anggota. Pemilik ruang kerja tidak bisa melihat mimpi, keuangan, atau kebiasaan pribadi anggota." },
     { q: "Apakah uang saya disimpan di EClub?", a: "Tidak. EClub hanya mencatat: uang Anda tetap di dompet, rekening, atau e-wallet Anda sendiri. Kantong dan tabungan mimpi membantu Anda tahu persis berapa uang di setiap tempat dan untuk apa." },
+    ...(promo ? [{ q: `Bagaimana cara dapat potongan ${coupon.pct}%?`, a: `Di halaman pembayaran, masukkan kode kupon dari teman Anda yang sudah member Plus. Belum punya? Pakai kode ${coupon.code}. Keduanya sama-sama memotong ${coupon.pct}% harga paket Plus.` }] : []),
     { q: "Bagaimana cara bayar Plus?", a: "Lewat QRIS atau transfer bank. Setelah pembayaran dikonfirmasi admin, Plus langsung aktif di akun Anda." },
     { q: "Apakah data saya aman?", a: "Data tersimpan terenkripsi dan setiap akun hanya bisa mengakses datanya sendiri. Tim admin tidak membaca isi mimpi, jawaban tes, atau catatan pribadi Anda." },
     { q: "Bisakah dipakai di HP?", a: "Bisa. EClub dirancang seperti aplikasi di HP dan bisa dipasang ke layar utama tanpa unduh dari Play Store atau App Store. Pengingat datang lewat notifikasi HP." },
-    { q: "Bagaimana cara kerja affiliate?", a: `Setiap member Plus otomatis punya link dan kode kupon pribadi. Teman yang memakai kupon hemat ${couponOff}%, dan Anda mendapat ${rate}% dari setiap transaksinya. Saldo bisa dicairkan setiap kelipatan Rp100.000.` },
+    { q: "Bagaimana cara kerja affiliate?", a: `Setiap member Plus otomatis punya link dan kode kupon pribadi. Teman yang memakai kupon hemat ${couponOff}% untuk paket Plus, dan Anda mendapat ${rate}% dari setiap transaksinya. Saldo bisa dicairkan setiap kelipatan Rp100.000.` },
     { q: "Apakah EClub bisa mengisi pelatihan di kantor atau komunitas kami?", a: "Bisa. Kami menerima in-house training, workshop, undangan pembicara, dan kemitraan. Isi formulir di bagian Kolaborasi, tim kami akan menghubungi lewat WhatsApp." },
     { q: "Apakah Tes Gaya Diri dan 8 Wheel itu tes psikologi?", a: "Bukan. Keduanya alat refleksi diri untuk membantu Anda mengenali kecenderungan dan area yang perlu dikembangkan, bukan diagnosis psikologis." },
   ];
@@ -386,6 +399,38 @@ export default async function Home() {
             </ul>
           </div>
         </div>
+        <div className="mt-4 grid items-center gap-8 overflow-hidden rounded-3xl bg-brand p-7 text-white lg:grid-cols-2 lg:p-10">
+          <div>
+            <p className="eyebrow flex items-center gap-1.5"><Crown className="h-3.5 w-3.5" /> Baru di Plus</p>
+            <h3 className="mt-3 text-2xl font-bold sm:text-3xl">Asisten Catat: cukup cerita, laporan keuangan langsung rapi</h3>
+            <p className="mt-3 text-[15px] leading-relaxed text-white/80">Tidak perlu isi formulir. Ketik seperti chat ke teman, asisten langsung mengisi jumlah, kategori, kantong, dan buku usaha atau keluarga yang tepat. Tinggal cek lalu simpan.</p>
+            <ul className="mt-5 grid gap-2 text-sm text-white/90 sm:grid-cols-2">
+              {["Tambah usaha tanpa batas", "Keuangan keluarga bersama pasangan", "Ajak staf ikut mencatat", "Laba rugi, grafik & ekspor"].map((t) => (
+                <li key={t} className="flex items-center gap-2"><Check className="h-4 w-4 text-gold" /> {t}</li>
+              ))}
+            </ul>
+          </div>
+          <div className="space-y-2.5 rounded-3xl bg-white/95 p-4 text-sm text-heading shadow-lift">
+            {[
+              ["a", "Halo! 👋 Cerita aja transaksimu, aku yang catat dan rapikan laporan keuanganmu."],
+              ["u", "jual 12 kue 180rb, transfer ke BCA, usaha"],
+              ["a", "Siap, sudah aku catat ✍️ Pemasukan usaha Rp180.000 ke BCA, kategori Penjualan."],
+              ["u", "beli bensin 30rb cash"],
+            ].map(([w, t], i) =>
+              w === "a" ? (
+                <div key={i} className="flex items-end gap-2">
+                  <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-brand text-gold"><Sparkles className="h-3.5 w-3.5" /></span>
+                  <p className="max-w-[85%] rounded-2xl rounded-bl-md bg-paper px-3.5 py-2.5">{t}</p>
+                </div>
+              ) : (
+                <div key={i} className="flex justify-end">
+                  <p className="max-w-[85%] rounded-2xl rounded-br-md bg-brand px-3.5 py-2.5 text-white">{t}</p>
+                </div>
+              ),
+            )}
+          </div>
+        </div>
+
         <div className="mt-8 text-center">
           <Link href="/daftar" className="btn-primary px-7 py-3.5">
             Coba gratis sekarang <ArrowRight className="h-4 w-4" />
@@ -551,7 +596,7 @@ export default async function Home() {
           </div>
           <p className="mt-8 text-sm text-muted">
             <Bell className="mr-1 inline h-4 w-4 text-gold" /> Pengingat lewat notifikasi HP setiap pagi dan malam, plus WhatsApp untuk info penting.
-            {ai ? " AI Companion siap menjadi teman diskusi 24 jam." : " AI Companion sedang kami siapkan."}
+            {ai && " AI Companion siap menjadi teman diskusi 24 jam."}
           </p>
         </div>
       </section>
@@ -605,7 +650,8 @@ export default async function Home() {
                   "Perjalanan 5 Langkah & Cek Posisi SEF",
                   "Dream Planner & Target Jualan Harian",
                   "Peta Income: active, massive, passive",
-                  "Kantong tunai pribadi & usaha + tabung untuk mimpi",
+                  "Kantong tunai pribadi & 1 usaha + tabung untuk mimpi",
+                  "Catat keuangan lewat formulir",
                   "Asisten Harian (3 rencana baru/hari)",
                   "Rapor Mingguan & jurnal syukur",
                   "Tes Gaya Diri (hasil dasar) & 8 Wheel",
@@ -626,7 +672,8 @@ export default async function Home() {
               <p className="flex items-center gap-1.5 text-sm font-bold text-gold">
                 <Crown className="h-4 w-4" /> Plus Tahunan
               </p>
-              <p className="mt-3 text-4xl font-bold">
+              {promo && <p className="mt-3 text-sm text-white/60"><s>{rupiah(Math.round(listYearly / 12 / 100) * 100)}/bulan</s></p>}
+              <p className={`${promo ? "" : "mt-3 "}text-4xl font-bold`}>
                 {rupiah(perMonth)}
                 <span className="text-base font-medium text-white/60">/bulan</span>
               </p>
@@ -634,6 +681,11 @@ export default async function Home() {
                 dibayar {rupiah(yearly)} per tahun · kurang dari {rupiah(perDay)} per hari
               </p>
               {saveRp > 0 && <p className="mt-2 text-sm font-semibold text-gold">Hemat {rupiah(saveRp)} dibanding bulanan</p>}
+              {promo && (
+                <p className="mt-3 flex items-center gap-2 rounded-xl border border-dashed border-gold/70 bg-white/10 px-3 py-2 text-xs">
+                  <Ticket className="h-4 w-4 shrink-0 text-gold" /> <span>Harga dengan kupon {coupon.pct}%. Pakai kode teman atau <b>{coupon.code}</b>.</span>
+                </p>
+              )}
               <PromoBadge tone="dark" className="mt-4" />
               <ul className="mt-5 flex-1 space-y-2 text-sm text-white/90">
                 <li className="flex gap-2 font-semibold">
@@ -654,11 +706,12 @@ export default async function Home() {
               <p className="flex items-center gap-1.5 text-sm font-bold text-heading">
                 <Crown className="h-4 w-4 text-gold" /> Plus Bulanan
               </p>
-              <p className="mt-3 text-4xl font-bold text-heading">
+              {promo && <p className="mt-3 text-sm text-muted"><s>{rupiah(listMonthly)}/bulan</s></p>}
+              <p className={`${promo ? "" : "mt-3 "}text-4xl font-bold text-heading`}>
                 {rupiah(monthly)}
                 <span className="text-base font-medium text-muted">/bulan</span>
               </p>
-              <p className="mt-1 text-sm text-muted">Fleksibel, perpanjang tiap bulan</p>
+              <p className="mt-1 text-sm text-muted">{promo ? `Dengan kupon ${coupon.pct}% · fleksibel, perpanjang tiap bulan` : "Fleksibel, perpanjang tiap bulan"}</p>
               <ul className="mt-5 flex-1 space-y-2 text-sm text-ink">
                 {["Semua fitur Plus", `Ruang Kerja Tim hingga ${teamM} anggota per ruang kerja`, "Cocok untuk mencoba Plus dulu"].map((p) => (
                   <li key={p} className="flex gap-2">
@@ -687,7 +740,7 @@ export default async function Home() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-line">
-                {features.map((f) => (
+                {visibleFeatures(features, ai).map((f) => (
                   <tr key={f.key}>
                     <td className="px-5 py-3 font-medium text-heading">
                       {f.label}
@@ -774,7 +827,7 @@ export default async function Home() {
               <p className="eyebrow">Affiliate EClub</p>
               <h2 className="mt-3 text-3xl font-bold tracking-tight text-heading sm:text-4xl">Puas? Ajak teman, dapat bagi hasil {rate}%.</h2>
               <p className="mt-4 text-[17px] leading-relaxed text-muted">
-                Setiap member Plus otomatis punya link dan kode kupon pribadi. Teman Anda hemat {couponOff}%, Anda mendapat {rate}% dari setiap paket, kelas, atau mentoring yang mereka beli.
+                Setiap member Plus otomatis punya link dan kode kupon pribadi. Teman Anda hemat {couponOff}% untuk paket Plus, Anda mendapat {rate}% dari setiap pembelian mereka.
               </p>
               <div className="mt-6 flex flex-wrap items-center gap-4">
                 <Link href="/daftar" className="btn-primary">Daftar & mulai</Link>
