@@ -26,6 +26,8 @@ export function PublicShell({ children }: { children: React.ReactNode }) {
           <Link href="/syarat-affiliate" className="hover:text-brand">Program Affiliate</Link>
           <Link href="/kebijakan-privasi" className="hover:text-brand">Kebijakan Privasi</Link>
           <Link href="/syarat-ketentuan" className="hover:text-brand">Syarat & Ketentuan</Link>
+          <Link href="/kebijakan-pengembalian" className="hover:text-brand">Pengembalian Dana</Link>
+          <Link href="/kontak" className="hover:text-brand">Kontak</Link>
         </div>
         <p className="mt-3">© {new Date().getFullYear()} EClub Indonesia</p>
       </footer>

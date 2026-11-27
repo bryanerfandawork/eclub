@@ -18,6 +18,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${SITE}/syarat-affiliate`, priority: 0.3 },
     { url: `${SITE}/kebijakan-privasi`, priority: 0.2 },
     { url: `${SITE}/syarat-ketentuan`, priority: 0.2 },
+    { url: `${SITE}/kebijakan-pengembalian`, priority: 0.2 },
+    { url: `${SITE}/kontak`, priority: 0.3 },
     ...courses.filter((c) => c.id !== "demo-c1").map((c) => ({ url: `${SITE}/kelas/${c.slug}`, priority: 0.7 })),
     ...arts.filter((a) => a.id !== "demo" && a.id !== "demo2").map((a) => ({ url: `${SITE}/artikel/${a.slug}`, lastModified: a.published_at, priority: 0.6 })),
   ];
