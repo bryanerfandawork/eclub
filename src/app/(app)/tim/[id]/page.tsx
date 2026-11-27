@@ -7,8 +7,9 @@ import { PendingButton } from "@/components/pending-button";
 import { ShareRef } from "@/components/share-ref";
 import { TaskRow } from "@/components/team/task-row";
 import { NeedsAction } from "@/components/team/needs-action";
+import { TeamCalendar } from "@/components/team/calendar";
 import { AddTaskForm, GoalForm, InviteForm, SectionForm, WorkspaceSettingsForm } from "@/components/team/forms";
-import { getMessages, levelName, boardCol } from "@/lib/team";
+import { getMessages, levelName, boardCol, onTask, whoLabel } from "@/lib/team";
 import { MessageForm } from "@/components/team/forms";
 import { deleteMessage, setTaskStatus } from "@/app/actions/team";
 import { KIND_LABEL, ROLE_LABEL, byPriority, canManage, getWorkspace, isLate, jktDay, personName, type TeamTask } from "@/lib/team";
@@ -42,14 +43,15 @@ export default async function WorkspacePage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ tab?: string; lihat?: string; baru?: string; gabung?: string; p?: string; v?: string }>;
+  searchParams: Promise<{ tab?: string; lihat?: string; baru?: string; gabung?: string; p?: string; v?: string; cal?: string; d?: string }>;
 }) {
   const [{ id }, sp] = await Promise.all([params, searchParams]);
   const data = await getWorkspace(id);
   if (!data) notFound();
-  const { ws, people, role, me, tasks, comments, sections, goals, items } = data;
+  const { ws, people, role, me, tasks, comments, sections, goals, items, collab } = data;
   const L = levelName(ws.kind);
   const board = sp.v === "papan";
+  const calendar = sp.v === "kalender";
   const today = todayJakarta();
   const tomorrow = todayJakarta(1);
   const manage = canManage(role);
@@ -86,7 +88,7 @@ export default async function WorkspacePage({
   const sectionOpts = sections?.map((s) => ({ id: s.id, name: s.name })) ?? null;
   const goalOpts = goals.filter((g) => g.status === "active").map((g) => ({ id: g.id, name: g.title }));
   const row = (t: TeamTask, withSection = false) => (
-    <TaskRow key={t.id} t={t} today={today} canAct={manage || t.assignee_id === me} who={nameOf(t.assignee_id)} comments={comments[t.id] ?? 0} section={withSection ? secName(t.section_id) : undefined} items={items[t.id]} />
+    <TaskRow key={t.id} t={t} today={today} canAct={manage || onTask(t, me)} who={whoLabel(t, nameOf)} comments={comments[t.id] ?? 0} section={withSection ? secName(t.section_id) : undefined} items={items[t.id]} />
   );
 
   return (
@@ -243,20 +245,26 @@ export default async function WorkspacePage({
 
       {tab === "tugas" && sections !== null && (
         <div className="mb-4 inline-flex rounded-xl bg-white p-1 text-sm shadow-soft">
-          <Link href={`/tim/${id}?tab=tugas`} className={`rounded-lg px-3 py-1.5 font-semibold ${!board ? "bg-heading text-white" : "text-muted"}`}>
+          <Link href={`/tim/${id}?tab=tugas`} className={`rounded-lg px-3 py-1.5 font-semibold ${!board && !calendar ? "bg-heading text-white" : "text-muted"}`}>
             ☰ Daftar per {L.toLowerCase()}
           </Link>
           <Link href={`/tim/${id}?tab=tugas&v=papan`} className={`rounded-lg px-3 py-1.5 font-semibold ${board ? "bg-heading text-white" : "text-muted"}`}>
             ▦ Papan
           </Link>
+          <Link href={`/tim/${id}?tab=tugas&v=kalender`} className={`rounded-lg px-3 py-1.5 font-semibold ${calendar ? "bg-heading text-white" : "text-muted"}`}>
+            📅 Kalender
+          </Link>
         </div>
       )}
 
       {tab === "tugas" && board && sections !== null && <Board />}
+      {tab === "tugas" && calendar && sections !== null && (
+        <TeamCalendar ws={id} tasks={live} today={today} me={me} mode={sp.cal} at={sp.d} mineOnly={view === "saya"} nameOf={(t) => whoLabel(t, nameOf)} />
+      )}
 
       {tab === "diskusi" && <Discussion />}
 
-      {tab === "tugas" && !(board && sections !== null) && (
+      {tab === "tugas" && !((board || calendar) && sections !== null) && (
         <div className="grid gap-5 lg:grid-cols-5 lg:gap-6">
           <div className="space-y-5 lg:col-span-3">
             <div className="flex flex-wrap gap-2 text-sm">
@@ -276,7 +284,7 @@ export default async function WorkspacePage({
             {manage && !ws.archived && view !== "arsip" && sections === null && (
               <section className="card p-5 lg:p-6">
                 <h2 className="mb-1 font-bold text-heading">Bagi tugas</h2>
-                <AddTaskForm ws={id} me={me} today={today} people={pickPeople} sections={null} goals={goalOpts} />
+                <AddTaskForm ws={id} me={me} today={today} people={pickPeople} sections={null} goals={goalOpts} collab={collab} />
               </section>
             )}
 
@@ -314,7 +322,7 @@ export default async function WorkspacePage({
                   </section>
                 )}
                 {[...(sections ?? []), { id: "", name: sections === null ? "Semua tugas" : `Tanpa ${L.toLowerCase()}`, sort: 999 }].map((sec) => {
-                  const inSec = live.filter((t) => (t.section_id && secName(t.section_id) ? t.section_id : "") === sec.id && (view !== "saya" || t.assignee_id === me));
+                  const inSec = live.filter((t) => (t.section_id && secName(t.section_id) ? t.section_id : "") === sec.id && (view !== "saya" || onTask(t, me)));
                   if (!inSec.length && (sec.id === "" ? sections !== null : view === "saya")) return null;
                   const open = inSec.filter((t) => t.status === "open").sort(byPriority);
                   const fin = inSec.filter((t) => t.status !== "open").sort((a, b) => (b.done_at ?? b.updated_at).localeCompare(a.done_at ?? a.updated_at));
@@ -347,7 +355,7 @@ export default async function WorkspacePage({
                       {fin.length > 10 && <p className="mt-2 text-xs text-muted">+{fin.length - 10} tugas selesai lainnya. Arsipkan supaya daftar rapi.</p>}
                       {manage && !ws.archived && sec.id && view !== "saya" && (
                         <>
-                          <AddTaskForm ws={id} me={me} today={today} people={pickPeople} sections={sectionOpts} goals={goalOpts} section={sec.id} collapsed level={L} />
+                          <AddTaskForm ws={id} me={me} today={today} people={pickPeople} sections={sectionOpts} goals={goalOpts} section={sec.id} collapsed level={L} collab={collab} />
                           <details className="mt-2 text-xs">
                             <summary className="cursor-pointer text-muted hover:text-heading">Ubah / hapus {L.toLowerCase()}</summary>
                             <div className="mt-2 flex items-center gap-1.5">
@@ -417,7 +425,7 @@ export default async function WorkspacePage({
             <h2 className="mb-3 flex items-center gap-2 font-bold text-heading">
               <Settings2 className="h-5 w-5 text-brand" /> Pengaturan ruang kerja
             </h2>
-            <WorkspaceSettingsForm id={id} name={ws.name} kind={ws.kind} end={ws.end_date} description={ws.description} dreams={ownerDreams.map((d) => ({ id: d.id, name: d.title }))} dreamId={ws.dream_id ?? null} />
+            <WorkspaceSettingsForm id={id} name={ws.name} kind={ws.kind} end={ws.end_date} description={ws.description} dreams={ownerDreams.map((d) => ({ id: d.id, name: d.title }))} dreamId={ws.dream_id ?? null} requireProof={collab ? !!ws.require_proof : undefined} />
           </section>
           <section className="card h-fit p-5 lg:col-span-2">
             <h2 className="font-bold text-heading">{ws.archived ? "Aktifkan lagi" : "Arsipkan"}</h2>
@@ -438,7 +446,7 @@ export default async function WorkspacePage({
   /** Papan: Belum mulai → Dikerjakan → Selesai. Pindah kolom lewat tombol (nyaman di HP). */
   function Board() {
     const mineOnly = view === "saya";
-    const list = live.filter((t) => t.status !== "closed" && (!mineOnly || t.assignee_id === me));
+    const list = live.filter((t) => t.status !== "closed" && (!mineOnly || onTask(t, me)));
     const cols = [
       { k: "todo", title: "Belum mulai", tone: "border-line" },
       { k: "doing", title: "Dikerjakan", tone: "border-gold/60" },
@@ -468,7 +476,7 @@ export default async function WorkspacePage({
                 <div className="space-y-2">
                   {inCol.map((t) => {
                     const it = items[t.id];
-                    const act = manage || t.assignee_id === me;
+                    const act = manage || onTask(t, me);
                     return (
                       <div key={t.id} className={`rounded-xl border bg-white p-3 shadow-soft ${isLate(t, today) ? "border-danger/50" : "border-line"}`}>
                         <Link href={`/tim/${id}/tugas/${t.id}`} className="block">
@@ -478,7 +486,7 @@ export default async function WorkspacePage({
                             {t.title}
                           </span>
                           <span className={`mt-1 block text-[11px] ${isLate(t, today) ? "font-semibold text-danger" : "text-muted"}`}>
-                            {[`👤 ${nameOf(t.assignee_id)}`, t.due_date && `⏰ ${tanggalPendek(t.due_date)}`, t.repeat && "🔁", it?.total ? `☑ ${it.done}/${it.total}` : null, comments[t.id] ? `💬 ${comments[t.id]}` : null].filter(Boolean).join(" · ")}
+                            {[`👤 ${whoLabel(t, nameOf)}`, t.due_date && `⏰ ${tanggalPendek(t.due_date)}`, t.repeat && "🔁", it?.total ? `☑ ${it.done}/${it.total}` : null, comments[t.id] ? `💬 ${comments[t.id]}` : null].filter(Boolean).join(" · ")}
                           </span>
                         </Link>
                         {act && c.k !== "done" && (
@@ -537,7 +545,7 @@ export default async function WorkspacePage({
           {msgs.length === 0 && <li className="text-sm text-muted">Belum ada pesan. Sapa tim Anda di sini 👋</li>}
         </ul>
         <div className="mt-4">
-          <MessageForm ws={id} />
+          <MessageForm ws={id} mentions={people.filter((p) => p.user_id !== me && p.username && p.status === "active").map((p) => ({ u: p.username as string, name: personName(p) }))} />
         </div>
       </section>
     );
@@ -609,7 +617,7 @@ export default async function WorkspacePage({
             </div>
           </section>
 
-          {manage && <NeedsAction items={late.map((t) => ({ ...t, who: nameOf(t.assignee_id) }))} today={today} tomorrow={tomorrow} />}
+          {manage && <NeedsAction items={late.map((t) => ({ ...t, who: whoLabel(t, nameOf) }))} today={today} tomorrow={tomorrow} />}
 
           {groups.length > 0 && (
             <section className="card p-5 lg:p-6">
@@ -635,7 +643,7 @@ export default async function WorkspacePage({
             <h2 className="font-bold text-heading">Per orang</h2>
             <ul className="mt-2 divide-y divide-line">
               {people.map((pp) => {
-                const mine = inPeriod.filter((t) => t.assignee_id === pp.user_id && t.status !== "closed");
+                const mine = inPeriod.filter((t) => onTask(t, pp.user_id) && t.status !== "closed");
                 const d = mine.filter((t) => t.status === "done").length;
                 const l = mine.filter((t) => isLate(t, today)).length;
                 return (

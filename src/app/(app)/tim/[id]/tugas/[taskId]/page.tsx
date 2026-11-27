@@ -1,14 +1,14 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, CheckCircle2, ListChecks, MessageCircle, Play, Trash2 } from "lucide-react";
-import { archiveTask, deleteComment, deleteItem, deleteTask, rescheduleTask, setTaskStatus, toggleItem } from "@/app/actions/team";
+import { archiveTask, ccItem, deleteComment, deleteItem, deleteTask, rescheduleTask, setTaskStatus, toggleItem } from "@/app/actions/team";
 import { getDreams } from "@/lib/data";
 import { getPockets } from "@/lib/finance-server";
 import { rupiah } from "@/lib/format";
 import { Sparkles } from "lucide-react";
 import { PendingButton } from "@/components/pending-button";
-import { CommentForm, EditTaskForm, ItemForm, ResultForm } from "@/components/team/forms";
-import { canManage, getTask, isLate, levelName, personName, REPEAT_LABEL } from "@/lib/team";
+import { CommentForm, DoneForm, EditTaskForm, ItemForm, ResultForm } from "@/components/team/forms";
+import { canManage, getTask, isLate, levelName, onTask, personName, REPEAT_LABEL } from "@/lib/team";
 import { tanggalPendek, todayJakarta } from "@/lib/format";
 
 export const metadata = { title: "Tugas tim" };
@@ -16,11 +16,11 @@ export const metadata = { title: "Tugas tim" };
 const STATUS = { open: "Berjalan", done: "Selesai", closed: "Dibatalkan" } as const;
 const waktu = (iso: string) => new Date(iso).toLocaleString("id-ID", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jakarta" });
 
-export default async function TaskPage({ params }: { params: Promise<{ id: string; taskId: string }> }) {
-  const { id, taskId } = await params;
+export default async function TaskPage({ params, searchParams }: { params: Promise<{ id: string; taskId: string }>; searchParams: Promise<{ selesai?: string }> }) {
+  const [{ id, taskId }, sp] = await Promise.all([params, searchParams]);
   const data = await getTask(id, taskId);
   if (!data) notFound();
-  const { ws, task: t, people, role, me, list, sections, goals, taskItems } = data;
+  const { ws, task: t, people, role, me, list, sections, goals, taskItems, collab } = data;
   const L = levelName(ws.kind);
   const today = todayJakarta();
   const owner = role === "owner";
@@ -30,7 +30,10 @@ export default async function TaskPage({ params }: { params: Promise<{ id: strin
   const goal = goals.find((g) => g.id === t.goal_id)?.title;
   const late = isLate(t, today);
   const manage = canManage(role);
-  const mine = t.assignee_id === me;
+  const mine = onTask(t, me);
+  const helpers = (t.helpers ?? []).filter((h) => h !== t.assignee_id);
+  const mentions = people.filter((p) => p.user_id !== me && p.username && p.status === "active").map((p) => ({ u: p.username as string, name: personName(p) }));
+  const activePeople = people.filter((p) => p.status === "active");
   const canAct = manage || mine;
   const person = (uid: string | null) => people.find((p) => p.user_id === uid);
 
@@ -64,7 +67,10 @@ export default async function TaskPage({ params }: { params: Promise<{ id: strin
             <dl className="mt-4 grid grid-cols-2 gap-3 text-sm sm:grid-cols-4">
               <div>
                 <dt className="text-xs text-muted">Dikerjakan oleh</dt>
-                <dd className="font-semibold text-heading">{t.assignee_id ? personName(person(t.assignee_id)) : "Belum ditentukan"}</dd>
+                <dd className="font-semibold text-heading">
+                  {t.assignee_id ? personName(person(t.assignee_id)) : "Belum ditentukan"}
+                  {helpers.length > 0 && <span className="block text-xs font-normal text-muted">bersama {helpers.map((h) => personName(person(h))).join(", ")}</span>}
+                </dd>
               </div>
               <div>
                 <dt className="text-xs text-muted">Diberikan oleh</dt>
@@ -89,14 +95,33 @@ export default async function TaskPage({ params }: { params: Promise<{ id: strin
                         <Play className="h-4 w-4" /> Mulai kerjakan
                       </Btn>
                     )}
-                    <Btn to="done" tone="primary">
-                      <CheckCircle2 className="h-4 w-4" /> Tandai selesai
-                    </Btn>
+                    {!collab && (
+                      <Btn to="done" tone="primary">
+                        <CheckCircle2 className="h-4 w-4" /> Tandai selesai
+                      </Btn>
+                    )}
                     {t.plan_date <= today ? <Btn to="tomorrow">Lanjut besok</Btn> : <Btn to="today">Kerjakan hari ini</Btn>}
                     {manage && <Btn to="closed">Batalkan</Btn>}
                   </>
                 ) : (
                   <Btn to="open">Buka lagi</Btn>
+                )}
+              </div>
+            )}
+            {canAct && collab && t.status === "open" && (
+              <div className="mt-3">
+                {sp.selesai === "1" && <p className="mb-2 rounded-lg bg-gold-soft px-3 py-2 text-sm font-semibold text-heading">Ruang kerja ini meminta bukti. Isi rangkuman atau link hasil kerja dulu, lalu tandai selesai.</p>}
+                <DoneForm task={t.id} required={!!ws.require_proof} link={t.proof_link} note={t.proof_note} />
+              </div>
+            )}
+            {t.status === "done" && (t.proof_link || t.proof_note) && (
+              <div className="mt-4 rounded-2xl border border-success/30 bg-success/5 p-3.5 text-sm">
+                <p className="font-bold text-heading">✅ Bukti selesai</p>
+                {t.proof_note && <p className="mt-1 whitespace-pre-line text-ink">{t.proof_note}</p>}
+                {t.proof_link && (
+                  <a href={t.proof_link} target="_blank" rel="noopener noreferrer nofollow" className="mt-1 block break-all font-semibold text-brand underline">
+                    {t.proof_link}
+                  </a>
                 )}
               </div>
             )}
@@ -137,7 +162,7 @@ export default async function TaskPage({ params }: { params: Promise<{ id: strin
               <ul className="mt-3 space-y-1.5">
                 {taskItems.map((i) => (
                   <li key={i.id} className="flex items-center gap-2">
-                    {canAct ? (
+                    {canAct || i.assignee_id === me ? (
                       <form action={toggleItem}>
                         <input type="hidden" name="ws" value={id} />
                         <input type="hidden" name="task" value={t.id} />
@@ -150,7 +175,39 @@ export default async function TaskPage({ params }: { params: Promise<{ id: strin
                     ) : (
                       <span className={`flex h-6 w-6 items-center justify-center rounded-md border-2 text-xs ${i.done ? "border-success bg-success text-white" : "border-line"}`}>{i.done ? "✓" : ""}</span>
                     )}
-                    <span className={`flex-1 text-sm ${i.done ? "text-muted line-through" : "text-ink"}`}>{i.title}</span>
+                    <span className={`flex-1 text-sm ${i.done ? "text-muted line-through" : "text-ink"}`}>
+                      {i.title}
+                      {i.assignee_id && (
+                        <span className="ml-1.5 rounded-full bg-gold-soft px-2 py-0.5 text-[11px] font-semibold text-heading no-underline">
+                          CC {i.assignee_id === me ? "saya" : personName(person(i.assignee_id))}
+                          {i.plan_date ? ` · ${i.plan_date === today ? "hari ini" : tanggalPendek(i.plan_date)}` : ""}
+                        </span>
+                      )}
+                    </span>
+                    {canAct && collab && !i.done && (
+                      <details className="relative">
+                        <summary className="cursor-pointer list-none rounded-md px-1.5 text-xs font-semibold text-brand hover:bg-paper" title="Jadikan rencana harian orang lain">
+                          CC
+                        </summary>
+                        <form action={ccItem} className="absolute right-0 z-10 mt-1 w-64 space-y-2 rounded-xl border border-line bg-white p-3 shadow-soft">
+                          <input type="hidden" name="ws" value={id} />
+                          <input type="hidden" name="task" value={t.id} />
+                          <input type="hidden" name="id" value={i.id} />
+                          <p className="text-xs text-muted">Langkah ini masuk ke Laporan Harian orang yang dipilih.</p>
+                          <select name="user" defaultValue={i.assignee_id ?? ""} className="input h-9 text-sm">
+                            <option value="">Tanpa CC</option>
+                            {activePeople.map((p) => (
+                              <option key={p.user_id} value={p.user_id}>
+                                {personName(p)}
+                                {p.user_id === me ? " (saya)" : ""}
+                              </option>
+                            ))}
+                          </select>
+                          <input type="date" name="date" defaultValue={i.plan_date ?? today} className="input h-9 text-sm" aria-label="Tanggal" />
+                          <PendingButton className="btn-primary w-full py-2 text-sm">Simpan</PendingButton>
+                        </form>
+                      </details>
+                    )}
                     {canAct && (
                       <form action={deleteItem}>
                         <input type="hidden" name="ws" value={id} />
@@ -216,7 +273,7 @@ export default async function TaskPage({ params }: { params: Promise<{ id: strin
               {list.length === 0 && <li className="text-sm text-muted">Belum ada komentar. Tanyakan hal yang belum jelas, atau kabarkan progres di sini.</li>}
             </ul>
             <div className="mt-4">
-              <CommentForm ws={id} task={t.id} />
+              <CommentForm ws={id} task={t.id} mentions={mentions} />
             </div>
           </section>
         </div>
@@ -232,6 +289,7 @@ export default async function TaskPage({ params }: { params: Promise<{ id: strin
                 sections={sections?.map((x) => ({ id: x.id, name: x.name })) ?? null}
                 goals={goals.filter((g) => g.status === "active").map((g) => ({ id: g.id, name: g.title }))}
                 level={L}
+                collab={collab}
               />
             </section>
             <form action={deleteTask}>

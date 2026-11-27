@@ -15,6 +15,8 @@ export type Workspace = {
   invite_code: string;
   archived: boolean;
   created_at: string;
+  /** SQL 028: wajib isi bukti saat menandai selesai. */
+  require_proof?: boolean;
 };
 export type MyWorkspace = Workspace & { role: WsRole; open: number; mine: number; late: number };
 export type Person = { user_id: string; full_name: string | null; username: string | null; role: WsRole; status: "invited" | "active"; joined_at: string | null; /** Plus aktif (SQL 027). */ plus?: boolean };
@@ -42,8 +44,14 @@ export type TeamTask = {
   /** Kolom SQL 026. */
   started_at?: string | null;
   repeat?: "daily" | "weekly" | "monthly" | null;
+  /** Kolom SQL 028: rekan yang ikut mengerjakan, bukti selesai. */
+  helpers?: string[];
+  proof_link?: string | null;
+  proof_note?: string | null;
 };
-export type TaskItem = { id: string; task_id: string; title: string; done: boolean; sort: number };
+/** Saya penanggung jawab atau ikut mengerjakan tugas ini? */
+export const onTask = (t: Pick<TeamTask, "assignee_id" | "helpers">, uid: string) => t.assignee_id === uid || (t.helpers ?? []).includes(uid);
+export type TaskItem = { id: string; task_id: string; title: string; done: boolean; sort: number; /** SQL 028: di-CC ke orang lain. */ assignee_id?: string | null; plan_date?: string | null; done_at?: string | null };
 export type TeamMessage = { id: string; user_id: string; body: string; created_at: string };
 /** Nama tingkat ke-2: Project → Tahapan, Perusahaan → Area kerja. */
 export const levelName = (kind: "company" | "project") => (kind === "project" ? "Tahapan" : "Area kerja");
@@ -126,7 +134,7 @@ export const getMyWorkspaces = cache(async (): Promise<MyWorkspace[]> => {
     const w = list.find((x) => x.id === t.workspace_id);
     if (!w || t.archived) continue;
     w.open++;
-    if (t.assignee_id === user.id) w.mine++;
+    if (onTask(t, user.id)) w.mine++;
     if (isLate(t, today)) w.late++;
   }
   return list.sort((a, b) => Number(a.archived) - Number(b.archived) || a.name.localeCompare(b.name));
@@ -177,6 +185,8 @@ export async function getWorkspace(id: string) {
     comments,
     items,
     checklist: !it.error,
+    /** SQL 028 aktif: banyak pengerjaan, bukti, CC checklist. */
+    collab: "require_proof" in (ws as object),
     sections: sec.error ? null : ((sec.data ?? []) as Section[]),
     goals: gl.error ? [] : ((gl.data ?? []) as Goal[]).map((g) => ({ ...g, target_value: g.target_value === null ? null : Number(g.target_value), current_value: Number(g.current_value) })),
   };
@@ -204,15 +214,16 @@ export const getMyTeamTasks = cache(async (today: string, tomorrow: string): Pro
   if (!user) return [];
   const supabase = await createClient();
   const startJkt = new Date(`${today}T00:00:00+07:00`).toISOString();
-  const { data, error } = await supabase
-    .from("ws_tasks")
-    .select("*, workspaces(name, archived)")
-    .eq("assignee_id", user.id)
-    .or(`and(status.eq.open,plan_date.lte.${tomorrow}),and(status.eq.done,done_at.gte."${startJkt}")`)
-    .order("plan_date")
-    .limit(100);
+  const when = `and(status.eq.open,plan_date.lte.${tomorrow}),and(status.eq.done,done_at.gte."${startJkt}")`;
+  const [{ data, error }, helping] = await Promise.all([
+    supabase.from("ws_tasks").select("*, workspaces(name, archived)").eq("assignee_id", user.id).or(when).order("plan_date").limit(100),
+    // Tugas di mana saya ikut mengerjakan (SQL 028). Error = kolom belum ada, abaikan.
+    supabase.from("ws_tasks").select("*, workspaces(name, archived)").contains("helpers", [user.id]).or(when).order("plan_date").limit(100),
+  ]);
   if (error || !data) return [];
-  const rows = (data as unknown as (TeamTask & { workspaces: { name: string; archived: boolean } | null })[]).filter((t) => t.workspaces && !t.workspaces.archived && !t.archived);
+  type Row = TeamTask & { workspaces: { name: string; archived: boolean } | null };
+  const all = [...(data as unknown as Row[]), ...((helping.error ? [] : (helping.data ?? [])) as unknown as Row[])].filter((t, i, a) => a.findIndex((x) => x.id === t.id) === i);
+  const rows = all.filter((t) => t.workspaces && !t.workspaces.archived && !t.archived).sort((a, b) => a.plan_date.localeCompare(b.plan_date));
   const ids = rows.map((r) => r.id);
   const counts: Record<string, number> = {};
   if (ids.length) {
@@ -221,6 +232,36 @@ export const getMyTeamTasks = cache(async (today: string, tomorrow: string): Pro
   }
   return rows.map(({ workspaces, ...t }) => ({ ...t, ws_name: workspaces?.name ?? "Tim", comments: counts[t.id] ?? 0 }));
 });
+
+export type MyTeamItem = TaskItem & { task_title: string; workspace_id: string; ws_name: string };
+
+/** Langkah checklist yang di-CC ke saya (SQL 028): belum dicentang sampai besok, plus yang dicentang hari ini. */
+export const getMyTeamItems = cache(async (today: string, tomorrow: string): Promise<MyTeamItem[]> => {
+  if (isDemoMode) return [];
+  const { user } = await getMe();
+  if (!user) return [];
+  const supabase = await createClient();
+  const startJkt = new Date(`${today}T00:00:00+07:00`).toISOString();
+  const { data, error } = await supabase
+    .from("ws_task_items")
+    .select("*, ws_tasks(title, status, archived, workspaces(name, archived))")
+    .eq("assignee_id", user.id)
+    .lte("plan_date", tomorrow)
+    .or(`done.eq.false,done_at.gte."${startJkt}"`)
+    .order("plan_date")
+    .limit(60);
+  if (error || !data) return [];
+  type Row = TaskItem & { workspace_id: string; ws_tasks: { title: string; status: string; archived?: boolean; workspaces: { name: string; archived: boolean } | null } | null };
+  return (data as unknown as Row[])
+    .filter((i) => i.ws_tasks && i.ws_tasks.status !== "closed" && !i.ws_tasks.archived && i.ws_tasks.workspaces && !i.ws_tasks.workspaces.archived)
+    .map(({ ws_tasks, ...i }) => ({ ...i, task_title: ws_tasks?.title ?? "Tugas", ws_name: ws_tasks?.workspaces?.name ?? "Tim" }));
+});
+
+/** Nama pengerjaan: "Budi" atau "Budi +2". */
+export const whoLabel = (t: Pick<TeamTask, "assignee_id" | "helpers">, nameOf: (uid: string | null) => string) => {
+  const n = (t.helpers ?? []).filter((h) => h !== t.assignee_id).length;
+  return n ? `${nameOf(t.assignee_id)} +${n}` : nameOf(t.assignee_id);
+};
 
 export async function getNotices(limit = 20): Promise<Notice[]> {
   if (isDemoMode) return [];

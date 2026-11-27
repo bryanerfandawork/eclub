@@ -2,7 +2,7 @@
 
 import { useActionState, useEffect, useRef, useState } from "react";
 import { Send, UserPlus } from "lucide-react";
-import { addComment, addGoal, addItem, postMessage, addSection, addTask, createWorkspace, inviteByUsername, joinByCode, saveTaskResult, setUsername, updateTask, updateWorkspace } from "@/app/actions/team";
+import { addComment, addGoal, addItem, postMessage, addSection, addTask, createWorkspace, inviteByUsername, joinByCode, saveTaskResult, setTaskStatus, setUsername, updateTask, updateWorkspace } from "@/app/actions/team";
 import { rupiah } from "@/lib/format";
 import { SubmitButton } from "@/components/submit-button";
 import { FormMessage } from "@/components/ui";
@@ -10,6 +10,34 @@ import type { FormState } from "@/app/actions/auth";
 
 type Opt = { id: string; name: string };
 type Person = { id: string; name: string; pending?: boolean };
+/** Orang yang bisa di-@mention. */
+export type Mention = { u: string; name: string };
+
+/** Deretan chip @nama: ketuk untuk menyebut orang di komentar/pesan (dapat notifikasi HP). */
+function MentionBar({ people, target }: { people: Mention[]; target: React.RefObject<HTMLTextAreaElement | null> }) {
+  if (!people.length) return null;
+  return (
+    <div className="flex flex-wrap items-center gap-1.5 text-xs">
+      <span className="text-muted">Sebut:</span>
+      {people.map((p) => (
+        <button
+          key={p.u}
+          type="button"
+          onClick={() => {
+            const el = target.current;
+            if (!el) return;
+            const pre = el.value && !/\s$/.test(el.value) ? " " : "";
+            el.value = `${el.value}${pre}@${p.u} `;
+            el.focus();
+          }}
+          className="rounded-full border border-line bg-white px-2 py-0.5 font-semibold text-heading hover:border-gold"
+        >
+          @{p.name}
+        </button>
+      ))}
+    </div>
+  );
+}
 
 function DreamSelect({ dreams, value }: { dreams: Opt[]; value?: string | null }) {
   return (
@@ -37,12 +65,15 @@ function TaskFields({
   d,
   fixedSection,
   level = "Tahapan",
+  collab = false,
 }: {
   people: Person[];
   sections: Opt[] | null;
   goals: Opt[];
   me?: string;
-  d?: { assignee_id: string | null; section_id?: string | null; goal_id?: string | null; important?: boolean; repeat?: string | null };
+  d?: { assignee_id: string | null; section_id?: string | null; goal_id?: string | null; important?: boolean; repeat?: string | null; helpers?: string[] };
+  /** SQL 028 aktif: bisa ajak lebih dari 1 orang. */
+  collab?: boolean;
   /** Form di dalam kartu tahapan/area: sudah pasti. */
   fixedSection?: string;
   /** "Tahapan" (project) atau "Area kerja" (perusahaan). */
@@ -85,6 +116,22 @@ function TaskFields({
           </label>
         )}
       </div>
+      {collab && people.length > 1 && (
+        <details className="rounded-xl border border-line bg-white px-3 py-2" open={!!d?.helpers?.length}>
+          <summary className="cursor-pointer text-xs font-semibold text-brand">＋ Ikut mengerjakan (opsional){d?.helpers?.length ? ` · ${d.helpers.length} orang` : ""}</summary>
+          <input type="hidden" name="helpers_field" value="1" />
+          <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1.5">
+            {people.map((p) => (
+              <label key={p.id} className="flex items-center gap-1.5 text-sm text-ink">
+                <input type="checkbox" name="helpers" value={p.id} defaultChecked={d?.helpers?.includes(p.id)} className="h-4 w-4 accent-brand" />
+                {p.name}
+                {p.id === me ? " (saya)" : ""}
+              </label>
+            ))}
+          </div>
+          <p className="mt-1 text-[11px] text-muted">Tugas juga muncul di Laporan Harian mereka, dan mereka bisa menandai selesai.</p>
+        </details>
+      )}
       {sections !== null && (
         <div className="flex flex-wrap items-center gap-3">
           {goals.length > 0 && (
@@ -156,7 +203,7 @@ export function CreateWorkspaceForm({ dreams }: { dreams: Opt[] }) {
   );
 }
 
-export function WorkspaceSettingsForm({ id, name, kind, end, description, dreams, dreamId }: { id: string; name: string; kind: "company" | "project"; end: string | null; description: string | null; dreams: Opt[]; dreamId: string | null }) {
+export function WorkspaceSettingsForm({ id, name, kind, end, description, dreams, dreamId, requireProof }: { id: string; name: string; kind: "company" | "project"; end: string | null; description: string | null; dreams: Opt[]; dreamId: string | null; /** undefined = SQL 028 belum jalan. */ requireProof?: boolean }) {
   const [state, action] = useActionState<FormState, FormData>(updateWorkspace, undefined);
   const [k, setK] = useState(kind);
   return (
@@ -186,6 +233,16 @@ export function WorkspaceSettingsForm({ id, name, kind, end, description, dreams
         <textarea name="description" rows={2} defaultValue={description ?? ""} className="input text-sm" maxLength={300} />
       </label>
       <DreamSelect dreams={dreams} value={dreamId} />
+      {requireProof !== undefined && (
+        <label className="flex items-start gap-2 rounded-xl bg-paper p-3 text-sm">
+          <input type="hidden" name="proof_field" value="1" />
+          <input type="checkbox" name="require_proof" defaultChecked={requireProof} className="mt-0.5 h-4 w-4 accent-brand" />
+          <span>
+            <b className="text-heading">Wajib isi bukti saat tugas selesai</b>
+            <span className="block text-xs text-muted">Link hasil kerja atau rangkuman singkat, supaya Anda bisa memeriksa hasilnya.</span>
+          </span>
+        </label>
+      )}
       <SubmitButton>Simpan</SubmitButton>
       <FormMessage state={state} />
     </form>
@@ -222,8 +279,10 @@ export function AddTaskForm({
   section,
   collapsed = false,
   level,
+  collab,
 }: {
   ws: string;
+  collab?: boolean;
   people: Person[];
   me: string;
   today: string;
@@ -249,7 +308,7 @@ export function AddTaskForm({
     <form ref={ref} action={action} className="mt-3 space-y-2 rounded-2xl bg-paper p-3.5">
       <input type="hidden" name="ws" value={ws} />
       <input name="title" className="input" placeholder="Tugas, mis. Mendaftarkan NIB / Press pin order 50 pcs" maxLength={160} required autoFocus={collapsed} />
-      <TaskFields people={people} sections={sections} goals={goals} me={me} fixedSection={section} level={level} />
+      <TaskFields people={people} sections={sections} goals={goals} me={me} fixedSection={section} level={level} collab={collab} />
       <div className="grid grid-cols-2 gap-2">
         <label className="block">
           <span className="text-xs text-muted">Mulai dikerjakan</span>
@@ -287,9 +346,11 @@ export function EditTaskForm({
   sections,
   goals,
   level,
+  collab,
 }: {
   ws: string;
-  task: { id: string; title: string; description: string | null; assignee_id: string | null; plan_date: string; due_date: string | null; section_id?: string | null; goal_id?: string | null; important?: boolean; repeat?: string | null };
+  collab?: boolean;
+  task: { id: string; title: string; description: string | null; assignee_id: string | null; plan_date: string; due_date: string | null; section_id?: string | null; goal_id?: string | null; important?: boolean; repeat?: string | null; helpers?: string[] };
   people: Person[];
   sections: Opt[] | null;
   goals: Opt[];
@@ -308,7 +369,7 @@ export function EditTaskForm({
         <span className="label">Detail</span>
         <textarea name="description" rows={3} defaultValue={task.description ?? ""} className="input text-sm" maxLength={2000} />
       </label>
-      <TaskFields people={people} sections={sections} goals={goals} d={task} level={level} />
+      <TaskFields people={people} sections={sections} goals={goals} d={task} level={level} collab={collab} />
       <div className="grid grid-cols-2 gap-2">
         <label className="block">
           <span className="text-xs text-muted">Jadwal dikerjakan</span>
@@ -325,20 +386,22 @@ export function EditTaskForm({
   );
 }
 
-export function CommentForm({ ws, task }: { ws: string; task: string }) {
+export function CommentForm({ ws, task, mentions = [] }: { ws: string; task: string; mentions?: Mention[] }) {
   const [state, action] = useActionState<FormState, FormData>(addComment, undefined);
   const ref = useResetOnSuccess(state);
+  const box = useRef<HTMLTextAreaElement>(null);
   return (
     <form ref={ref} action={action} className="space-y-2">
       <input type="hidden" name="ws" value={ws} />
       <input type="hidden" name="task" value={task} />
       <div className="flex items-end gap-2">
-        <textarea name="body" rows={2} className="input text-sm" placeholder="Tulis komentar, pertanyaan, atau kabar progres…" maxLength={1000} required />
+        <textarea ref={box} name="body" rows={2} className="input text-sm" placeholder="Tulis komentar… ketik @username untuk menyebut orang" maxLength={1000} required />
         <SubmitButton className="btn-primary shrink-0 px-3" pendingText="">
           <Send className="h-4 w-4" />
           <span className="sr-only">Kirim</span>
         </SubmitButton>
       </div>
+      <MentionBar people={mentions} target={box} />
       {state?.error && <FormMessage state={state} />}
     </form>
   );
@@ -529,20 +592,36 @@ export function ItemForm({ ws, task }: { ws: string; task: string }) {
   );
 }
 
-export function MessageForm({ ws }: { ws: string }) {
+export function MessageForm({ ws, mentions = [] }: { ws: string; mentions?: Mention[] }) {
   const [state, action] = useActionState<FormState, FormData>(postMessage, undefined);
   const ref = useResetOnSuccess(state);
+  const box = useRef<HTMLTextAreaElement>(null);
   return (
     <form ref={ref} action={action} className="space-y-2">
       <input type="hidden" name="ws" value={ws} />
       <div className="flex items-end gap-2">
-        <textarea name="body" rows={2} className="input text-sm" placeholder="Tulis pesan untuk seluruh tim…" maxLength={2000} required />
+        <textarea ref={box} name="body" rows={2} className="input text-sm" placeholder="Tulis pesan untuk tim… ketik @username untuk menyebut orang" maxLength={2000} required />
         <SubmitButton className="btn-primary shrink-0 px-3" pendingText="">
           <Send className="h-4 w-4" />
           <span className="sr-only">Kirim</span>
         </SubmitButton>
       </div>
+      <MentionBar people={mentions} target={box} />
       {state?.error && <FormMessage state={state} />}
+    </form>
+  );
+}
+
+/** Tandai selesai + bukti (link hasil kerja / rangkuman). */
+export function DoneForm({ task, required, link, note }: { task: string; required: boolean; link?: string | null; note?: string | null }) {
+  return (
+    <form action={setTaskStatus} id="selesai" className="scroll-mt-24 space-y-2 rounded-2xl border border-success/30 bg-success/5 p-3.5">
+      <input type="hidden" name="id" value={task} />
+      <input type="hidden" name="to" value="done" />
+      <p className="text-sm font-bold text-heading">Bukti pekerjaan selesai {required ? "*" : "(opsional)"}</p>
+      <input name="proof_link" type="url" defaultValue={link ?? ""} className="input text-sm" placeholder="Link hasil kerja, mis. Google Drive / postingan / foto" maxLength={500} />
+      <textarea name="proof_note" rows={2} defaultValue={note ?? ""} className="input text-sm" placeholder="Rangkuman singkat, mis. 50 pcs sudah dikirim via JNE, resi 123…" maxLength={2000} required={required} />
+      <SubmitButton className="btn-primary w-full">✓ Tandai selesai</SubmitButton>
     </form>
   );
 }

@@ -18,7 +18,8 @@ import { demoDaily } from "@/lib/demo";
 import { tanggalPanjang, todayJakarta } from "@/lib/format";
 import { isDemoMode } from "@/lib/supabase/config";
 import type { DailyAction } from "@/lib/types";
-import { getManagedAlerts, getMyTeamTasks, getTeamState } from "@/lib/team";
+import { getManagedAlerts, getMyTeamItems, getMyTeamTasks, getTeamState } from "@/lib/team";
+import { toggleItem } from "@/app/actions/team";
 import { NeedsAction } from "@/components/team/needs-action";
 import { TaskRow } from "@/components/team/task-row";
 import { FolderKanban } from "lucide-react";
@@ -41,6 +42,7 @@ export default async function TodayPage() {
     getLimit("daily_action"),
   ]);
   const [fin, finToday, acc, teamTasks, team] = await Promise.all([getFinance(today.slice(0, 7)), getFinToday(), getAccount(), getMyTeamTasks(today, tomorrow), getTeamState(), ]);
+  const teamItems = (await getMyTeamItems(today, tomorrow)).filter((i) => (i.plan_date ?? today) <= today);
   const alerts = await getManagedAlerts(today);
   const simple = team.simple;
   const teamNow = teamTasks.filter((t) => t.plan_date <= today);
@@ -109,7 +111,7 @@ export default async function TodayPage() {
   };
 
   // Pekerjaan Tim: tugas dari ruang kerja, terpisah dari rencana pribadi dan tidak dihitung di batas paket gratis.
-  const teamSection = (teamTasks.length > 0 || simple || team.workspaces > 0) && (
+  const teamSection = (teamTasks.length > 0 || teamItems.length > 0 || simple || team.workspaces > 0) && (
     <section className="card p-5 lg:p-6">
       <div className="flex items-center justify-between">
         <h2 className="flex items-center gap-2 font-bold text-heading">
@@ -132,6 +134,32 @@ export default async function TodayPage() {
             <TaskRow key={t.id} t={t} today={today} canAct label={t.ws_name} comments={t.comments} />
           ))}
         </ul>
+      )}
+      {teamItems.length > 0 && (
+        <div className="mt-3 rounded-xl bg-paper p-3">
+          <p className="text-xs font-bold text-heading">📋 Langkah yang di-CC ke Anda</p>
+          <ul className="mt-1.5 space-y-1.5">
+            {teamItems.map((i) => (
+              <li key={i.id} className="flex items-center gap-2">
+                <form action={toggleItem}>
+                  <input type="hidden" name="ws" value={i.workspace_id} />
+                  <input type="hidden" name="task" value={i.task_id} />
+                  <input type="hidden" name="id" value={i.id} />
+                  {i.done && <input type="hidden" name="done" value="1" />}
+                  <PendingButton className={`flex h-6 w-6 items-center justify-center rounded-md border-2 text-xs ${i.done ? "border-success bg-success text-white" : "border-line bg-white"}`} aria-label={i.done ? "Batal centang" : "Centang"}>
+                    {i.done ? "✓" : ""}
+                  </PendingButton>
+                </form>
+                <Link href={`/tim/${i.workspace_id}/tugas/${i.task_id}`} className="min-w-0 flex-1 text-sm">
+                  <span className={`block truncate ${i.done ? "text-muted line-through" : "text-ink"}`}>{i.title}</span>
+                  <span className={`block truncate text-[11px] ${(i.plan_date ?? today) < today && !i.done ? "font-semibold text-danger" : "text-muted"}`}>
+                    {i.ws_name} · {i.task_title}
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </div>
       )}
       {teamTomorrow.length > 0 && <p className="mt-2 text-xs text-muted">Besok: {teamTomorrow.length} tugas tim menunggu.</p>}
       <Link href="/tim" className="mt-3 inline-flex items-center gap-1 text-sm font-semibold text-brand">
