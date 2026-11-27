@@ -64,7 +64,7 @@ export async function updateWorkspace(_: FormState, f: FormData): Promise<FormSt
   const kind = str(f, "kind") === "project" ? "project" : "company";
   const { error } = await supabase
     .from("workspaces")
-    .update({ name, kind, description: str(f, "description", 300) || null, end_date: kind === "project" && isDate(end) ? end : null, dream_id: isId(str(f, "dream_id")) ? str(f, "dream_id") : null })
+    .update({ name, kind, description: str(f, "description", 300) || null, end_date: kind === "project" && isDate(end) ? end : null, dream_id: isId(str(f, "dream_id")) ? str(f, "dream_id") : null, ...(f.has("proof_field") ? { require_proof: f.get("require_proof") === "on" } : {}) })
     .eq("id", id);
   if (error) return { error: dbError(error, "Gagal menyimpan.") };
   refresh(id);
@@ -170,7 +170,22 @@ function extra(f: FormData) {
   if (f.has("goal_id")) o.goal_id = isId(str(f, "goal_id")) ? str(f, "goal_id") : null;
   if (f.has("important_field")) o.important = f.get("important") === "on";
   if (f.has("repeat")) o.repeat = ["daily", "weekly", "monthly"].includes(str(f, "repeat")) ? str(f, "repeat") : null;
+  if (f.has("helpers_field")) o.helpers = helpersOf(f);
   return o;
+}
+
+/** Rekan yang ikut mengerjakan (SQL 028), tanpa penanggung jawab utama. */
+function helpersOf(f: FormData) {
+  const main = str(f, "assignee");
+  return [...new Set(f.getAll("helpers").map(String).filter((x) => isId(x) && x !== main))].slice(0, 20);
+}
+
+/** @username di teks → id anggota tim yang disebut. */
+async function mentioned(supabase: Awaited<ReturnType<typeof createClient>>, ws: string, body: string) {
+  const names = [...new Set((body.toLowerCase().match(/@([a-z0-9_.]{3,20})/g) ?? []).map((m) => m.slice(1).replace(/\.+$/, "")))];
+  if (!names.length) return [] as string[];
+  const { data } = await supabase.rpc("ws_people", { p_ws: ws });
+  return ((data ?? []) as { user_id: string; username: string | null }[]).filter((p) => p.username && names.includes(p.username)).map((p) => p.user_id);
 }
 
 export async function addTask(_: FormState, f: FormData): Promise<FormState> {
@@ -194,9 +209,10 @@ export async function addTask(_: FormState, f: FormData): Promise<FormState> {
     if (error?.code === "42501") return { error: "Tidak bisa menambah tugas. Hanya pemilik/editor tim, dan paket Plus pemilik harus aktif." };
     return { error: dbError(error, "Gagal menyimpan tugas.") };
   }
-  if (isId(assignee) && assignee !== uid) {
+  const to = [assignee, ...(f.has("helpers_field") ? helpersOf(f) : [])].filter((x) => isId(x) && x !== uid);
+  if (to.length) {
     const { data: w } = await supabase.from("workspaces").select("name").eq("id", ws).maybeSingle();
-    await notifyTeam(ws, [assignee], uid, `Tugas baru · ${w?.name ?? "Tim"}`, title, `/tim/${ws}/tugas/${data.id}`);
+    await notifyTeam(ws, to, uid, `Tugas baru · ${w?.name ?? "Tim"}`, title, `/tim/${ws}/tugas/${data.id}`);
   }
   refresh(ws);
   return { message: "Tugas ditambahkan ✓" };
@@ -215,15 +231,17 @@ export async function updateTask(_: FormState, f: FormData): Promise<FormState> 
   const need = needed(f, assignee, due);
   if (need) return { error: need };
   const { supabase, uid } = await me();
-  const { data: before } = await supabase.from("ws_tasks").select("assignee_id").eq("id", id).maybeSingle();
+  const { data: before } = await supabase.from("ws_tasks").select("*").eq("id", id).maybeSingle();
   const { error } = await supabase
     .from("ws_tasks")
     .update({ title, description: str(f, "description", 2000) || null, assignee_id: isId(assignee) ? assignee : null, plan_date: plan, due_date: due || null, ...extra(f) })
     .eq("id", id);
   if (error) return { error: dbError(error, "Gagal menyimpan.") };
-  if (isId(assignee) && before?.assignee_id !== assignee) {
+  const old = new Set<string>([before?.assignee_id, ...((before?.helpers as string[] | undefined) ?? [])].filter(Boolean));
+  const fresh = [assignee, ...(f.has("helpers_field") ? helpersOf(f) : [])].filter((x) => isId(x) && x !== uid && !old.has(x));
+  if (fresh.length) {
     const { data: w } = await supabase.from("workspaces").select("name").eq("id", ws).maybeSingle();
-    await notifyTeam(ws, [assignee], uid, `Tugas untuk Anda · ${w?.name ?? "Tim"}`, title, `/tim/${ws}/tugas/${id}`);
+    await notifyTeam(ws, fresh, uid, `Tugas untuk Anda · ${w?.name ?? "Tim"}`, title, `/tim/${ws}/tugas/${id}`);
   }
   refresh(ws);
   return { message: "Tersimpan ✓" };
@@ -235,11 +253,19 @@ export async function setTaskStatus(f: FormData) {
   const id = str(f, "id");
   const to = str(f, "to");
   const { supabase, uid } = await me();
-  const { data: t } = await supabase.from("ws_tasks").select("workspace_id, title, followups, created_by, assignee_id, workspaces(name, owner_id)").eq("id", id).maybeSingle();
+  const { data: t } = await supabase.from("ws_tasks").select("*, workspaces(*)").eq("id", id).maybeSingle();
   if (!t) return;
+  // Bukti selesai (SQL 028): link hasil kerja dan/atau rangkuman.
+  const link = str(f, "proof_link", 500);
+  const note = str(f, "proof_note", 2000);
+  const proof = to === "done" && "proof_link" in t ? { ...(f.has("proof_link") ? { proof_link: link || null } : {}), ...(f.has("proof_note") ? { proof_note: note || null } : {}) } : {};
+  const wsRow = t.workspaces as { name: string; owner_id: string; require_proof?: boolean } | null;
+  if (to === "done" && wsRow?.require_proof && !link && !note && !t.proof_link && !t.proof_note) {
+    redirect(`/tim/${t.workspace_id}/tugas/${id}?selesai=1#selesai`);
+  }
   const patch =
     to === "done"
-      ? { status: "done" }
+      ? { status: "done", ...proof }
       : to === "start"
         ? { status: "open", started_at: new Date().toISOString() }
         : to === "open"
@@ -254,15 +280,15 @@ export async function setTaskStatus(f: FormData) {
   if (!patch) return;
   const { error } = await supabase.from("ws_tasks").update(patch).eq("id", id);
   if (!error && (to === "done" || to === "tomorrow")) {
-    const w = t.workspaces as unknown as { name: string; owner_id: string } | null;
+    const w = wsRow;
     const { data: p } = await supabase.from("profiles").select("full_name").eq("id", uid).maybeSingle();
     const who = p?.full_name ?? "Anggota";
     await notifyTeam(
       t.workspace_id,
-      [t.created_by, w?.owner_id],
+      [t.created_by, w?.owner_id, t.assignee_id, ...((t.helpers as string[] | undefined) ?? [])],
       uid,
       to === "done" ? `✅ Tugas selesai · ${w?.name ?? "Tim"}` : `⏭️ Dilanjut besok · ${w?.name ?? "Tim"}`,
-      `${who}: ${t.title}`,
+      `${who}: ${t.title}${to === "done" && (link || note) ? ` · Bukti: ${(note || link).slice(0, 80)}` : ""}`,
       `/tim/${t.workspace_id}/tugas/${id}`,
     );
   }
@@ -291,13 +317,16 @@ export async function addComment(_: FormState, f: FormData): Promise<FormState> 
   const { error } = await supabase.from("ws_comments").insert({ workspace_id: ws, task_id: task, user_id: uid, body });
   if (error) return { error: dbError(error, "Gagal mengirim komentar.") };
   const [{ data: t }, { data: others }, { data: p }] = await Promise.all([
-    supabase.from("ws_tasks").select("title, assignee_id, created_by").eq("id", task).maybeSingle(),
+    supabase.from("ws_tasks").select("*").eq("id", task).maybeSingle(),
     supabase.from("ws_comments").select("user_id").eq("task_id", task).limit(50),
     supabase.from("profiles").select("full_name").eq("id", uid).maybeSingle(),
   ]);
   if (t) {
-    const to = [t.assignee_id, t.created_by, ...((others ?? []) as { user_id: string }[]).map((o) => o.user_id)];
-    await notifyTeam(ws, to, uid, `💬 ${p?.full_name ?? "Anggota"} berkomentar`, `${t.title}: ${body.slice(0, 120)}`, `/tim/${ws}/tugas/${task}`);
+    const name = p?.full_name ?? "Anggota";
+    const tagged = (await mentioned(supabase, ws, body)).filter((x) => x !== uid);
+    const to = [t.assignee_id, ...((t.helpers as string[] | undefined) ?? []), t.created_by, ...((others ?? []) as { user_id: string }[]).map((o) => o.user_id)].filter((x) => x && !tagged.includes(x));
+    if (tagged.length) await notifyTeam(ws, tagged, uid, `🔔 ${name} menyebut Anda`, `${t.title}: ${body.slice(0, 120)}`, `/tim/${ws}/tugas/${task}`);
+    if (to.length) await notifyTeam(ws, to, uid, `💬 ${name} berkomentar`, `${t.title}: ${body.slice(0, 120)}`, `/tim/${ws}/tugas/${task}`);
   }
   revalidatePath(`/tim/${ws}/tugas/${task}`);
   revalidatePath(`/tim/${ws}`);
@@ -504,6 +533,7 @@ export async function toggleItem(f: FormData) {
   await supabase.from("ws_task_items").update({ done: f.get("done") !== "1" }).eq("id", str(f, "id"));
   revalidatePath(`/tim/${ws}/tugas/${task}`);
   revalidatePath(`/tim/${ws}`);
+  revalidatePath("/today");
 }
 
 export async function deleteItem(f: FormData) {
@@ -528,7 +558,10 @@ export async function postMessage(_: FormState, f: FormData): Promise<FormState>
     supabase.from("profiles").select("full_name").eq("id", uid).maybeSingle(),
     supabase.from("workspace_members").select("user_id").eq("workspace_id", ws).eq("status", "active"),
   ]);
-  await notifyTeam(ws, ((m ?? []) as { user_id: string }[]).map((x) => x.user_id), uid, `💬 ${w?.name ?? "Tim"}`, `${p?.full_name ?? "Anggota"}: ${body.slice(0, 140)}`, `/tim/${ws}?tab=diskusi`);
+  const tagged = (await mentioned(supabase, ws, body)).filter((x) => x !== uid);
+  if (tagged.length) await notifyTeam(ws, tagged, uid, `🔔 ${p?.full_name ?? "Anggota"} menyebut Anda · ${w?.name ?? "Tim"}`, body.slice(0, 140), `/tim/${ws}?tab=diskusi`);
+  const rest = ((m ?? []) as { user_id: string }[]).map((x) => x.user_id).filter((x) => !tagged.includes(x));
+  if (rest.length) await notifyTeam(ws, rest, uid, `💬 ${w?.name ?? "Tim"}`, `${p?.full_name ?? "Anggota"}: ${body.slice(0, 140)}`, `/tim/${ws}?tab=diskusi`);
   revalidatePath(`/tim/${ws}`);
   return { message: "ok" };
 }
@@ -539,4 +572,27 @@ export async function deleteMessage(f: FormData) {
   const { supabase } = await me();
   await supabase.from("ws_messages").delete().eq("id", str(f, "id"));
   revalidatePath(`/tim/${ws}`);
+}
+
+/** CC satu langkah checklist ke anggota lain: muncul di Laporan Harian-nya pada tanggal itu (SQL 028). */
+export async function ccItem(f: FormData) {
+  if (isDemoMode) return;
+  const ws = str(f, "ws");
+  const task = str(f, "task");
+  const user = str(f, "user");
+  const date = str(f, "date");
+  const { supabase, uid } = await me();
+  const clear = !isId(user);
+  const { data: it, error } = await supabase
+    .from("ws_task_items")
+    .update(clear ? { assignee_id: null, plan_date: null } : { assignee_id: user, plan_date: isDate(date) ? date : todayJakarta() })
+    .eq("id", str(f, "id"))
+    .select("title")
+    .maybeSingle();
+  if (!error && it && !clear && user !== uid) {
+    const { data: t } = await supabase.from("ws_tasks").select("title").eq("id", task).maybeSingle();
+    await notifyTeam(ws, [user], uid, "📋 Langkah untuk Anda", `${it.title} (dari tugas: ${t?.title ?? "Tim"})`, `/tim/${ws}/tugas/${task}`);
+  }
+  revalidatePath(`/tim/${ws}/tugas/${task}`);
+  revalidatePath("/today");
 }
