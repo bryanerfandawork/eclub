@@ -6,7 +6,8 @@
 import type { Factor } from "./disc/score";
 
 export type IncomeKind = "active" | "massive" | "passive";
-export type Source = { kind: IncomeKind; name: string; amount: number };
+/** Satu kesibukan + penghasilannya. amount = rata-rata per bulan (untuk penghasilan tidak tetap: rata-rata dari months). */
+export type Source = { kind: IncomeKind; name: string; amount: number; role?: string; irregular?: boolean; months?: number[] };
 export type Expense = { name: string; amount: number };
 export type Plan = { name: string; target: number };
 export type Situation = { role: string; detail: string };
@@ -41,6 +42,47 @@ export const EMPTY_PROFILE: IncomeProfile = {
 
 /** Kesibukan utama saat ini (langkah 2: Kondisi Saat Ini). */
 export const ROLES = ["Pelajar / mahasiswa", "Karyawan", "Freelancer", "Pemilik usaha", "Karyawan + usaha sampingan", "Ibu / bapak rumah tangga", "Sedang mencari kerja", "Lainnya"];
+
+/** Pilihan jenis kesibukan per baris (Kondisi Saat Ini), dengan jenis income bawaannya. */
+export const SOURCE_ROLES: [role: string, kind: IncomeKind][] = [
+  ["Karyawan", "active"],
+  ["Pemilik usaha", "active"],
+  ["Freelancer", "active"],
+  ["Usaha sampingan / side hustle", "massive"],
+  ["Kerja lepas tidak tetap (MC, serabutan, dll.)", "active"],
+  ["Pelajar / mahasiswa", "active"],
+  ["Ibu / bapak rumah tangga", "active"],
+  ["Sedang mencari kerja", "active"],
+  ["Investasi / sewa aset", "passive"],
+  ["Lainnya", "active"],
+];
+/** Kesibukan yang wajar belum berpenghasilan, jadi tetap dianggap lengkap meski Rp0. */
+export const NO_INCOME_ROLES = ["Pelajar / mahasiswa", "Ibu / bapak rumah tangga", "Sedang mencari kerja"];
+export const sourcesFilled = (xs: Source[]) => xs.some((x) => x.amount > 0 || (!!x.role && NO_INCOME_ROLES.includes(x.role)));
+export const avgMonths = (ms: number[]) => (ms.length ? Math.round(ms.reduce((a, b) => a + (Number(b) || 0), 0) / ms.length) : 0);
+
+/** Data lama (kesibukan & penghasilan terpisah) -> baris gabungan. */
+export function toRows(situation: Situation, sources: Source[]): Source[] {
+  const guess = (name: string) => {
+    const n = name.toLowerCase();
+    if (/gaji|honor|kantor/.test(n)) return "Karyawan";
+    if (/uang saku/.test(n)) return "Pelajar / mahasiswa";
+    if (/jualan|usaha|toko/.test(n)) return "Pemilik usaha";
+    if (/freelance/.test(n)) return "Freelancer";
+    if (/side hustle|sampingan/.test(n)) return "Usaha sampingan / side hustle";
+    if (/investasi|sewa|dividen/.test(n)) return "Investasi / sewa aset";
+    return "";
+  };
+  const known = (r: string) => (SOURCE_ROLES.some(([x]) => x === r) ? r : r === "Karyawan + usaha sampingan" ? "Karyawan" : r ? "Lainnya" : "");
+  if (!sources.length) return situation.role ? [{ kind: "active", name: situation.detail, amount: 0, role: known(situation.role) }] : [];
+  return sources.map((x, i) => ({ ...x, role: x.role || guess(x.name) || (i === 0 ? known(situation.role) : "") || "Lainnya" }));
+}
+
+/** Kesibukan utama (untuk kompatibilitas data lama) diturunkan dari baris pertama. */
+export function situationOf(rows: Source[]): Situation {
+  const roles = rows.map((r) => r.role).filter(Boolean) as string[];
+  return { role: (roles[0] ?? "").slice(0, 40), detail: rows.map((r) => r.name).filter(Boolean).join("; ").slice(0, 160) };
+}
 
 /** Personal SWOT versi pilihan cepat (langkah 3: Potensi Diri). */
 export const SWOT: Record<keyof Swot, { title: string; q: string; tone: string; items: string[] }> = {
@@ -105,12 +147,13 @@ export const CHIPS: Record<"interests" | "hobbies" | "talents" | "passions", { t
 export const DEFAULT_EXPENSES = ["Makan & minum", "Transportasi", "Listrik & air", "Pulsa & internet", "Tempat tinggal (sewa/cicilan)", "Pendidikan", "Kesehatan", "Sedekah / zakat", "Hiburan"];
 
 /** Artikel gratis untuk yang bingung, per bagian isian. */
-export const HELP: Record<"self" | "sources" | "expenses" | "plans" | "dreams", { slug: string; label: string }> = {
+export const HELP: Record<"self" | "sources" | "expenses" | "plans" | "dreams" | "dana", { slug: string; label: string }> = {
   self: { slug: "menemukan-minat-bakat-passion", label: "Bingung bedanya minat, hobi, bakat, dan passion?" },
   sources: { slug: "active-massive-passive-income", label: "Bingung bedanya active, massive, dan passive income?" },
   expenses: { slug: "mencatat-pengeluaran-bulanan", label: "Bingung cara menghitung pengeluaran bulanan?" },
   plans: { slug: "memulai-massive-income-side-hustle", label: "Bingung mau mulai massive income dari mana?" },
   dreams: { slug: "berapa-harus-menabung-untuk-mimpi", label: "Berapa yang harus ditabung untuk mimpi?" },
+  dana: { slug: "cara-menentukan-kebutuhan-dana-mimpi", label: "Bingung menentukan kebutuhan dana mimpi?" },
 };
 
 export type Idea = { id: string; kind: IncomeKind; name: string; how: string; disc: Factor[]; tags: string[]; capital: "rendah" | "sedang" | "tinggi" };
@@ -251,7 +294,21 @@ export function cleanProfile(raw: unknown): IncomeProfile {
     hobbies: strs(r.hobbies),
     talents: strs(r.talents),
     passions: strs(r.passions),
-    sources: (Array.isArray(r.sources) ? r.sources : []).slice(0, 15).map((s) => ({ kind: kinds.includes(s?.kind as IncomeKind) ? (s.kind as IncomeKind) : "active", name: String(s?.name ?? "").trim().slice(0, 60), amount: num(s?.amount) })).filter((s) => s.name || s.amount),
+    sources: (Array.isArray(r.sources) ? r.sources : [])
+      .slice(0, 15)
+      .map((s) => {
+        const irregular = !!s?.irregular;
+        const months = irregular && Array.isArray(s?.months) ? s.months.slice(0, 6).map(num) : undefined;
+        const row: Source = { kind: kinds.includes(s?.kind as IncomeKind) ? (s.kind as IncomeKind) : "active", name: String(s?.name ?? "").trim().slice(0, 60), amount: months?.length ? avgMonths(months) : num(s?.amount) };
+        const role = String(s?.role ?? "").trim().slice(0, 60);
+        if (role) row.role = role;
+        if (irregular) {
+          row.irregular = true;
+          if (months?.length) row.months = months;
+        }
+        return row;
+      })
+      .filter((s) => s.name || s.amount || s.role),
     expenses: (Array.isArray(r.expenses) ? r.expenses : []).slice(0, 30).map((e) => ({ name: String(e?.name ?? "").trim().slice(0, 60), amount: num(e?.amount) })).filter((e) => e.name),
     plans: (Array.isArray(r.plans) ? r.plans : []).slice(0, 10).map((x) => ({ name: String(x?.name ?? "").trim().slice(0, 80), target: num(x?.target) })).filter((x) => x.name || x.target),
   };

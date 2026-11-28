@@ -5,7 +5,7 @@ import { getArticle, listArticles } from "@/lib/articles";
 import { ArticleBody } from "@/components/article-body";
 import { HELP } from "@/lib/income";
 
-const FILL: Record<string, string> = { self: "/potensi#minat", sources: "/income#penghasilan", expenses: "/income#pengeluaran", plans: "/rencana", dreams: "/rencana#mimpi" };
+const FILL: Record<string, string> = { self: "/potensi#minat", sources: "/income#penghasilan", expenses: "/income#pengeluaran", plans: "/rencana", dreams: "/rencana#mimpi", dana: "/goals/baru" };
 
 export const dynamic = "force-dynamic";
 

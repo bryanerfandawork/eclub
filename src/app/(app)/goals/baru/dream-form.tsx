@@ -1,13 +1,15 @@
 "use client";
 
 import { useActionState, useState } from "react";
-import { Lightbulb } from "lucide-react";
+import Link from "next/link";
+import { HelpCircle, Lightbulb } from "lucide-react";
 import { createDream } from "@/app/actions/dreams";
 import { MoneyInput } from "@/components/money-input";
 import { SubmitButton } from "@/components/submit-button";
 import { FormMessage } from "@/components/ui";
 import { DREAM_CATEGORIES } from "@/lib/types";
 import { monthsUntil, rupiah } from "@/lib/format";
+import { HELP } from "@/lib/income";
 
 export function DreamForm() {
   const [state, action] = useActionState(createDream, undefined);
@@ -41,13 +43,31 @@ export function DreamForm() {
           <label className="label" htmlFor="why">Mengapa mimpi ini penting bagi Anda?</label>
           <textarea id="why" name="why" rows={3} className="input resize-none" placeholder="Alasan yang kuat membuat Anda tetap bergerak saat sulit." />
         </div>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div>
-            <label className="label">Kebutuhan dana <span className="font-normal text-muted">(opsional)</span></label>
-            <MoneyInput name="target_amount" placeholder="0" onValue={setTarget} />
-          </div>
-          <div>
-            <label className="label">Sudah terkumpul</label>
+        <div className="rounded-2xl border border-line bg-paper/60 p-4">
+          <label className="label" htmlFor="target_amount">
+            Kebutuhan dana <span className="font-normal text-danger">*</span>
+          </label>
+          <p className="-mt-1 mb-2 text-xs leading-relaxed text-muted">
+            Total uang yang dibutuhkan agar mimpi ini terwujud. Tidak perlu persis, perkiraan dari harga saat ini sudah cukup.
+          </p>
+          <MoneyInput id="target_amount" name="target_amount" placeholder="Misal: 450.000.000" onValue={setTarget} required />
+          <details className="group mt-2 text-xs leading-relaxed text-ink">
+            <summary className="cursor-pointer list-none font-semibold text-brand [&::-webkit-details-marker]:hidden">
+              <HelpCircle className="mr-1 inline h-3.5 w-3.5" /> Cara cepat menentukan angkanya
+            </summary>
+            <ul className="mt-2 space-y-1.5 pl-1">
+              <li>🏠 <b>Barang / rumah / kendaraan:</b> cek harga sekarang di marketplace atau iklan properti, lalu ambil harga rata-rata 3 pilihan.</li>
+              <li>🎓 <b>Biaya rutin (sekolah, umroh, liburan):</b> biaya per tahun × jumlah tahun. Misal kuliah Rp20 juta × 4 tahun = Rp80 juta.</li>
+              <li>🏪 <b>Usaha:</b> modal awal (alat, tempat, stok) + biaya jalan 3 bulan pertama.</li>
+              <li>📈 <b>Target lebih dari 2 tahun lagi:</b> tambahkan sekitar 5% per tahun untuk kenaikan harga.</li>
+              <li>💭 <b>Mimpi tanpa uang</b> (misal lebih sabar): isi biaya pendukungnya, seperti buku, kelas, atau mentor.</li>
+            </ul>
+            <Link href={`/artikel/${HELP.dana.slug}`} target="_blank" className="mt-2 inline-flex items-center gap-1 font-semibold text-brand hover:underline">
+              Baca panduan lengkap menentukan dana →
+            </Link>
+          </details>
+          <div className="mt-4">
+            <label className="label">Sudah terkumpul <span className="font-normal text-muted">(boleh 0)</span></label>
             <MoneyInput name="saved_amount" placeholder="0" onValue={setSaved} />
           </div>
         </div>

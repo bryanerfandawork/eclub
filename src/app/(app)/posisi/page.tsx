@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { ArrowRight, BookOpen, Flame, MapPin, MessageCircle, RotateCcw } from "lucide-react";
+import { ArrowRight, BookOpen, ChevronDown, Flame, MapPin, MessageCircle, RotateCcw } from "lucide-react";
+import { StepNext } from "@/components/step-bar";
 import { PageHeader } from "@/components/ui";
 import { getAssessmentResults } from "@/lib/data";
 import { listCourses } from "@/lib/lms";
@@ -32,8 +33,8 @@ export default async function PlacementPage({ searchParams }: { searchParams: Pr
   return (
     <>
       <PageHeader eyebrow="Hasil Cek Posisi" title="Inilah posisi Anda sekarang" desc="Setiap orang punya titik awal yang berbeda. Yang penting, Anda tahu langkah berikutnya." />
-      <div className="grid gap-5 lg:grid-cols-5 lg:gap-6">
-        <section className="relative overflow-hidden rounded-3xl bg-brand p-6 text-white shadow-lift lg:col-span-3 lg:p-8">
+      <div className="mx-auto max-w-2xl space-y-5">
+        <section className="relative overflow-hidden rounded-3xl bg-brand p-6 text-white shadow-lift lg:p-8">
           <div className="pointer-events-none absolute -top-20 -right-16 h-64 w-64 rounded-full bg-gold/20 blur-3xl" />
           <p className="eyebrow flex items-center gap-1.5">
             <MapPin className="h-3.5 w-3.5" /> Anda di sini
@@ -68,8 +69,20 @@ export default async function PlacementPage({ searchParams }: { searchParams: Pr
           </div>
         </section>
 
-        <aside className="space-y-5 lg:col-span-2">
-          <section className="card p-6">
+        {/* Fokus utama: selesaikan setup 5 langkah dulu. */}
+        <StepNext inline />
+
+        {/* Untuk yang penasaran: rekomendasi belajar, disembunyikan dalam lipatan. */}
+        <details className="group card overflow-hidden">
+          <summary className="flex cursor-pointer list-none items-center justify-between gap-3 p-5 [&::-webkit-details-marker]:hidden">
+            <span>
+              <span className="block font-bold text-heading">Mau langsung belajar?</span>
+              <span className="mt-0.5 block text-sm text-muted">Lihat kelas & langkah yang cocok untuk posisi Anda. Setup bisa dilanjutkan kapan saja.</span>
+            </span>
+            <ChevronDown className="h-5 w-5 shrink-0 text-muted transition group-open:rotate-180" />
+          </summary>
+          <div className="space-y-5 border-t border-line p-5">
+          <section>
             <p className="eyebrow">Langkah berikutnya</p>
             <p className="mt-2 leading-relaxed text-ink">{copy.next}</p>
             <div className="mt-5 space-y-2">
@@ -107,7 +120,7 @@ export default async function PlacementPage({ searchParams }: { searchParams: Pr
             </div>
           </section>
           {stepCourses.length > 0 && (
-            <section className="card p-5">
+            <section>
               <p className="text-sm font-bold text-heading">Kelas yang cocok untuk Anda</p>
               <ul className="mt-3 divide-y divide-line">
                 {stepCourses.map((c) => (
@@ -120,10 +133,11 @@ export default async function PlacementPage({ searchParams }: { searchParams: Pr
               </ul>
             </section>
           )}
+          </div>
+        </details>
           <Link href="/posisi?ulang=1" className="flex items-center justify-center gap-2 text-sm font-medium text-muted hover:text-brand">
             <RotateCcw className="h-4 w-4" /> Ulangi Cek Posisi
           </Link>
-        </aside>
       </div>
     </>
   );
