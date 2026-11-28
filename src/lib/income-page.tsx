@@ -6,6 +6,7 @@ import type { Factor } from "@/lib/disc/score";
 import { DEFAULT_EXPENSES, EMPTY_PROFILE, recommend } from "@/lib/income";
 import { getFinanceHint, getIncomeProfile } from "@/lib/income-server";
 import { getLimit } from "@/lib/plans";
+import { isEmergency } from "@/lib/types";
 
 const GENERIC = ["Reseller / dropship produk", "Makanan beku / katering online", "Jasa kelola media sosial", "Kelas online kecil", "Produk digital (template, ebook)"];
 
@@ -30,6 +31,10 @@ export async function IncomePage({ mode }: { mode: "kondisi" | "rencana" }) {
         isNew={!saved}
         dreams={dreams.map((d) => ({ id: d.id, title: d.title, target_amount: d.target_amount, saved_amount: d.saved_amount, target_date: d.target_date, status: d.status }))}
         hint={hint}
+        emergency={(() => {
+          const e = dreams.find(isEmergency);
+          return e ? { id: e.id, target: e.target_amount ?? 0, saved: e.saved_amount } : null;
+        })()}
         ideas={ideas}
       />
     </>

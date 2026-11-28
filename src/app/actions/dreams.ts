@@ -6,6 +6,7 @@ import { isDemoMode } from "@/lib/supabase/config";
 import { createClient } from "@/lib/supabase/server";
 import type { FormState } from "./auth";
 import { getLimit, UPGRADE_HINT } from "@/lib/plans";
+import { EMERGENCY_CAT } from "@/lib/types";
 
 const DEMO_MSG = "Mode demo: data belum bisa disimpan sampai database disambungkan.";
 
@@ -20,6 +21,40 @@ function revalidateDreams(id?: string) {
   if (id) revalidatePath(`/goals/${id}`);
 }
 
+/** Jadikan dana darurat target tabungan (atau perbarui targetnya). Tidak dihitung batas mimpi. */
+export async function saveEmergencyFund(target: number): Promise<{ ok?: boolean; id?: string; error?: string }> {
+  if (isDemoMode) return { error: DEMO_MSG };
+  const amount = Math.round(Number(target) || 0);
+  if (amount <= 0 || amount > 100_000_000_000) return { error: "Isi pengeluaran bulanan dulu agar targetnya bisa dihitung." };
+  const supabase = await createClient();
+  const { data: found } = await supabase.from("dreams").select("id").eq("category", EMERGENCY_CAT).limit(1).maybeSingle();
+  if (found) {
+    const { error } = await supabase.from("dreams").update({ target_amount: amount }).eq("id", found.id);
+    if (error) return { error: "Gagal memperbarui target. Coba lagi." };
+    revalidateDreams(found.id);
+    revalidatePath("/income");
+    return { ok: true, id: found.id };
+  }
+  const d = new Date(Date.now() + 7 * 3600_000);
+  d.setUTCMonth(d.getUTCMonth() + 12);
+  const { data, error } = await supabase
+    .from("dreams")
+    .insert({
+      title: "Dana darurat",
+      category: EMERGENCY_CAT,
+      why: "Bantalan saat ada kejadian tak terduga (sakit, kehilangan pekerjaan, bulan sepi), supaya mimpi lain tidak ikut terganggu.",
+      target_amount: amount,
+      saved_amount: 0,
+      target_date: d.toISOString().slice(0, 10),
+    })
+    .select("id")
+    .single();
+  if (error || !data) return { error: "Gagal membuat target dana darurat. Coba lagi." };
+  revalidateDreams(data.id);
+  revalidatePath("/income");
+  return { ok: true, id: data.id };
+}
+
 export async function createDream(_: FormState, formData: FormData): Promise<FormState> {
   if (isDemoMode) return { error: DEMO_MSG };
   const title = String(formData.get("title") ?? "").trim();
@@ -28,7 +63,7 @@ export async function createDream(_: FormState, formData: FormData): Promise<For
 
   const supabase = await createClient();
   const limit = await getLimit("dreams");
-  const { count } = await supabase.from("dreams").select("id", { count: "exact", head: true });
+  const { count } = await supabase.from("dreams").select("id", { count: "exact", head: true }).neq("category", EMERGENCY_CAT);
   if (limit != null && (count ?? 0) >= limit) return { error: `Paket Anda bisa menyimpan ${limit} mimpi. ${UPGRADE_HINT}` };
   const isFirst = (count ?? 0) === 0;
   const { data, error } = await supabase

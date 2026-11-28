@@ -7,7 +7,7 @@ import type { Factor } from "./disc/score";
 
 export type IncomeKind = "active" | "massive" | "passive";
 /** Satu kesibukan + penghasilannya. amount = rata-rata per bulan (untuk penghasilan tidak tetap: rata-rata dari months). */
-export type Source = { kind: IncomeKind; name: string; amount: number; role?: string; irregular?: boolean; months?: number[] };
+export type Source = { kind: IncomeKind; name: string; amount: number; role?: string; irregular?: boolean; months?: number[]; monthsAt?: string };
 export type Expense = { name: string; amount: number };
 export type Plan = { name: string; target: number };
 export type Situation = { role: string; detail: string };
@@ -59,6 +59,32 @@ export const SOURCE_ROLES: [role: string, kind: IncomeKind][] = [
 /** Kesibukan yang wajar belum berpenghasilan, jadi tetap dianggap lengkap meski Rp0. */
 export const NO_INCOME_ROLES = ["Pelajar / mahasiswa", "Ibu / bapak rumah tangga", "Sedang mencari kerja"];
 export const sourcesFilled = (xs: Source[]) => xs.some((x) => x.amount > 0 || (!!x.role && NO_INCOME_ROLES.includes(x.role)));
+/** Bulan sekarang "YYYY-MM" (WIB). months[0] = hasil bulan sebelum monthsAt. */
+export const ymNow = (d = new Date()) => new Date(d.getTime() + 7 * 3600_000).toISOString().slice(0, 7);
+export const ymShift = (ym: string, n: number) => {
+  const [y, m] = ym.split("-").map(Number);
+  const t = new Date(Date.UTC(y, m - 1 + n, 1));
+  return t.toISOString().slice(0, 7);
+};
+export const ymDiff = (a: string, b: string) => {
+  const [ya, ma] = a.split("-").map(Number);
+  const [yb, mb] = b.split("-").map(Number);
+  return (ya - yb) * 12 + (ma - mb);
+};
+const BULAN = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
+export const ymName = (ym: string) => BULAN[Number(ym.slice(5, 7)) - 1] ?? ym;
+/** Penghasilan aman: bulan terkecil untuk penghasilan tidak tetap. */
+export const safeAmount = (x: Source) => (x.irregular && x.months?.length ? Math.min(...x.months) : x.amount);
+
+/** Cara membuat penghasilan tidak tetap jadi lebih rutin. */
+export const STEADY_TIPS = [
+  "Tawarkan paket langganan bulanan. Misal MC: paket 4 acara per bulan untuk satu gedung atau WO dengan harga khusus.",
+  "Cari 2–3 klien tetap yang rutin butuh jasa Anda, lalu buat kesepakatan jadwal tetap.",
+  "Minta uang muka (DP) saat booking, supaya uang masuk lebih awal dan jadwal terkunci.",
+  "Saat bulan ramai, sisihkan kelebihannya ke kantong 'bulan sepi'. Bulan sepi, ambil dari situ seperti gaji.",
+  "Tambahkan satu sumber kecil yang rutin, seperti mengajar kelas atau jualan produk, agar ada penghasilan dasar tiap bulan.",
+];
+
 export const avgMonths = (ms: number[]) => (ms.length ? Math.round(ms.reduce((a, b) => a + (Number(b) || 0), 0) / ms.length) : 0);
 
 /** Data lama (kesibukan & penghasilan terpisah) -> baris gabungan. */
@@ -241,6 +267,10 @@ export function summarize(p: IncomeProfile, dreams: DreamLite[], today = new Dat
   const income = active + massive + passive;
   const expense = sum(p.expenses);
   const surplus = income - expense;
+  // Penghasilan tidak tetap: hitungan mimpi memakai bulan terkecil supaya aman.
+  const irregular = p.sources.some((x) => x.irregular && (x.months?.length ?? 0) > 0);
+  const safeIncome = p.sources.reduce((a, x) => a + safeAmount(x), 0);
+  const safeSurplus = safeIncome - expense;
   const saveRate = income > 0 ? Math.round((surplus / income) * 100) : 0;
   const planned = p.plans.reduce((s, x) => s + (Number(x.target) || 0), 0);
 
@@ -256,10 +286,10 @@ export function summarize(p: IncomeProfile, dreams: DreamLite[], today = new Dat
       return { id: d.id, title: d.title, left, months, perMonth: months ? Math.ceil(left / months) : 0 };
     });
   const need = dreamRows.reduce((s, d) => s + d.perMonth, 0);
-  const gap = Math.max(0, need - Math.max(surplus, 0));
+  const gap = Math.max(0, need - Math.max(safeSurplus, 0));
   const totalLeft = dreamRows.reduce((s, d) => s + d.left, 0);
-  const monthsNow = surplus > 0 && totalLeft ? Math.ceil(totalLeft / surplus) : null;
-  const monthsWithPlan = surplus + planned > 0 && totalLeft ? Math.ceil(totalLeft / (Math.max(surplus, 0) + planned)) : null;
+  const monthsNow = safeSurplus > 0 && totalLeft ? Math.ceil(totalLeft / safeSurplus) : null;
+  const monthsWithPlan = safeSurplus + planned > 0 && totalLeft ? Math.ceil(totalLeft / (Math.max(safeSurplus, 0) + planned)) : null;
 
   // Posisi income: menentukan fokus saat ini di peta SEF.
   const focus: IncomeKind = passive > 0 ? "passive" : massive > 0 || (surplus > 0 && planned > 0) ? "massive" : "active";
@@ -274,7 +304,7 @@ export function summarize(p: IncomeProfile, dreams: DreamLite[], today = new Dat
             ? { key: "scale", label: "Scale Up: lipatgandakan massive income", sef: "Scale Up", tip: "Anda sudah punya sumber tambahan. Bangun dana darurat, lalu siapkan uang dingin untuk belajar investasi." }
             : { key: "spread", label: "Spread Up: passive income mulai bekerja", sef: "Spread Up", tip: "Uang Anda sudah ikut bekerja. Tambah porsinya secara bertahap dan teruslah belajar." };
 
-  return { active, massive, passive, income, expense, surplus, saveRate, planned, dreamRows, need, gap, monthsNow, monthsWithPlan, focus, stage, emergency: [expense * 3, expense * 6] as const };
+  return { active, massive, passive, income, expense, surplus, saveRate, planned, dreamRows, need, gap, monthsNow, monthsWithPlan, focus, stage, irregular, safeIncome, safeSurplus, emergency: (irregular ? [expense * 6, expense * 12] : [expense * 3, expense * 6]) as readonly [number, number] };
 }
 
 /** Bersihkan input dari form. */
@@ -305,6 +335,7 @@ export function cleanProfile(raw: unknown): IncomeProfile {
         if (irregular) {
           row.irregular = true;
           if (months?.length) row.months = months;
+          if (/^\d{4}-\d{2}$/.test(String(s?.monthsAt ?? ""))) row.monthsAt = String(s.monthsAt);
         }
         return row;
       })

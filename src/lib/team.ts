@@ -98,7 +98,7 @@ export const getTeamState = cache(async (): Promise<TeamState> => {
     supabase.from("profiles").select("username, signup_source").eq("id", user.id).maybeSingle(),
     supabase.from("workspace_members").select("status").eq("user_id", user.id),
     supabase.from("notifications").select("id", { count: "exact", head: true }).eq("user_id", user.id).is("read_at", null),
-    supabase.from("dreams").select("id", { count: "exact", head: true }),
+    supabase.from("dreams").select("id", { count: "exact", head: true }).neq("category", "Dana darurat"),
   ]);
   if (prof.error || mem.error) return EMPTY;
   const rows = (mem.data ?? []) as { status: string }[];

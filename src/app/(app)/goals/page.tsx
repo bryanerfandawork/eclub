@@ -3,6 +3,7 @@ import { CalendarDays, Gem, Plus } from "lucide-react";
 import { PageHeader, ProgressBar } from "@/components/ui";
 import { getDreams } from "@/lib/data";
 import { getLimit } from "@/lib/plans";
+import { isEmergency } from "@/lib/types";
 import { MoreDreams } from "@/components/more-dreams";
 import { compactRupiah, dreamProgress, tanggal } from "@/lib/format";
 
@@ -24,7 +25,7 @@ export default async function GoalsPage() {
           </Link>
         }
       />
-      {dreams.length === 1 && <MoreDreams canAdd={limit == null || limit > 1} />}
+      {dreams.filter((d) => !isEmergency(d)).length === 1 && <MoreDreams canAdd={limit == null || limit > 1} />}
       {dreams.length === 0 ? (
         <div className="card flex flex-col items-center gap-3 px-6 py-16 text-center">
           <div className="grid h-14 w-14 place-items-center rounded-2xl bg-gold-soft text-gold">

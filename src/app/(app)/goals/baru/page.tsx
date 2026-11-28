@@ -4,12 +4,13 @@ import { PageHeader } from "@/components/ui";
 import { DreamForm } from "./dream-form";
 import { getDreams } from "@/lib/data";
 import { getLimit } from "@/lib/plans";
+import { isEmergency } from "@/lib/types";
 
 export const metadata = { title: "Mimpi baru" };
 
 export default async function NewDreamPage() {
   const [dreams, limit] = await Promise.all([getDreams(), getLimit("dreams")]);
-  const full = limit != null && dreams.length >= limit;
+  const full = limit != null && dreams.filter((d) => !isEmergency(d)).length >= limit;
   return (
     <>
       <Link href="/goals" className="mb-4 inline-flex items-center gap-1 text-sm font-medium text-muted hover:text-heading">
