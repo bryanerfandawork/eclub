@@ -24,6 +24,7 @@ export async function createDream(_: FormState, formData: FormData): Promise<For
   if (isDemoMode) return { error: DEMO_MSG };
   const title = String(formData.get("title") ?? "").trim();
   if (!title) return { error: "Tuliskan mimpi Anda terlebih dahulu." };
+  if (!money(formData.get("target_amount"))) return { error: "Isi kebutuhan dana. Perkiraan kasar dari harga saat ini sudah cukup." };
 
   const supabase = await createClient();
   const limit = await getLimit("dreams");

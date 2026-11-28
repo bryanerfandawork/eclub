@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 
-export function MoneyInput({ name, placeholder, defaultValue, onValue }: { name: string; placeholder?: string; defaultValue?: number; onValue?: (n: number) => void }) {
+export function MoneyInput({ name, placeholder, defaultValue, onValue, required, id }: { name: string; placeholder?: string; defaultValue?: number; onValue?: (n: number) => void; required?: boolean; id?: string }) {
   const fmt = (n: number) => (n ? n.toLocaleString("id-ID") : "");
   const [v, setV] = useState(fmt(defaultValue ?? 0));
   return (
@@ -10,6 +10,8 @@ export function MoneyInput({ name, placeholder, defaultValue, onValue }: { name:
       <span className="pointer-events-none absolute top-1/2 left-3.5 -translate-y-1/2 text-sm font-medium text-muted">Rp</span>
       <input
         name={name}
+        id={id}
+        required={required}
         inputMode="numeric"
         className="input pl-10"
         placeholder={placeholder}

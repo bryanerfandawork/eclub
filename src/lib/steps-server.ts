@@ -5,6 +5,7 @@ import { createClient } from "./supabase/server";
 import { getAssessmentResults, getDreams, getProfile, getProgressStats } from "./data";
 import { getDiscResult } from "./disc/server";
 import { getIncomeProfile } from "./income-server";
+import { sourcesFilled } from "./income";
 import { PLACEMENT_KEY } from "./placement";
 
 export const REVIEW_KEY = "weekly_review";
@@ -73,7 +74,7 @@ async function getDoneMapRaw(): Promise<Record<string, boolean>> {
     dream_num: dreams.some((d) => d.target_amount && d.target_date),
     life: !!profile.success_definition,
     placement: !!(placed[0]?.scores as unknown as { placement?: string } | undefined)?.placement,
-    income: !!income && !!income.situation.role && income.sources.some((x) => x.amount > 0) && income.expenses.some((e) => e.amount > 0),
+    income: !!income && !!(income.situation.role || income.sources.some((x) => x.role)) && sourcesFilled(income.sources) && income.expenses.some((e) => e.amount > 0),
     finance,
     gaya: !!disc,
     minat: chips >= 3,

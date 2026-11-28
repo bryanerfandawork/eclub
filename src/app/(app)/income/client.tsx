@@ -2,10 +2,10 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { Check, CheckCircle2, Circle, HelpCircle, Lightbulb, Plus, Sparkles, Target, Trash2, X } from "lucide-react";
+import { CheckCircle2, Circle, HelpCircle, Lightbulb, Plus, Sparkles, Target, Trash2, X } from "lucide-react";
 import { SaveStatus, useAutoSave } from "@/components/autosave";
 import { saveIncome } from "@/app/actions/income";
-import { HELP, ROLES, KIND_DESC, KIND_LABEL, KIND_SEF, summarize, type DreamLite, type IncomeKind, type IncomeProfile } from "@/lib/income";
+import { HELP, KIND_DESC, KIND_LABEL, KIND_SEF, NO_INCOME_ROLES, SOURCE_ROLES, avgMonths, situationOf, sourcesFilled, summarize, toRows, type DreamLite, type IncomeKind, type IncomeProfile } from "@/lib/income";
 
 type Props = {
   initial: IncomeProfile;
@@ -45,7 +45,7 @@ function Money({ value, onChange, placeholder }: { value: number; onChange: (n: 
   );
 }
 
-function Section({ id, n, title, desc, help, children }: { id: string; n: number; title: string; desc: string; help: keyof typeof HELP; children: React.ReactNode }) {
+function Section({ id, n, title, desc, help, children }: { id: string; n: number; title: string; desc: string; help?: keyof typeof HELP; children: React.ReactNode }) {
   return (
     <section id={id} className="card scroll-mt-20 p-5 lg:p-6">
       <div className="flex items-start gap-3">
@@ -53,9 +53,11 @@ function Section({ id, n, title, desc, help, children }: { id: string; n: number
         <div className="min-w-0">
           <h2 className="font-bold text-heading">{title}</h2>
           <p className="mt-0.5 text-sm text-muted">{desc}</p>
-          <div className="mt-1.5">
-            <Help k={help} />
-          </div>
+          {help && (
+            <div className="mt-1.5">
+              <Help k={help} />
+            </div>
+          )}
         </div>
       </div>
       <div className="mt-4">{children}</div>
@@ -64,21 +66,23 @@ function Section({ id, n, title, desc, help, children }: { id: string; n: number
 }
 
 export function IncomeMap({ initial, isNew, dreams, hint, mode, ideas }: Props) {
-  const [situation, setSituation] = useState(initial.situation);
-  const [sources, setSources] = useState(() => withIds(initial.sources));
+  const [sources, setSources] = useState(() => {
+    const rows = toRows(initial.situation, initial.sources);
+    return withIds(rows.length ? rows : [{ kind: "active" as IncomeKind, name: "", amount: 0, role: "" }]);
+  });
   const [expenses, setExpenses] = useState(() => withIds(initial.expenses));
   const [plans, setPlans] = useState(() => withIds(initial.plans));
 
   const profile: IncomeProfile = useMemo(
-    () => ({ ...initial, situation, sources: sources.map(({ _k, ...s }) => s), expenses: expenses.map(({ _k, ...e }) => e), plans: plans.map(({ _k, ...p }) => p) }),
-    [initial, situation, sources, expenses, plans],
+    () => ({ ...initial, situation: situationOf(sources), sources: sources.map(({ _k, ...s }) => s), expenses: expenses.map(({ _k, ...e }) => e), plans: plans.map(({ _k, ...p }) => p) }),
+    [initial, sources, expenses, plans],
   );
   const json = JSON.stringify(profile);
   const saveState = useAutoSave(json, () => saveIncome(JSON.parse(json), "income"));
   const s = useMemo(() => summarize(profile, dreams), [profile, dreams]);
   const need = [
-    { ok: !!situation.role, label: "Pilih kesibukan Anda sekarang", href: "#kondisi" },
-    { ok: profile.sources.some((x) => x.amount > 0), label: "Isi minimal 1 penghasilan beserta jumlahnya", href: "#penghasilan" },
+    { ok: profile.sources.some((x) => x.role), label: "Pilih minimal 1 kesibukan", href: "#kondisi" },
+    { ok: sourcesFilled(profile.sources), label: "Isi penghasilan dari kesibukan itu", href: "#kondisi" },
     { ok: profile.expenses.some((x) => x.amount > 0), label: "Isi pengeluaran bulanan", href: "#pengeluaran" },
   ];
   const complete = need.every((n) => n.ok);
@@ -102,81 +106,121 @@ export function IncomeMap({ initial, isNew, dreams, hint, mode, ideas }: Props) 
 
           {mode === "kondisi" && (
             <>
-          <Section id="kondisi" n={1} title="Kesibukan Anda sekarang" desc="Kerja di mana, usaha apa, atau sedang sibuk apa? Ini titik awal peta Anda." help="sources">
-            <div className="flex flex-wrap gap-1.5">
-              {ROLES.map((r) => (
-                <button
-                  key={r}
-                  type="button"
-                  onClick={() => setSituation((x) => ({ ...x, role: x.role === r ? "" : r }))}
-                  className={`inline-flex items-center gap-1 rounded-full border px-3 py-1.5 text-xs font-medium transition ${situation.role === r ? "border-brand bg-brand text-white" : "border-line bg-white text-ink hover:border-brand/40"}`}
-                >
-                  {situation.role === r && <Check className="h-3 w-3" />} {r}
-                </button>
-              ))}
-            </div>
-            <input
-              value={situation.detail}
-              onChange={(e) => setSituation((x) => ({ ...x, detail: e.target.value }))}
-              maxLength={160}
-              placeholder="Ceritakan singkat. Misal: staf admin di toko bangunan, jualan kue di akhir pekan"
-              className="input mt-3"
-            />
-          </Section>
-
-          <Section id="penghasilan" n={2} title="Penghasilan Anda sekarang" desc="Rata-rata per bulan. Pilih jenisnya: active, massive, atau passive." help="sources">
+          <Section id="kondisi" n={1} title="Kesibukan & penghasilan Anda" desc="Setiap kesibukan, berapa hasilnya per bulan, dan jenisnya. Punya lebih dari satu? Tambahkan saja.">
+            <span id="penghasilan" />
             <div className="space-y-3">
-              {sources.map((x, i) => (
-                <div key={x._k} className="rounded-xl border border-line bg-paper/50 p-3">
-                  <div className="flex gap-2">
+              {sources.map((x, i) => {
+                const set = (patch: Partial<typeof x>) => setSources((xs) => xs.map((y, j) => (j === i ? { ...y, ...patch } : y)));
+                const months = x.months?.length ? x.months : [0, 0, 0];
+                const setMonth = (m: number, n: number) => {
+                  const next = months.map((v, k) => (k === m ? n : v));
+                  set({ months: next, amount: avgMonths(next) });
+                };
+                return (
+                  <div key={x._k} className="rounded-xl border border-line bg-paper/50 p-3">
+                    <div className="flex items-center gap-2">
+                      <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-brand/10 text-[11px] font-bold text-brand">{i + 1}</span>
+                      <select
+                        value={x.role ?? ""}
+                        onChange={(e) => {
+                          const role = e.target.value;
+                          const kind = SOURCE_ROLES.find(([r]) => r === role)?.[1] ?? x.kind;
+                          set({ role, kind });
+                        }}
+                        className="input min-w-0 flex-1 py-2"
+                      >
+                        <option value="">Pilih kesibukan…</option>
+                        {SOURCE_ROLES.map(([r]) => (
+                          <option key={r} value={r}>
+                            {r}
+                          </option>
+                        ))}
+                        {x.role && !SOURCE_ROLES.some(([r]) => r === x.role) && <option value={x.role}>{x.role}</option>}
+                      </select>
+                      <button type="button" onClick={() => setSources((xs) => xs.filter((_, j) => j !== i))} aria-label="Hapus" className="grid h-9 w-9 shrink-0 place-items-center rounded-lg text-muted hover:bg-white hover:text-danger">
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
                     <input
                       value={x.name}
-                      onChange={(e) => setSources((xs) => xs.map((y, j) => (j === i ? { ...y, name: e.target.value } : y)))}
+                      onChange={(e) => set({ name: e.target.value })}
                       maxLength={60}
-                      placeholder="Misal: Gaji, uang saku, jualan online"
-                      className="input min-w-0 flex-1 py-2"
+                      placeholder="Ceritakan singkat. Misal: staf admin di toko bangunan"
+                      className="input mt-2 py-2"
                     />
-                    <button type="button" onClick={() => setSources((xs) => xs.filter((_, j) => j !== i))} aria-label="Hapus" className="grid w-9 shrink-0 place-items-center rounded-lg text-muted hover:bg-white hover:text-danger">
-                      <Trash2 className="h-4 w-4" />
-                    </button>
-                  </div>
-                  <div className="mt-2 grid gap-2 sm:grid-cols-[1fr_180px]">
-                    <div className="flex rounded-lg border border-line bg-white p-0.5">
+
+                    <p className="mt-3 text-xs font-semibold text-heading">Penghasilan dari kesibukan ini</p>
+                    <label className="mt-1.5 flex cursor-pointer items-center gap-2 text-xs text-ink">
+                      <input type="checkbox" checked={!!x.irregular} onChange={(e) => set({ irregular: e.target.checked, months: e.target.checked ? (x.months?.length ? x.months : [x.amount, x.amount, x.amount]) : undefined })} className="h-4 w-4 accent-[var(--color-brand)]" />
+                      Tidak tetap tiap bulan
+                    </label>
+                    {!x.irregular ? (
+                      <div className="mt-2">
+                        <Money value={x.amount} onChange={(n) => set({ amount: n })} placeholder="Per bulan" />
+                        {x.role && NO_INCOME_ROLES.includes(x.role) && !x.amount && <p className="mt-1 text-[11px] text-muted">Belum ada penghasilan? Boleh dikosongkan.</p>}
+                      </div>
+                    ) : (
+                      <div className="mt-2 rounded-lg bg-white p-2.5">
+                        <p className="text-[11px] leading-relaxed text-muted">
+                          Isi hasil beberapa bulan terakhir, termasuk bulan yang kosong (isi 0). EClub menghitung rata-ratanya. Misal jadi MC: Rp0, Rp3.000.000, Rp1.500.000 → rata-rata Rp1.500.000/bulan.
+                        </p>
+                        <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3">
+                          {months.map((v, m) => (
+                            <div key={m}>
+                              <p className="mb-0.5 text-[10px] text-muted">{m === 0 ? "Bulan lalu" : `${m + 1} bulan lalu`}</p>
+                              <Money value={v} onChange={(n) => setMonth(m, n)} />
+                            </div>
+                          ))}
+                        </div>
+                        <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
+                          <div className="flex gap-3 text-[11px] font-semibold">
+                            {months.length < 6 && (
+                              <button type="button" onClick={() => set({ months: [...months, 0], amount: avgMonths([...months, 0]) })} className="text-brand">
+                                + Bulan
+                              </button>
+                            )}
+                            {months.length > 3 && (
+                              <button type="button" onClick={() => set({ months: months.slice(0, -1), amount: avgMonths(months.slice(0, -1)) })} className="text-muted">
+                                − Bulan
+                              </button>
+                            )}
+                          </div>
+                          <p className="text-xs text-ink">
+                            Rata-rata: <b className="tabular-nums">{rp(x.amount)}</b>/bulan
+                          </p>
+                        </div>
+                      </div>
+                    )}
+
+                    <p className="mt-3 text-xs font-semibold text-heading">Jenisnya</p>
+                    <div className="mt-1.5 flex rounded-lg border border-line bg-white p-0.5">
                       {KINDS.map((k) => (
                         <button
                           key={k}
                           type="button"
-                          title={KIND_DESC[k]}
-                          onClick={() => setSources((xs) => xs.map((y, j) => (j === i ? { ...y, kind: k } : y)))}
+                          onClick={() => set({ kind: k })}
                           className={`flex-1 rounded-md px-2 py-1.5 text-xs font-semibold transition ${x.kind === k ? `${KIND_TONE[k]} ${k === "massive" ? "text-heading" : "text-white"}` : "text-muted hover:text-heading"}`}
                         >
                           {KIND_LABEL[k].replace(" income", "")}
                         </button>
                       ))}
                     </div>
-                    <Money value={x.amount} onChange={(n) => setSources((xs) => xs.map((y, j) => (j === i ? { ...y, amount: n } : y)))} />
+                    <p className="mt-1 text-[11px] leading-relaxed text-muted">{KIND_DESC[x.kind]}</p>
                   </div>
-                </div>
-              ))}
-              <div className="flex flex-wrap gap-1.5">
-                {[
-                  ["Gaji / honor", "active"],
-                  ["Uang saku", "active"],
-                  ["Jualan / usaha", "active"],
-                  ["Freelance", "active"],
-                  ["Side hustle", "massive"],
-                  ["Investasi / sewa", "passive"],
-                ].map(([n, k]) => (
-                  <button key={n} type="button" onClick={() => setSources((xs) => [...xs, { _k: ++uid, name: n, kind: k as IncomeKind, amount: 0 }])} className="inline-flex items-center gap-1 rounded-full border border-line bg-white px-3 py-1.5 text-xs font-medium text-ink hover:border-brand/40">
-                    <Plus className="h-3 w-3 text-brand" /> {n}
-                  </button>
-                ))}
-              </div>
+                );
+              })}
+              <button
+                type="button"
+                onClick={() => setSources((xs) => [...xs, { _k: ++uid, name: "", kind: "active" as IncomeKind, amount: 0, role: "" }])}
+                className="flex w-full items-center justify-center gap-1.5 rounded-xl border-2 border-dashed border-line py-3 text-sm font-semibold text-brand hover:border-brand/40"
+              >
+                <Plus className="h-4 w-4" /> {sources.length ? "Tambah kesibukan lain" : "Tambah kesibukan"}
+              </button>
               {hint && hint.income > 0 && <p className="text-xs text-muted">Catatan Keuangan Anda: pemasukan pribadi 30 hari terakhir {rp(hint.income)}.</p>}
             </div>
           </Section>
 
-          <Section id="pengeluaran" n={3} title="Pengeluaran bulanan" desc="Taksiran rata-rata sebulan. Kosongkan yang tidak ada, tambah yang belum tercantum." help="expenses">
+          <Section id="pengeluaran" n={2} title="Pengeluaran bulanan" desc="Taksiran rata-rata sebulan. Kosongkan yang tidak ada, tambah yang belum tercantum." help="expenses">
             {hint && hint.out.length > 0 && (
               <div className="mb-4 rounded-xl border border-gold/40 bg-gold-soft/40 p-3">
                 <p className="text-xs font-semibold text-heading">💡 Dari catatan Keuangan Anda (30 hari terakhir)</p>

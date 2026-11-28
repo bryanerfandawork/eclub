@@ -79,7 +79,7 @@ export function StepBar() {
 }
 
 /** Tombol "Lanjut" lebar penuh di bawah setiap fitur. Terkunci sampai isian wajib di halaman ini selesai. */
-export function StepNext() {
+export function StepNext({ inline = false }: { inline?: boolean } = {}) {
   const path = usePathname();
   const done = useDone();
   const info = done ? nextFrom(path, done) : null;
@@ -95,10 +95,12 @@ export function StepNext() {
     return () => clearInterval(t);
   }, [blockedKey]);
   if (!stepOfPath(path) && path !== "/rekap" && path !== "/evaluasi") return null;
+  // Di hasil Cek Posisi, tombol Lanjut sudah ditaruh tepat di bawah hasil (inline).
+  if (!inline && path === "/posisi") return null;
   if (!info) return null;
   const { blocked, target } = info;
   return (
-    <div className="mt-10 print:hidden">
+    <div className={`${inline ? "" : "mt-10"} print:hidden`}>
       {blocked ? (
         <>
           <button type="button" disabled className="btn w-full cursor-not-allowed bg-line py-4 text-base text-muted">
@@ -114,9 +116,9 @@ export function StepNext() {
         </>
       ) : (
         <>
-          <p className="mb-2 text-center text-xs text-muted">Bagian ini sudah beres 👍</p>
+          <p className="mb-2 text-center text-xs text-muted">{inline ? "Posisi sudah ketemu 👍 Selesaikan setup agar EClub bisa menuntun Anda setiap hari." : "Bagian ini sudah beres 👍"}</p>
           <Link href={target.href} className="btn-primary w-full py-4 text-base">
-            Lanjut: {target.label} <ArrowRight className="h-5 w-5" />
+            {inline ? "Lanjutkan setup" : "Lanjut"}: {target.label} <ArrowRight className="h-5 w-5" />
           </Link>
         </>
       )}
