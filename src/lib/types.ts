@@ -35,6 +35,10 @@ export const SEGMENTS = [
   "Pemilik Bisnis",
 ] as const;
 
+/** Dana darurat disimpan sebagai "mimpi" khusus (kategori ini), agar bisa ditabung lewat kantong seperti mimpi lain. Tidak dihitung batas mimpi. */
+export const EMERGENCY_CAT = "Dana darurat";
+export const isEmergency = (d: { category?: string | null }) => d.category === EMERGENCY_CAT;
+
 export const DREAM_CATEGORIES = [
   "Karier",
   "Bisnis",

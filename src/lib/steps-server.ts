@@ -6,6 +6,7 @@ import { getAssessmentResults, getDreams, getProfile, getProgressStats } from ".
 import { getDiscResult } from "./disc/server";
 import { getIncomeProfile } from "./income-server";
 import { sourcesFilled } from "./income";
+import { isEmergency } from "./types";
 import { PLACEMENT_KEY } from "./placement";
 
 export const REVIEW_KEY = "weekly_review";
@@ -70,8 +71,8 @@ async function getDoneMapRaw(): Promise<Record<string, boolean>> {
   const sw = income?.swot;
   const as = income?.assets;
   const done: Record<string, boolean> = {
-    dream: dreams.length > 0,
-    dream_num: dreams.some((d) => d.target_amount && d.target_date),
+    dream: dreams.some((d) => !isEmergency(d)),
+    dream_num: dreams.some((d) => !isEmergency(d) && d.target_amount && d.target_date),
     life: !!profile.success_definition,
     placement: !!(placed[0]?.scores as unknown as { placement?: string } | undefined)?.placement,
     income: !!income && !!(income.situation.role || income.sources.some((x) => x.role)) && sourcesFilled(income.sources) && income.expenses.some((e) => e.amount > 0),

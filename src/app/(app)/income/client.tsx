@@ -5,6 +5,7 @@ import { useMemo, useState } from "react";
 import { CheckCircle2, Circle, HelpCircle, Lightbulb, Plus, Sparkles, Target, Trash2, X } from "lucide-react";
 import { SaveStatus, useAutoSave } from "@/components/autosave";
 import { saveIncome } from "@/app/actions/income";
+import { saveEmergencyFund } from "@/app/actions/dreams";
 import { HELP, KIND_DESC, KIND_LABEL, KIND_SEF, NO_INCOME_ROLES, SOURCE_ROLES, STEADY_TIPS, avgMonths, safeAmount, ymDiff, ymName, ymNow, ymShift, situationOf, sourcesFilled, summarize, toRows, type DreamLite, type IncomeKind, type IncomeProfile } from "@/lib/income";
 
 type Props = {
@@ -14,6 +15,7 @@ type Props = {
   hint: { out: { label: string; amount: number }[]; income: number } | null;
   mode: "kondisi" | "rencana";
   ideas: string[];
+  emergency?: { id: string; target: number; saved: number } | null;
 };
 
 const rp = (n: number) => (n < 0 ? "-" : "") + "Rp" + Math.abs(Math.round(n)).toLocaleString("id-ID");
@@ -65,6 +67,63 @@ function Section({ id, n, title, desc, help, children }: { id: string; n: number
   );
 }
 
+/** Dana darurat: saran target, lalu bisa dijadikan target tabungan (pakai mekanisme tabungan mimpi & kantong). */
+function EmergencyCard({ range, irregular, fund }: { range: readonly [number, number]; irregular: boolean; fund: { id: string; target: number; saved: number } | null }) {
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
+  const [made, setMade] = useState<{ id: string; target: number } | null>(null);
+  const cur = made ? { id: made.id, target: made.target, saved: fund?.saved ?? 0 } : fund;
+  const go = async (target: number) => {
+    setBusy(true);
+    setErr("");
+    const r = await saveEmergencyFund(target);
+    setBusy(false);
+    if (r.ok && r.id) setMade({ id: r.id, target });
+    else setErr(r.error ?? "Gagal menyimpan.");
+  };
+  const pct = cur && cur.target > 0 ? Math.min(100, Math.round((cur.saved / cur.target) * 100)) : 0;
+  return (
+    <div className="card p-5">
+      <p className="font-bold text-heading">🛟 Dana darurat</p>
+      <p className="mt-1 text-sm leading-relaxed text-ink">
+        Disarankan <b>{rp(range[0])}</b> sampai <b>{rp(range[1])}</b> ({irregular ? "6 sampai 12 bulan pengeluaran, lebih besar karena ada penghasilan tidak tetap" : "3 sampai 6 bulan pengeluaran"}). Ini bantalan saat sakit, kehilangan pekerjaan, atau bulan sepi, supaya tabungan mimpi tidak ikut terpakai.
+      </p>
+      {!cur ? (
+        <>
+          <button type="button" disabled={busy} onClick={() => go(range[0])} className="btn-primary mt-3 w-full">
+            {busy ? "Menyimpan…" : `Jadikan target tabungan (${rp(range[0])})`}
+          </button>
+          <p className="mt-1.5 text-[11px] text-muted">Tidak wajib. Tidak mengurangi jatah mimpi Anda.</p>
+        </>
+      ) : (
+        <>
+          <div className="mt-3 flex items-baseline justify-between text-xs">
+            <span className="text-muted">Terkumpul</span>
+            <span className="font-semibold text-heading tabular-nums">
+              {rp(cur.saved)} / {rp(cur.target)} · {pct}%
+            </span>
+          </div>
+          <div className="mt-1 h-2.5 overflow-hidden rounded-full bg-paper">
+            <div className="h-full rounded-full bg-success" style={{ width: `${pct}%` }} />
+          </div>
+          <p className="mt-2 text-[11px] leading-relaxed text-muted">Menabung lewat Catat → &quot;Tabung untuk mimpi&quot; → pilih Dana darurat, seperti tabungan mimpi lainnya.</p>
+          <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1">
+            <Link href={`/goals/${cur.id}`} className="text-xs font-semibold text-brand hover:underline">
+              Lihat detail →
+            </Link>
+            {cur.target < range[0] && (
+              <button type="button" disabled={busy} onClick={() => go(range[0])} className="text-xs font-semibold text-brand hover:underline">
+                Naikkan target ke {rp(range[0])}
+              </button>
+            )}
+          </div>
+        </>
+      )}
+      {err && <p className="mt-2 text-xs text-danger">{err}</p>}
+    </div>
+  );
+}
+
 /** Bulan baru: minta hasil bulan yang belum diisi, supaya rata-rata tetap segar. */
 function CatchUp({ at, behind, onSave }: { at: string; behind: number; onSave: (vals: number[]) => void }) {
   // vals[0] = bulan paling baru (bulan lalu dari sekarang).
@@ -89,7 +148,7 @@ function CatchUp({ at, behind, onSave }: { at: string; behind: number; onSave: (
   );
 }
 
-export function IncomeMap({ initial, isNew, dreams, hint, mode, ideas }: Props) {
+export function IncomeMap({ initial, isNew, dreams, hint, mode, ideas, emergency }: Props) {
   const [sources, setSources] = useState(() => {
     const rows = toRows(initial.situation, initial.sources);
     return withIds(rows.length ? rows : [{ kind: "active" as IncomeKind, name: "", amount: 0, role: "" }]);
@@ -416,15 +475,13 @@ export function IncomeMap({ initial, isNew, dreams, hint, mode, ideas }: Props) 
                     Pengeluaran terbesar: <b>{topExpense.name || "tanpa nama"}</b>, {Math.round((topExpense.amount / s.expense) * 100)}% dari total. Hemat 10% di sini = {rp(topExpense.amount * 0.1)}/bulan.
                   </li>
                 )}
-                {s.expense > 0 && (
-                  <li>
-                    Dana darurat ideal: <b>{rp(s.emergency[0])}</b> sampai <b>{rp(s.emergency[1])}</b> ({s.irregular ? "6 sampai 12 bulan pengeluaran, lebih besar karena ada penghasilan tidak tetap" : "3 sampai 6 bulan pengeluaran"}). Siapkan ini sebelum passive income.
-                  </li>
-                )}
+
                 {s.passive === 0 && s.massive === 0 && <li>100% penghasilan Anda masih bergantung pada tenaga Anda. Satu massive income kecil sudah mengubah peta ini.</li>}
               </ul>
             </div>
           )}
+
+          {complete && mode === "kondisi" && s.expense > 0 && <EmergencyCard range={s.emergency} irregular={s.irregular} fund={emergency ?? null} />}
 
           {complete && mode === "kondisi" && s.irregular && (
             <div className="card p-5">
