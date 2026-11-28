@@ -43,6 +43,19 @@ export async function GET(request: Request) {
   } catch (e) {
     console.error("push cron", e);
   }
+  // Tanggal 1: pengingat isi hasil bulan lalu untuk yang punya penghasilan tidak tetap (rata-rata tetap segar).
+  if (today.endsWith("-01")) {
+    try {
+      const { data: rows } = await admin.from("income_profiles").select("user_id").contains("sources", [{ irregular: true }]);
+      const ids = [...new Set((rows ?? []).map((r) => r.user_id as string))];
+      for (let i = 0; i < ids.length; i += 200) {
+        const { data: subs } = await admin.from("push_subscriptions").select("id, user_id, endpoint, p256dh, auth").in("user_id", ids.slice(i, i + 200));
+        if (subs?.length) pushed += await sendPushToSubs(admin, subs, { title: "Bulan baru, isi hasil bulan lalu 📅", body: "Berapa hasil kerja lepas Anda bulan lalu? Isi 1 menit supaya hitungan tabungan mimpi tetap akurat.", url: "/income#kondisi", tag: "income-month" });
+      }
+    } catch (e) {
+      console.error("income month push", e);
+    }
+  }
   if (!waConfigured()) return NextResponse.json({ ok: true, pushed, sent: 0 });
   MAX_PER_RUN = Math.min(70, Math.max(1, Number(setting("wa_daily_max")) || 40));
   const renewalDays = String(setting("renewal_days") ?? "7,3,1").split(/[,\s]+/).map(Number).filter((n) => n > 0 && n <= 30);

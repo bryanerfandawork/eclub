@@ -5,7 +5,7 @@ import { useMemo, useState } from "react";
 import { CheckCircle2, Circle, HelpCircle, Lightbulb, Plus, Sparkles, Target, Trash2, X } from "lucide-react";
 import { SaveStatus, useAutoSave } from "@/components/autosave";
 import { saveIncome } from "@/app/actions/income";
-import { HELP, KIND_DESC, KIND_LABEL, KIND_SEF, NO_INCOME_ROLES, SOURCE_ROLES, avgMonths, situationOf, sourcesFilled, summarize, toRows, type DreamLite, type IncomeKind, type IncomeProfile } from "@/lib/income";
+import { HELP, KIND_DESC, KIND_LABEL, KIND_SEF, NO_INCOME_ROLES, SOURCE_ROLES, STEADY_TIPS, avgMonths, safeAmount, ymDiff, ymName, ymNow, ymShift, situationOf, sourcesFilled, summarize, toRows, type DreamLite, type IncomeKind, type IncomeProfile } from "@/lib/income";
 
 type Props = {
   initial: IncomeProfile;
@@ -65,6 +65,30 @@ function Section({ id, n, title, desc, help, children }: { id: string; n: number
   );
 }
 
+/** Bulan baru: minta hasil bulan yang belum diisi, supaya rata-rata tetap segar. */
+function CatchUp({ at, behind, onSave }: { at: string; behind: number; onSave: (vals: number[]) => void }) {
+  // vals[0] = bulan paling baru (bulan lalu dari sekarang).
+  const [vals, setVals] = useState<number[]>(() => Array(behind).fill(0));
+  const now = ymNow();
+  return (
+    <div className="mb-3 rounded-lg border border-gold/50 bg-gold-soft/50 p-2.5">
+      <p className="text-xs font-semibold text-heading">📅 Bulan baru! Isi hasil {behind === 1 ? `bulan ${ymName(ymShift(now, -1))}` : `${behind} bulan terakhir`} (isi 0 kalau kosong)</p>
+      <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3">
+        {vals.map((v, i) => (
+          <div key={i}>
+            <p className="mb-0.5 text-[10px] text-muted">{ymName(ymShift(now, -(i + 1)))}</p>
+            <Money value={v} onChange={(n) => setVals((xs) => xs.map((y, j) => (j === i ? n : y)))} />
+          </div>
+        ))}
+      </div>
+      <button type="button" onClick={() => onSave(vals)} className="btn-primary mt-2 w-full py-2 text-xs">
+        Simpan & hitung ulang rata-rata
+      </button>
+      <p className="mt-1 text-[10px] text-muted">Terakhir diperbarui {ymName(at)}.</p>
+    </div>
+  );
+}
+
 export function IncomeMap({ initial, isNew, dreams, hint, mode, ideas }: Props) {
   const [sources, setSources] = useState(() => {
     const rows = toRows(initial.situation, initial.sources);
@@ -112,10 +136,13 @@ export function IncomeMap({ initial, isNew, dreams, hint, mode, ideas }: Props) 
               {sources.map((x, i) => {
                 const set = (patch: Partial<typeof x>) => setSources((xs) => xs.map((y, j) => (j === i ? { ...y, ...patch } : y)));
                 const months = x.months?.length ? x.months : [0, 0, 0];
+                const at = x.monthsAt ?? ymNow();
+                const behind = x.irregular ? Math.min(6, Math.max(0, ymDiff(ymNow(), at))) : 0;
                 const setMonth = (m: number, n: number) => {
                   const next = months.map((v, k) => (k === m ? n : v));
-                  set({ months: next, amount: avgMonths(next) });
+                  set({ months: next, amount: avgMonths(next), monthsAt: at });
                 };
+                const setMonths = (next: number[]) => set({ months: next, amount: avgMonths(next), monthsAt: at });
                 return (
                   <div key={x._k} className="rounded-xl border border-line bg-paper/50 p-3">
                     <div className="flex items-center gap-2">
@@ -151,7 +178,7 @@ export function IncomeMap({ initial, isNew, dreams, hint, mode, ideas }: Props) 
 
                     <p className="mt-3 text-xs font-semibold text-heading">Penghasilan dari kesibukan ini</p>
                     <label className="mt-1.5 flex cursor-pointer items-center gap-2 text-xs text-ink">
-                      <input type="checkbox" checked={!!x.irregular} onChange={(e) => set({ irregular: e.target.checked, months: e.target.checked ? (x.months?.length ? x.months : [x.amount, x.amount, x.amount]) : undefined })} className="h-4 w-4 accent-[var(--color-brand)]" />
+                      <input type="checkbox" checked={!!x.irregular} onChange={(e) => set({ irregular: e.target.checked, months: e.target.checked ? (x.months?.length ? x.months : [x.amount, x.amount, x.amount]) : undefined, monthsAt: e.target.checked ? (x.monthsAt ?? ymNow()) : undefined })} className="h-4 w-4 accent-[var(--color-brand)]" />
                       Tidak tetap tiap bulan
                     </label>
                     {!x.irregular ? (
@@ -161,13 +188,14 @@ export function IncomeMap({ initial, isNew, dreams, hint, mode, ideas }: Props) 
                       </div>
                     ) : (
                       <div className="mt-2 rounded-lg bg-white p-2.5">
+                        {behind > 0 && <CatchUp key={at} at={at} behind={behind} onSave={(vals) => set({ months: [...vals, ...months].slice(0, 6), amount: avgMonths([...vals, ...months].slice(0, 6)), monthsAt: ymNow() })} />}
                         <p className="text-[11px] leading-relaxed text-muted">
                           Isi hasil beberapa bulan terakhir, termasuk bulan yang kosong (isi 0). EClub menghitung rata-ratanya. Misal jadi MC: Rp0, Rp3.000.000, Rp1.500.000 → rata-rata Rp1.500.000/bulan.
                         </p>
                         <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3">
                           {months.map((v, m) => (
                             <div key={m}>
-                              <p className="mb-0.5 text-[10px] text-muted">{m === 0 ? "Bulan lalu" : `${m + 1} bulan lalu`}</p>
+                              <p className="mb-0.5 text-[10px] text-muted">{ymName(ymShift(at, -(m + 1)))}</p>
                               <Money value={v} onChange={(n) => setMonth(m, n)} />
                             </div>
                           ))}
@@ -175,12 +203,12 @@ export function IncomeMap({ initial, isNew, dreams, hint, mode, ideas }: Props) 
                         <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
                           <div className="flex gap-3 text-[11px] font-semibold">
                             {months.length < 6 && (
-                              <button type="button" onClick={() => set({ months: [...months, 0], amount: avgMonths([...months, 0]) })} className="text-brand">
+                              <button type="button" onClick={() => setMonths([...months, 0])} className="text-brand">
                                 + Bulan
                               </button>
                             )}
                             {months.length > 3 && (
-                              <button type="button" onClick={() => set({ months: months.slice(0, -1), amount: avgMonths(months.slice(0, -1)) })} className="text-muted">
+                              <button type="button" onClick={() => setMonths(months.slice(0, -1))} className="text-muted">
                                 − Bulan
                               </button>
                             )}
@@ -189,6 +217,11 @@ export function IncomeMap({ initial, isNew, dreams, hint, mode, ideas }: Props) 
                             Rata-rata: <b className="tabular-nums">{rp(x.amount)}</b>/bulan
                           </p>
                         </div>
+                        {months.some((v) => v > 0) && (
+                          <p className="mt-1.5 text-[11px] leading-relaxed text-muted">
+                            Untuk tabungan mimpi, EClub memakai bulan terkecil (<b className="text-ink">{rp(safeAmount({ ...x, months }))}</b>) supaya aman. Kalau ternyata lebih, anggap bonus.
+                          </p>
+                        )}
                       </div>
                     )}
 
@@ -385,10 +418,21 @@ export function IncomeMap({ initial, isNew, dreams, hint, mode, ideas }: Props) 
                 )}
                 {s.expense > 0 && (
                   <li>
-                    Dana darurat ideal: <b>{rp(s.emergency[0])}</b> sampai <b>{rp(s.emergency[1])}</b> (3 sampai 6 bulan pengeluaran). Siapkan ini sebelum passive income.
+                    Dana darurat ideal: <b>{rp(s.emergency[0])}</b> sampai <b>{rp(s.emergency[1])}</b> ({s.irregular ? "6 sampai 12 bulan pengeluaran, lebih besar karena ada penghasilan tidak tetap" : "3 sampai 6 bulan pengeluaran"}). Siapkan ini sebelum passive income.
                   </li>
                 )}
                 {s.passive === 0 && s.massive === 0 && <li>100% penghasilan Anda masih bergantung pada tenaga Anda. Satu massive income kecil sudah mengubah peta ini.</li>}
+              </ul>
+            </div>
+          )}
+
+          {complete && mode === "kondisi" && s.irregular && (
+            <div className="card p-5">
+              <p className="font-bold text-heading">Biar penghasilan tidak tetap lebih rutin</p>
+              <ul className="mt-3 list-disc space-y-2 pl-4 text-sm leading-relaxed text-ink">
+                {STEADY_TIPS.map((t) => (
+                  <li key={t}>{t}</li>
+                ))}
               </ul>
             </div>
           )}
@@ -429,6 +473,7 @@ export function IncomeMap({ initial, isNew, dreams, hint, mode, ideas }: Props) 
                       )}
                     </p>
                   )}
+                  {s.irregular && <p className="text-xs text-muted">Hitungan aman: penghasilan tidak tetap dihitung dari bulan terkecil, jadi sisa uang dianggap {rp(s.safeSurplus)}/bulan.</p>}
                   {s.monthsNow && <p>Dengan kondisi sekarang, semua mimpi tercapai dalam ±{s.monthsNow} bulan.</p>}
                   {faster > 0 && (
                     <p className="font-semibold text-success">

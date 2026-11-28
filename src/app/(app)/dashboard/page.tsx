@@ -235,7 +235,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
               <>
                 <b className="mt-1.5 block leading-snug text-heading">{incomeSum.stage.label}</b>
                 <span className="mt-1 block text-sm text-muted">
-                  Sisa {rupiah(incomeSum.surplus)}/bulan{incomeSum.gap > 0 ? ` · kurang ${rupiah(incomeSum.gap)} untuk mimpi` : incomeSum.need > 0 ? " · cukup untuk mimpi ✓" : ""}
+                  Sisa {rupiah(incomeSum.surplus)}/bulan{incomeSum.gap > 0 ? ` · kurang ${rupiah(incomeSum.gap)} untuk mimpi${incomeSum.irregular ? " (hitungan aman)" : ""}` : incomeSum.need > 0 ? " · cukup untuk mimpi ✓" : ""}
                 </span>
               </>
             ) : (
